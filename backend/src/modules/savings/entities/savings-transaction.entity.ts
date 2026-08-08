@@ -15,6 +15,7 @@ export enum TransactionType {
   GOAL_WITHDRAWAL = 'goal_withdrawal',
   INTEREST = 'interest',
   LOAN_SERVICE_FEE = 'loan_service_fee',
+  LOAN_DISBURSEMENT = 'loan_disbursement',
 }
 
 @Entity('savings_transactions')

@@ -3,6 +3,8 @@ import { LoanRepayment } from './loan-repayment.entity';
 
 export enum LoanStatus {
   PENDING = 'pending',
+  APEX_APPROVED = 'apex_approved',
+  ORG_APPROVED = 'org_approved',
   APPROVED = 'approved',
   ACTIVE = 'active',
   COMPLETED = 'completed',
@@ -47,6 +49,48 @@ export class Loan {
 
   @Column({ type: 'uuid', name: 'service_fee_tx_id', nullable: true })
   serviceFeeTxId: string;
+
+  @Column({ type: 'uuid', name: 'apex_approved_by', nullable: true })
+  apexApprovedBy: string;
+
+  @Column({ type: 'timestamp', name: 'apex_approved_at', nullable: true })
+  apexApprovedAt: Date;
+
+  @Column({ type: 'uuid', name: 'org_approved_by', nullable: true })
+  orgApprovedBy: string;
+
+  @Column({ type: 'timestamp', name: 'org_approved_at', nullable: true })
+  orgApprovedAt: Date;
+
+  @Column({ type: 'uuid', name: 'admin_approved_by', nullable: true })
+  adminApprovedBy: string;
+
+  @Column({ type: 'timestamp', name: 'admin_approved_at', nullable: true })
+  adminApprovedAt: Date;
+
+  @Column({ type: 'uuid', name: 'disbursed_by', nullable: true })
+  disbursedBy: string;
+
+  @Column({ type: 'timestamp', name: 'disbursed_at', nullable: true })
+  disbursedAt: Date;
+
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'disbursed_amount',
+    default: 0,
+  })
+  disbursedAmount: number;
+
+  @Column({ type: 'uuid', name: 'rejected_by', nullable: true })
+  rejectedBy: string;
+
+  @Column({ type: 'timestamp', name: 'rejected_at', nullable: true })
+  rejectedAt: Date;
+
+  @Column({ type: 'text', name: 'rejection_reason', nullable: true })
+  rejectionReason: string;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   purpose: string;
