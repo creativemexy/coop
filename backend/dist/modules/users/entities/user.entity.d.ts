@@ -1,0 +1,45 @@
+import { Role } from '../../../common/enums/role.enum';
+import { KycStatus } from '../../../common/enums/status.enum';
+import { ApexOrganization } from '../../apex-organizations/entities/apex-organization.entity';
+import { Organization } from '../../organizations/entities/organization.entity';
+export declare class User {
+    id: string;
+    email: string;
+    emailHash: string | null;
+    passwordHash: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    phoneHash: string | null;
+    role: Role;
+    apexOrgId: string | null;
+    apexOrg: ApexOrganization | null;
+    organizationId: string | null;
+    organization: Organization;
+    kycStatus: KycStatus;
+    kycReference: string;
+    kycImage: string | null;
+    kycVerifiedAt: Date | null;
+    socialProvider: string;
+    socialId: string;
+    registrationFeePaid: boolean;
+    isActive: boolean;
+    mustChangePassword: boolean;
+    notificationPreferences: {
+        email?: boolean;
+        sms?: boolean;
+        inApp?: boolean;
+    };
+    referralCode: string;
+    referredBy: string;
+    referralCount: number;
+    referralEarnings: number;
+    refreshTokenHash: string;
+    failedAttempts: number;
+    lockedUntil: Date;
+    resetToken: string;
+    resetTokenExpiry: Date;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date;
+}

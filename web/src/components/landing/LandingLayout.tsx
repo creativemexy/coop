@@ -1,0 +1,237 @@
+import { useState, useEffect } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { site, navLinks } from '../../pages/landing/site.config'
+import { useBranding } from '../../stores/branding.store'
+import { cn } from '../../lib/utils'
+
+function LandingHeader() {
+  const { branding, load, loaded } = useBranding()
+  const [open, setOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => { if (!loaded) load() }, [loaded, load])
+
+  return (
+    <header
+      className="sticky top-0 z-50 backdrop-blur border-b border-white/10"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--brand-primary) 22%, #081C3A)' }}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={site.name} className="h-9 w-9 rounded-lg object-cover" />
+            ) : (
+              <span
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-white"
+                style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
+              >
+                {site.logoEmoji}
+              </span>
+            )}
+            <span className="text-lg font-bold text-white">{site.name}</span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((l) => (
+              <NavLink
+                key={l.path}
+                to={l.path}
+                className={({ isActive }) =>
+                  cn(
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'text-white'
+                      : 'text-[#D9D9D9] hover:text-white',
+                  )
+                }
+                style={({ isActive }) =>
+                  isActive
+                    ? { background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }
+                    : undefined
+                }
+              >
+                {l.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="hidden md:flex items-center gap-3">
+            <Link to="/login" className="text-sm font-medium text-[#D9D9D9] hover:text-white">
+              Sign In
+            </Link>
+            <Link
+              to="/register"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
+            >
+              Become a Member
+            </Link>
+          </div>
+
+          <button
+            onClick={() => setOpen(!open)}
+            className="md:hidden p-2 text-white"
+            aria-label="Toggle menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {open ? (
+                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+              ) : (
+                <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {open && (
+          <div className="md:hidden pb-4 space-y-1">
+            {navLinks.map((l) => (
+              <NavLink
+                key={l.path}
+                to={l.path}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'block px-3 py-2 rounded-lg text-sm font-medium',
+                  location.pathname === l.path
+                    ? 'text-white'
+                    : 'text-[#D9D9D9]',
+                )}
+                style={location.pathname === l.path ? { background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' } : undefined}
+              >
+                {l.label}
+              </NavLink>
+            ))}
+            <div className="pt-3 flex gap-3 px-3">
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-center text-sm font-semibold text-white"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-lg px-4 py-2 text-center text-sm font-semibold text-white"
+                style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
+              >
+                Become a Member
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  )
+}
+
+function LandingFooter() {
+  const { branding } = useBranding()
+  return (
+    <footer className="bg-gray-900 text-gray-300 dark:bg-gray-950">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid gap-10 md:grid-cols-4">
+          <div className="md:col-span-1">
+            <div className="flex items-center gap-2.5 mb-3">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={branding.organizationName} className="h-9 w-9 rounded-lg object-cover" />
+              ) : (
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-white"
+                  style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
+                >
+                  {site.logoEmoji}
+                </span>
+              )}
+            <span className="text-lg font-bold text-white">{branding.organizationName}</span>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed">{site.description}</p>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-white mb-4">Quick Links</h4>
+            <ul className="space-y-2">
+              {navLinks.map((l) => (
+                <li key={l.path}>
+                  <Link to={l.path} className="text-sm text-gray-400 hover:text-white">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-white mb-4">Services</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              {site.services.map((s) => (
+                <li key={s.title}>{s.title}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-white mb-4">Contact</h4>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li>{site.address}</li>
+              <li>
+                <a href={`mailto:${site.email}`} className="hover:text-white">
+                  {site.email}
+                </a>
+              </li>
+              <li>
+                <a href={`tel:${site.phone.replace(/\s/g, '')}`} className="hover:text-white">
+                  {site.phone}
+                </a>
+              </li>
+              <li>{site.hours}</li>
+            </ul>
+            <div className="flex gap-3 mt-4">
+              {(
+                [
+                  ['facebook', site.social.facebook],
+                  ['instagram', site.social.instagram],
+                  ['twitter', site.social.twitter],
+                  ['linkedin', site.social.linkedin],
+                ] as const
+              ).map(([label, href]) => (
+                <a
+                  key={label}
+                  href={href}
+                  className="text-gray-500 hover:text-white text-xs uppercase tracking-wide"
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-gray-800 text-sm text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
+          <div className="flex gap-4">
+            <Link to="/terms" className="hover:text-gray-300">
+              Terms &amp; Conditions
+            </Link>
+            <Link to="/login" className="hover:text-gray-300">
+              Member Portal
+            </Link>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+export default function LandingLayout() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
+      <LandingHeader />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <LandingFooter />
+    </div>
+  )
+}

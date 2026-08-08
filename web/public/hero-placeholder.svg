@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 640" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eef2ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="640" rx="48" fill="url(#bg)"/>
+
+  <g opacity="0.12" stroke="#ffffff" stroke-width="2">
+    <circle cx="640" cy="120" r="90"/>
+    <circle cx="120" cy="540" r="130"/>
+    <circle cx="700" cy="520" r="60"/>
+  </g>
+
+  <g>
+    <rect x="560" y="150" width="150" height="100" rx="12" fill="#ffffff" opacity="0.15"/>
+    <rect x="576" y="166" width="118" height="10" rx="5" fill="#ffffff" opacity="0.9"/>
+    <rect x="576" y="186" width="118" height="10" rx="5" fill="#ffffff" opacity="0.5"/>
+    <rect x="576" y="206" width="70" height="10" rx="5" fill="#ffffff" opacity="0.5"/>
+  </g>
+
+  <g transform="translate(160, 130)">
+    <rect x="0" y="0" width="440" height="300" rx="20" fill="url(#card)" shadow-color="#000" shadow-opacity="0.25"/>
+    <rect x="24" y="24" width="392" height="170" rx="12" fill="#c7d2fe"/>
+    <rect x="24" y="214" width="120" height="14" rx="7" fill="#1e293b" opacity="0.85"/>
+    <rect x="24" y="238" width="260" height="10" rx="5" fill="#64748b" opacity="0.4"/>
+    <rect x="24" y="254" width="200" height="10" rx="5" fill="#64748b" opacity="0.3"/>
+  </g>
+
+  <g>
+    <rect x="300" y="400" width="200" height="150" rx="16" fill="#ffffff" shadow-color="#000" shadow-opacity="0.2"/>
+    <rect x="320" y="424" width="160" height="14" rx="7" fill="#1e293b" opacity="0.85"/>
+    <rect x="320" y="448" width="120" height="10" rx="5" fill="#64748b" opacity="0.4"/>
+    <rect x="320" y="484" width="120" height="24" rx="12" fill="#2563eb"/>
+    <rect x="456" y="484" width="24" height="24" rx="12" fill="#7c3aed"/>
+  </g>
+</svg>
