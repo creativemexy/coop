@@ -9,6 +9,7 @@ import { RiskService } from '../../common/risk.service';
 import { UserActivityService } from '../users/user-activity.service';
 import { AuditService } from '../../common/audit.service';
 import { UsersService } from '../users/users.service';
+import { Role } from '../../common/enums/role.enum';
 export declare class LoansService {
     private readonly loanRepo;
     private readonly repaymentRepo;
@@ -45,8 +46,39 @@ export declare class LoansService {
     getActiveLoans(userId: string): Promise<Loan[]>;
     getTotalOutstanding(userId: string): Promise<number>;
     findPending(): Promise<Loan[]>;
-    approve(loanId: string, approvedBy: string): Promise<Loan | null>;
-    reject(loanId: string, rejectedBy: string): Promise<Loan | null>;
+    getStageLoans(stage: 'apex' | 'organization' | 'admin' | 'disbursement', reviewer?: {
+        role: Role;
+        apexOrgId?: string;
+        organizationId?: string;
+    }): Promise<Loan[]>;
+    private loadLoanWithRepayments;
+    private loadLoanWithBorrower;
+    private scopeForLoan;
+    approveApex(loanId: string, reviewer: {
+        sub: string;
+        role: Role;
+        apexOrgId?: string;
+        organizationId?: string;
+    }): Promise<Loan | null>;
+    approveOrganization(loanId: string, reviewer: {
+        sub: string;
+        role: Role;
+        apexOrgId?: string;
+        organizationId?: string;
+    }): Promise<Loan | null>;
+    approveFinal(loanId: string, reviewer: {
+        sub: string;
+        role: Role;
+        apexOrgId?: string;
+        organizationId?: string;
+    }): Promise<Loan | null>;
+    disburse(loanId: string, reviewer: {
+        sub: string;
+        role: Role;
+        apexOrgId?: string;
+        organizationId?: string;
+    }): Promise<Loan | null>;
+    reject(loanId: string, rejectedBy: string, reason?: string): Promise<Loan | null>;
     getRepaymentForPayment(userId: string, repaymentId: string): Promise<LoanRepayment | null>;
     markRepaymentPaid(userId: string, repaymentId: string): Promise<{
         paid: boolean;

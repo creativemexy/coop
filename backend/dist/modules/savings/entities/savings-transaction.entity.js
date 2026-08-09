@@ -20,6 +20,7 @@ var TransactionType;
     TransactionType["GOAL_WITHDRAWAL"] = "goal_withdrawal";
     TransactionType["INTEREST"] = "interest";
     TransactionType["LOAN_SERVICE_FEE"] = "loan_service_fee";
+    TransactionType["LOAN_DISBURSEMENT"] = "loan_disbursement";
 })(TransactionType || (exports.TransactionType = TransactionType = {}));
 let SavingsTransaction = class SavingsTransaction {
     id;

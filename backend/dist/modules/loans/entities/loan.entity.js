@@ -15,6 +15,8 @@ const loan_repayment_entity_1 = require("./loan-repayment.entity");
 var LoanStatus;
 (function (LoanStatus) {
     LoanStatus["PENDING"] = "pending";
+    LoanStatus["APEX_APPROVED"] = "apex_approved";
+    LoanStatus["ORG_APPROVED"] = "org_approved";
     LoanStatus["APPROVED"] = "approved";
     LoanStatus["ACTIVE"] = "active";
     LoanStatus["COMPLETED"] = "completed";
@@ -34,9 +36,22 @@ let Loan = class Loan {
     serviceFeePaid;
     serviceFeePaidAt;
     serviceFeeTxId;
+    apexApprovedBy;
+    apexApprovedAt;
+    orgApprovedBy;
+    orgApprovedAt;
+    adminApprovedBy;
+    adminApprovedAt;
+    disbursedBy;
+    disbursedAt;
+    disbursedAmount;
+    rejectedBy;
+    rejectedAt;
+    rejectionReason;
     purpose;
     status;
     repayments;
+    borrower;
     createdAt;
     updatedAt;
 };
@@ -89,6 +104,60 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'uuid', name: 'service_fee_tx_id', nullable: true }),
     __metadata("design:type", String)
 ], Loan.prototype, "serviceFeeTxId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', name: 'apex_approved_by', nullable: true }),
+    __metadata("design:type", String)
+], Loan.prototype, "apexApprovedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'apex_approved_at', nullable: true }),
+    __metadata("design:type", Date)
+], Loan.prototype, "apexApprovedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', name: 'org_approved_by', nullable: true }),
+    __metadata("design:type", String)
+], Loan.prototype, "orgApprovedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'org_approved_at', nullable: true }),
+    __metadata("design:type", Date)
+], Loan.prototype, "orgApprovedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', name: 'admin_approved_by', nullable: true }),
+    __metadata("design:type", String)
+], Loan.prototype, "adminApprovedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'admin_approved_at', nullable: true }),
+    __metadata("design:type", Date)
+], Loan.prototype, "adminApprovedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', name: 'disbursed_by', nullable: true }),
+    __metadata("design:type", String)
+], Loan.prototype, "disbursedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'disbursed_at', nullable: true }),
+    __metadata("design:type", Date)
+], Loan.prototype, "disbursedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'decimal',
+        precision: 15,
+        scale: 2,
+        name: 'disbursed_amount',
+        default: 0,
+    }),
+    __metadata("design:type", Number)
+], Loan.prototype, "disbursedAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', name: 'rejected_by', nullable: true }),
+    __metadata("design:type", String)
+], Loan.prototype, "rejectedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'rejected_at', nullable: true }),
+    __metadata("design:type", Date)
+], Loan.prototype, "rejectedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', name: 'rejection_reason', nullable: true }),
+    __metadata("design:type", Object)
+], Loan.prototype, "rejectionReason", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 500, nullable: true }),
     __metadata("design:type", String)

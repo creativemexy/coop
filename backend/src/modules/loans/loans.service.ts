@@ -13,6 +13,7 @@ import { AuditService } from '../../common/audit.service';
 import { AuditAction } from '../../common/entities/audit-log.entity';
 import { UsersService } from '../users/users.service';
 import { KycStatus } from '../../common/enums/status.enum';
+import { Role } from '../../common/enums/role.enum';
 
 @Injectable()
 export class LoansService {
@@ -210,73 +211,198 @@ export class LoansService {
     });
   }
 
-  async approve(loanId: string, approvedBy: string) {
-    const loan = await this.loanRepo.findOne({ where: { id: loanId } });
-    if (!loan) throw new NotFoundException('Loan not found');
-    if (loan.status !== LoanStatus.PENDING) throw new BadRequestException('Loan is not pending');
+  /** Loans awaiting a specific approval stage, optionally scoped by reviewer. */
+  async getStageLoans(
+    stage: 'apex' | 'organization' | 'admin' | 'disbursement',
+    reviewer?: { role: Role; apexOrgId?: string; organizationId?: string },
+  ) {
+    const status =
+      stage === 'apex'
+        ? LoanStatus.PENDING
+        : stage === 'organization'
+          ? LoanStatus.APEX_APPROVED
+          : stage === 'admin'
+            ? LoanStatus.ORG_APPROVED
+            : LoanStatus.APPROVED;
 
-    const sFee = Number(loan.serviceFee);
-    if (sFee > 0) {
-      const account = await this.savingsService.getOrCreateAccount(loan.userId);
-      const balance = Number(account.balance);
-      if (balance < sFee) {
-        throw new BadRequestException(
-          `Insufficient savings balance to pay service fee of ₦${sFee.toLocaleString()}. ` +
-          `Available: ₦${balance.toLocaleString()}`,
-        );
-      }
-
-      const balanceAfter = balance - sFee;
-      await this.accountRepo.update(account.id, { balance: balanceAfter });
-
-      const tx = await this.savingsTxRepo.save(this.savingsTxRepo.create({
-        accountId: account.id,
-        type: TransactionType.LOAN_SERVICE_FEE,
-        amount: sFee,
-        balanceBefore: balance,
-        balanceAfter,
-        description: `Loan service fee for loan ${loan.id}`,
-      }));
-
-      loan.serviceFeePaid = true;
-      loan.serviceFeePaidAt = new Date();
-      loan.serviceFeeTxId = tx.id;
-    } else {
-      loan.serviceFeePaid = true;
-      loan.serviceFeePaidAt = new Date();
-    }
-
-    loan.status = LoanStatus.ACTIVE;
-    await this.loanRepo.save(loan);
-
-    await this.activityService.log(loan.userId, 'loan_approve', { loanId, approvedBy, serviceFee: sFee });
-    await this.auditService.log(AuditAction.LOAN_APPROVE, {
-      entityType: 'loan',
-      entityId: loan.id,
-      performedBy: approvedBy,
-      metadata: { userId: loan.userId, amount: loan.amount, serviceFee: sFee },
+    const loans = await this.loanRepo.find({
+      where: { status },
+      order: { createdAt: 'DESC' },
+      relations: { repayments: true },
     });
+    if (!reviewer) return loans;
 
+    const filtered: Loan[] = [];
+    for (const loan of loans) {
+      const withBorrower = await this.loadLoanWithBorrower(loan.id);
+      if (this.scopeForLoan(withBorrower, reviewer)) {
+        filtered.push(withBorrower);
+      }
+    }
+    return filtered;
+  }
+
+  private async loadLoanWithRepayments(id: string) {
     return this.loanRepo.findOne({
-      where: { id: loan.id },
+      where: { id },
       relations: { repayments: true },
     });
   }
 
-  async reject(loanId: string, rejectedBy: string) {
-    const loan = await this.loanRepo.findOne({ where: { id: loanId } });
+  private async loadLoanWithBorrower(id: string) {
+    const loan = await this.loanRepo.findOne({ where: { id } });
     if (!loan) throw new NotFoundException('Loan not found');
-    if (loan.status !== LoanStatus.PENDING) throw new BadRequestException('Loan is not pending');
+    const borrower = await this.usersService.findById(loan.userId).catch(() => null);
+    loan.borrower = {
+      apexOrgId: borrower?.apexOrgId ?? null,
+      organizationId: borrower?.organizationId ?? null,
+    };
+    return loan;
+  }
 
-    loan.status = LoanStatus.REJECTED;
+  /**
+   * Each approver can only act on loans whose borrower sits in their scope
+   * (apex org, organization, or system-wide for super admin).
+   */
+  private scopeForLoan(
+    loan: Loan,
+    reviewer: { apexOrgId?: string; organizationId?: string; role: Role },
+  ): boolean {
+    if (reviewer.role === Role.SUPER_ADMIN || reviewer.role === Role.OPERATIONAL_ADMIN) return true;
+    if (loan.borrower) {
+      if (reviewer.role === Role.APEX_BUSINESS_MANAGER) {
+        return !!loan.borrower.apexOrgId && loan.borrower.apexOrgId === reviewer.apexOrgId;
+      }
+      if (reviewer.role === Role.BUSINESS_MANAGER) {
+        return !!loan.borrower.organizationId && loan.borrower.organizationId === reviewer.organizationId;
+      }
+      if (reviewer.role === Role.ACCOUNTANT) {
+        return !!loan.borrower.organizationId && loan.borrower.organizationId === reviewer.organizationId;
+      }
+    }
+    return reviewer.role === Role.LOAN_MANAGER;
+  }
+
+  /** Stage 1 — final approval by the apex organization the borrower belongs to. */
+  async approveApex(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+    const loan = await this.loadLoanWithBorrower(loanId);
+    if (loan.status !== LoanStatus.PENDING) throw new BadRequestException('Loan is not awaiting apex approval');
+    if (!this.scopeForLoan(loan, reviewer)) throw new ForbiddenException('Loan is not in your apex organization scope');
+    loan.status = LoanStatus.APEX_APPROVED;
+    loan.apexApprovedBy = reviewer.sub;
+    loan.apexApprovedAt = new Date();
+    await this.loanRepo.save(loan);
+    await this.activityService.log(loan.userId, 'loan_apex_approve', { loanId, by: reviewer.sub });
+    await this.auditService.log(AuditAction.LOAN_APPROVE, {
+      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
+      metadata: { stage: 'apex', userId: loan.userId, amount: loan.amount },
+    });
+    return this.loadLoanWithRepayments(loan.id);
+  }
+
+  /** Stage 2 — approval by the organization the borrower belongs to. */
+  async approveOrganization(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+    const loan = await this.loadLoanWithBorrower(loanId);
+    if (loan.status !== LoanStatus.APEX_APPROVED) throw new BadRequestException('Loan is not awaiting organization approval');
+    if (!this.scopeForLoan(loan, reviewer)) throw new ForbiddenException('Loan is not in your organization scope');
+    loan.status = LoanStatus.ORG_APPROVED;
+    loan.orgApprovedBy = reviewer.sub;
+    loan.orgApprovedAt = new Date();
+    await this.loanRepo.save(loan);
+    await this.activityService.log(loan.userId, 'loan_org_approve', { loanId, by: reviewer.sub });
+    await this.auditService.log(AuditAction.LOAN_APPROVE, {
+      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
+      metadata: { stage: 'organization', userId: loan.userId, amount: loan.amount },
+    });
+    return this.loadLoanWithRepayments(loan.id);
+  }
+
+  /** Stage 3 — final approval by admin / super-admin. */
+  async approveFinal(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+    const loan = await this.loadLoanWithBorrower(loanId);
+    if (loan.status !== LoanStatus.ORG_APPROVED) throw new BadRequestException('Loan is not awaiting admin approval');
+    if (!this.scopeForLoan(loan, { ...reviewer, role: Role.OPERATIONAL_ADMIN })) {
+      throw new ForbiddenException('Loan is not in your scope');
+    }
+    loan.status = LoanStatus.APPROVED;
+    loan.adminApprovedBy = reviewer.sub;
+    loan.adminApprovedAt = new Date();
+    await this.loanRepo.save(loan);
+    await this.activityService.log(loan.userId, 'loan_admin_approve', { loanId, by: reviewer.sub });
+    await this.auditService.log(AuditAction.LOAN_APPROVE, {
+      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
+      metadata: { stage: 'admin', userId: loan.userId, amount: loan.amount },
+    });
+    return this.loadLoanWithRepayments(loan.id);
+  }
+
+  /**
+   * Stage 4 — accountant disburses. Fees and charges are deducted from the
+   * loaned amount; net difference is the exact amount disbursed.
+   */
+  async disburse(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+    const loan = await this.loadLoanWithBorrower(loanId);
+    if (loan.status !== LoanStatus.APPROVED) throw new BadRequestException('Loan is not awaiting disbursement');
+    if (!this.scopeForLoan(loan, reviewer)) throw new ForbiddenException('Loan is not in your organization scope');
+
+    const charges = [Number(loan.serviceFee || 0)].filter((c) => c > 0);
+    const gross = Number(loan.amount);
+    const totalCharges = charges.reduce((s, c) => s + c, 0);
+    const payoutAmount = Math.max(0, gross - totalCharges);
+
+    // Credit the payout to the member's savings account (loan_disbursement).
+    const account = await this.savingsService.getOrCreateAccount(loan.userId);
+    const balanceBefore = Number(account.balance);
+    const balanceAfter = balanceBefore + payoutAmount;
+    await this.accountRepo.update(account.id, { balance: balanceAfter });
+    await this.savingsTxRepo.save(this.savingsTxRepo.create({
+      accountId: account.id,
+      type: TransactionType.LOAN_DISBURSEMENT,
+      amount: payoutAmount,
+      balanceBefore,
+      balanceAfter,
+      description: `Loan disbursement for loan ${loan.id} (gross ₦${gross.toLocaleString()} less charges ₦${totalCharges.toLocaleString()})`,
+    }));
+
+    loan.disbursedAmount = payoutAmount;
+    loan.disbursedBy = reviewer.sub;
+    loan.disbursedAt = new Date();
+    loan.serviceFeePaid = true;
+    loan.serviceFeePaidAt = new Date();
+    loan.status = LoanStatus.ACTIVE;
     await this.loanRepo.save(loan);
 
-    await this.activityService.log(loan.userId, 'loan_reject', { loanId, rejectedBy });
+    await this.activityService.log(loan.userId, 'loan_disburse', {
+      loanId, by: reviewer.sub, gross, charges: totalCharges, payoutAmount,
+    });
+    await this.auditService.log(AuditAction.LOAN_APPROVE, {
+      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
+      metadata: { stage: 'disbursement', userId: loan.userId, gross, charges: totalCharges, payoutAmount },
+    });
+
+    return this.loadLoanWithRepayments(loan.id);
+  }
+
+  /** Reject at any stage. */
+  async reject(loanId: string, rejectedBy: string, reason?: string) {
+    const loan = await this.loanRepo.findOne({ where: { id: loanId } });
+    if (!loan) throw new NotFoundException('Loan not found');
+    if ([LoanStatus.COMPLETED, LoanStatus.REJECTED, LoanStatus.DEFAULTED].includes(loan.status)) {
+      throw new BadRequestException('Loan has already been decided');
+    }
+
+    loan.status = LoanStatus.REJECTED;
+    loan.rejectedBy = rejectedBy;
+    loan.rejectedAt = new Date();
+    loan.rejectionReason = reason ?? null;
+    await this.loanRepo.save(loan);
+
+    await this.activityService.log(loan.userId, 'loan_reject', { loanId, rejectedBy, reason });
     await this.auditService.log(AuditAction.LOAN_REJECT, {
       entityType: 'loan',
       entityId: loan.id,
       performedBy: rejectedBy,
-      metadata: { userId: loan.userId, amount: loan.amount },
+      metadata: { userId: loan.userId, amount: loan.amount, reason },
     });
 
     return this.loanRepo.findOne({

@@ -90,7 +90,7 @@ export class Loan {
   rejectedAt: Date;
 
   @Column({ type: 'text', name: 'rejection_reason', nullable: true })
-  rejectionReason: string;
+  rejectionReason: string | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   purpose: string;
@@ -100,6 +100,9 @@ export class Loan {
 
   @OneToMany(() => LoanRepayment, (r) => r.loan)
   repayments: LoanRepayment[];
+
+  /** Transient (non-persisted) borrower info loaded for approval scoping. */
+  borrower?: { apexOrgId?: string | null; organizationId?: string | null };
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

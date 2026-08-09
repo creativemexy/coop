@@ -32,6 +32,9 @@ let LoansController = class LoansController {
     eligibility(userId) {
         return this.service.checkEligibility(userId);
     }
+    findStage(stage, reviewer) {
+        return this.service.getStageLoans(stage || 'apex', reviewer);
+    }
     findPending() {
         return this.service.findPending();
     }
@@ -44,11 +47,20 @@ let LoansController = class LoansController {
     findOne(userId, id) {
         return this.service.findOne(id, userId);
     }
-    approve(userId, loanId) {
-        return this.service.approve(loanId, userId);
+    approveApex(reviewer, loanId) {
+        return this.service.approveApex(loanId, reviewer);
     }
-    reject(userId, loanId) {
-        return this.service.reject(loanId, userId);
+    approveOrg(reviewer, loanId) {
+        return this.service.approveOrganization(loanId, reviewer);
+    }
+    approveAdmin(reviewer, loanId) {
+        return this.service.approveFinal(loanId, reviewer);
+    }
+    disburse(reviewer, loanId) {
+        return this.service.disburse(loanId, reviewer);
+    }
+    reject(reviewer, loanId, dto) {
+        return this.service.reject(loanId, reviewer.sub, dto?.reason);
     }
 };
 exports.LoansController = LoansController;
@@ -71,6 +83,15 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LoansController.prototype, "eligibility", null);
 __decorate([
+    (0, common_1.Get)('stage'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.APEX_BUSINESS_MANAGER, role_enum_1.Role.BUSINESS_MANAGER, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.ACCOUNTANT, role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN),
+    __param(0, (0, common_1.Query)('stage')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], LoansController.prototype, "findStage", null);
+__decorate([
     (0, common_1.Get)('pending'),
     (0, roles_decorator_1.Roles)(role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.SUPER_ADMIN, role_enum_1.Role.OPERATIONAL_ADMIN),
     __metadata("design:type", Function),
@@ -86,7 +107,7 @@ __decorate([
 ], LoansController.prototype, "findDefaulted", null);
 __decorate([
     (0, common_1.Get)(),
-    (0, roles_decorator_1.Roles)(role_enum_1.Role.INDIVIDUAL, role_enum_1.Role.LOAN_MANAGER),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.INDIVIDUAL, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.ACCOUNTANT, role_enum_1.Role.BUSINESS_MANAGER, role_enum_1.Role.APEX_BUSINESS_MANAGER, role_enum_1.Role.OPERATIONAL_ADMIN),
     __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -94,7 +115,7 @@ __decorate([
 ], LoansController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    (0, roles_decorator_1.Roles)(role_enum_1.Role.INDIVIDUAL),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.INDIVIDUAL, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.ACCOUNTANT, role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN, role_enum_1.Role.BUSINESS_MANAGER, role_enum_1.Role.APEX_BUSINESS_MANAGER),
     __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
     __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -102,21 +123,49 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LoansController.prototype, "findOne", null);
 __decorate([
-    (0, common_1.Post)(':loanId/approve'),
-    (0, roles_decorator_1.Roles)(role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.SUPER_ADMIN, role_enum_1.Role.OPERATIONAL_ADMIN),
-    __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
+    (0, common_1.Post)(':loanId/apex-approve'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.APEX_BUSINESS_MANAGER, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('loanId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
-], LoansController.prototype, "approve", null);
+], LoansController.prototype, "approveApex", null);
+__decorate([
+    (0, common_1.Post)(':loanId/org-approve'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.BUSINESS_MANAGER, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('loanId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], LoansController.prototype, "approveOrg", null);
+__decorate([
+    (0, common_1.Post)(':loanId/admin-approve'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('loanId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], LoansController.prototype, "approveAdmin", null);
+__decorate([
+    (0, common_1.Post)(':loanId/disburse'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.ACCOUNTANT, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('loanId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], LoansController.prototype, "disburse", null);
 __decorate([
     (0, common_1.Post)(':loanId/reject'),
-    (0, roles_decorator_1.Roles)(role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.SUPER_ADMIN, role_enum_1.Role.OPERATIONAL_ADMIN),
-    __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.APEX_BUSINESS_MANAGER, role_enum_1.Role.BUSINESS_MANAGER, role_enum_1.Role.LOAN_MANAGER, role_enum_1.Role.ACCOUNTANT, role_enum_1.Role.OPERATIONAL_ADMIN, role_enum_1.Role.SUPER_ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('loanId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], LoansController.prototype, "reject", null);
 exports.LoansController = LoansController = __decorate([
