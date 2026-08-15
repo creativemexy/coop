@@ -11,10 +11,9 @@ export default {
     newArchEnabled: true,
     scheme: 'coopbnpl',
     splash: {
-      image: './assets/splash-icon.png',
+      image: './assets/logo.png',
       resizeMode: 'contain',
       backgroundColor: '#ffffff',
-      scale: 1,
     },
     ios: {
       supportsTablet: true,
