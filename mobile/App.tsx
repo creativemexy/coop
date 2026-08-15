@@ -21,10 +21,13 @@ export default function App() {
         await initializeAds().catch(() => {
           /* ads are optional */
         });
+
+        // Keep splash visible for at least 4 seconds
+        await new Promise(resolve => setTimeout(resolve, 4000));
       } catch (error) {
         console.warn('App initialization error:', error);
       } finally {
-        // Hide splash after initialization
+        // Hide splash after 4 seconds
         try {
           await SplashScreen.hideAsync();
         } catch (e) {
