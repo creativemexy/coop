@@ -1,4 +1,4 @@
-package com.coopbnpl
+package com.coop.bnpl
 
 import android.app.Application
 import android.content.res.Configuration

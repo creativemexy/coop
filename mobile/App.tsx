@@ -6,9 +6,6 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { initializeAds } from './src/utils/ads';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
-
 export default function App() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const [isReady, setIsReady] = useState(false);
@@ -16,23 +13,29 @@ export default function App() {
   useEffect(() => {
     const prepare = async () => {
       try {
+        // Keep splash visible during initialization
+        await SplashScreen.preventAutoHideAsync();
+        
+        // Initialize app
         await restoreSession();
-        await initializeAds();
-      } catch {
-        /* errors are optional; ignore failures */
+        await initializeAds().catch(() => {
+          /* ads are optional */
+        });
+      } catch (error) {
+        console.warn('App initialization error:', error);
       } finally {
+        // Hide splash after initialization
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.warn('Error hiding splash screen:', e);
+        }
         setIsReady(true);
       }
     };
 
     prepare();
   }, [restoreSession]);
-
-  useEffect(() => {
-    if (isReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [isReady]);
 
   if (!isReady) {
     return null;

@@ -16,7 +16,7 @@
     "expo-image-picker": "~17.0.11",
     "expo-local-authentication": "~17.0.8",
     "expo-secure-store": "~15.0.8",
-    "expo-splash-screen": "~0.28.2",
+    "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.11",
     "react": "19.1.0",
@@ -36,8 +36,8 @@
   "name": "coop-mobile",
   "private": true,
   "scripts": {
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "start": "expo start",
     "web": "expo start --web"
   },

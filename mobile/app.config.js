@@ -12,8 +12,9 @@ export default {
     scheme: 'coopbnpl',
     splash: {
       image: './assets/splash-icon.png',
-      resizeMode: 'cover',
+      resizeMode: 'contain',
       backgroundColor: '#ffffff',
+      scale: 1,
     },
     ios: {
       supportsTablet: true,
@@ -32,6 +33,15 @@ export default {
       'expo-secure-store',
       'expo-local-authentication',
       'expo-apple-authentication',
+      [
+        'react-native-google-mobile-ads',
+        {
+          androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713',
+          iosAppId: process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID || 'ca-app-pub-3940256099942544~1458002511',
+          userTrackingUsageDescription: process.env.EXPO_PUBLIC_ADS_TRACKING_DESC || 'Your data is used to deliver relevant ads and improve our services.',
+          skipMobileAdsInitialization: false,
+        },
+      ],
     ],
     extra: {
       eas: {
