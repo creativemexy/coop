@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import { Audio } from 'expo-av';
 import AppNavigator from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { initializeAds } from './src/utils/ads';
@@ -22,12 +23,29 @@ export default function App() {
           /* ads are optional */
         });
 
-        // Keep splash visible for at least 4 seconds
-        await new Promise(resolve => setTimeout(resolve, 4000));
+        // Play coin sound and wait for it to finish
+        try {
+          await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+          const { sound } = await Audio.Sound.createAsync(require('./assets/coin.mp3'));
+          await sound.playAsync();
+          
+          // Wait for sound to finish playing
+          await new Promise((resolve) => {
+            sound.setOnPlaybackStatusUpdate((status) => {
+              if (status.didJustFinish) {
+                resolve(null);
+              }
+            });
+          });
+        } catch (error) {
+          console.warn('Error playing splash sound:', error);
+          // Still show splash for at least 4 seconds
+          await new Promise(resolve => setTimeout(resolve, 4000));
+        }
       } catch (error) {
         console.warn('App initialization error:', error);
       } finally {
-        // Hide splash after 4 seconds
+        // Hide splash after sound finishes
         try {
           await SplashScreen.hideAsync();
         } catch (e) {
