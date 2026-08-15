@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum ApprovalRequestType {
@@ -24,6 +25,7 @@ export enum ApprovalStatus {
 }
 
 @Entity('bnpl_approval_requests')
+@Index(['status', 'createdAt'])
 export class ApprovalRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;

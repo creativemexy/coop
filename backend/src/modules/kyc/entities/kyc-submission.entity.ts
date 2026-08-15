@@ -4,11 +4,14 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { KycProvider } from '../../../common/enums/status.enum';
 import { KycStatus } from '../../../common/enums/status.enum';
 
 @Entity('kyc_submissions')
+@Index(['userId', 'createdAt'])
+@Index(['status', 'createdAt'])
 export class KycSubmission {
   @PrimaryGeneratedColumn('uuid')
   id: string;

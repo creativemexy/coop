@@ -6,11 +6,14 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { InstallmentStatus } from '../../../common/enums/status.enum';
 import { BnplSubscription } from './bnpl-subscription.entity';
 
 @Entity('bnpl_installments')
+@Index(['subscriptionId', 'status'])
+@Index(['dueDate', 'status'])
 export class BnplInstallment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

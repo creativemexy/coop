@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum ProcessingStepStatus {
@@ -22,6 +23,7 @@ export enum ProcessingStepType {
 }
 
 @Entity('bnpl_processing_steps')
+@Index(['subscriptionId', 'stepType', 'status'])
 export class ProcessingStep {
   @PrimaryGeneratedColumn('uuid')
   id: string;

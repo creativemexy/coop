@@ -25,6 +25,8 @@ function applyColors(p: string, a: string) {
 
 const DEFAULTS = { organizationName: 'Coop BNPL', logoUrl: null, primaryColor: '#2563eb', accentColor: '#7c3aed' }
 
+export const DEFAULT_LOGO = '/logo.jpg'
+
 applyColors(DEFAULTS.primaryColor, DEFAULTS.accentColor)
 
 export const useBranding = create<BrandingState>((set) => ({

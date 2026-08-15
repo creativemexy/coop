@@ -265,4 +265,14 @@ export class AccountantController {
   async getDashboard() {
     return this.svc.getDashboard();
   }
+
+  @Get('dashboard/fee-pots')
+  async getFeePotStats(@Query('apexOrgId') apexOrgId?: string) {
+    return this.svc.getFeePotStatsByOrg(apexOrgId);
+  }
+
+  @Get('apex-organizations')
+  async getApexOrganizations() {
+    return this.svc.getApexOrganizations();
+  }
 }

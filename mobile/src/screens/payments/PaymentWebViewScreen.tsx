@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 
 export default function PaymentWebViewScreen({ route, navigation }: { route: any; navigation: any }) {
@@ -38,7 +38,7 @@ export default function PaymentWebViewScreen({ route, navigation }: { route: any
         Alert.alert('Payment Cancelled', 'The payment was cancelled. You can try again.');
       }
     } catch (error: any) {
-      Alert.alert('Payment Failed', error?.response?.data?.message || 'Something went wrong');
+      Alert.alert('Payment Failed', getErrorMessage(error, 'Something went wrong'));
     } finally {
       setProcessing(false);
     }

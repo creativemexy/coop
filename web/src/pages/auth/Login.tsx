@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../../stores/auth.store'
-import { useBranding } from '../../stores/branding.store'
+import { useBranding, DEFAULT_LOGO } from '../../stores/branding.store'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
@@ -88,10 +88,7 @@ export function Login() {
           {branding.logoUrl ? (
             <img src={branding.logoUrl} alt={branding.organizationName} className="h-12 w-12 rounded-lg object-contain mb-2" />
           ) : (
-            <div className="h-12 w-12 rounded-lg flex items-center justify-center text-white text-lg font-bold mb-2"
-              style={{ backgroundColor: branding.primaryColor }}>
-              {branding.organizationName.charAt(0)}
-            </div>
+            <img src={DEFAULT_LOGO} alt={branding.organizationName} className="h-12 w-12 rounded-lg object-contain mb-2" />
           )}
           <h1 className="text-xl font-bold" style={{ color: branding.primaryColor }}>{branding.organizationName}</h1>
         </div>

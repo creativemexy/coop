@@ -16,7 +16,30 @@ export interface CohortBucket {
   maxDays: number;
   count: number;
   totalAmount: number;
-  installments: { id: string; subscriptionId: string; dueDate: Date; amount: number; daysLate: number }[];
+}
+
+export interface CohortInstallment {
+  id: string;
+  subscriptionId: string;
+  dueDate: string;
+  amount: number;
+  daysLate: number;
+}
+
+const COHORT_BUCKETS: CohortBucket[] = [
+  { label: '1–30 days', minDays: 1, maxDays: 30, count: 0, totalAmount: 0 },
+  { label: '31–60 days', minDays: 31, maxDays: 60, count: 0, totalAmount: 0 },
+  { label: '61–90 days', minDays: 61, maxDays: 90, count: 0, totalAmount: 0 },
+  { label: '90+ days', minDays: 91, maxDays: Infinity, count: 0, totalAmount: 0 },
+];
+
+const DAYS_LATE_SQL = `FLOOR(EXTRACT(EPOCH FROM (now() - due_date)) / 86400)`;
+
+function bucketSqlFor(label: string): string {
+  const b = COHORT_BUCKETS.find((x) => x.label === label);
+  if (!b) throw new NotFoundException(`Unknown cohort bucket: ${label}`);
+  if (b.maxDays === Infinity) return `late_days >= ${b.minDays}`;
+  return `late_days BETWEEN ${b.minDays} AND ${b.maxDays}`;
 }
 
 @Injectable()
@@ -40,34 +63,35 @@ export class CollectionsService {
 
   async getDelinquencyCohorts() {
     const now = new Date();
-    const allPending = await this.instRepo
-      .createQueryBuilder('i')
-      .where('i.status = :status', { status: InstallmentStatus.PENDING })
-      .andWhere('i.due_date < :now', { now })
-      .getMany();
 
-    const buckets: CohortBucket[] = [
-      { label: '1–30 days', minDays: 1, maxDays: 30, count: 0, totalAmount: 0, installments: [] },
-      { label: '31–60 days', minDays: 31, maxDays: 60, count: 0, totalAmount: 0, installments: [] },
-      { label: '61–90 days', minDays: 61, maxDays: 90, count: 0, totalAmount: 0, installments: [] },
-      { label: '90+ days', minDays: 91, maxDays: Infinity, count: 0, totalAmount: 0, installments: [] },
-    ];
+    interface CohortRow { label: string; count: string; total_amount: string }
+    const rows: CohortRow[] = await this.instRepo.manager.query(
+      `SELECT CASE
+                WHEN late_days BETWEEN 1 AND 30 THEN '1–30 days'
+                WHEN late_days BETWEEN 31 AND 60 THEN '31–60 days'
+                WHEN late_days BETWEEN 61 AND 90 THEN '61–90 days'
+                ELSE '90+ days'
+              END AS label,
+              COUNT(*)::text AS count,
+              COALESCE(SUM(amount), 0)::text AS total_amount
+       FROM (
+         SELECT amount, ${DAYS_LATE_SQL} AS late_days
+         FROM bnpl_installments
+         WHERE status = 'pending' AND due_date < now()
+       ) t
+       WHERE late_days >= 1
+       GROUP BY label`,
+    );
 
-    for (const inst of allPending) {
-      const daysLate = Math.floor((now.getTime() - new Date(inst.dueDate).getTime()) / (1000 * 60 * 60 * 24));
-      const bucket = buckets.find((b) => daysLate >= b.minDays && daysLate <= b.maxDays);
-      if (bucket) {
-        bucket.count++;
-        bucket.totalAmount += Number(inst.amount);
-        bucket.installments.push({
-          id: inst.id,
-          subscriptionId: inst.subscriptionId,
-          dueDate: inst.dueDate,
-          amount: Number(inst.amount),
-          daysLate,
-        });
-      }
-    }
+    const byLabel = new Map(rows.map((r) => [r.label, r]));
+    const buckets: CohortBucket[] = COHORT_BUCKETS.map((b) => {
+      const row = byLabel.get(b.label);
+      return {
+        ...b,
+        count: row ? Number(row.count) : 0,
+        totalAmount: row ? Number(row.total_amount) : 0,
+      };
+    });
 
     const totalDelinquent = buckets.reduce((s, b) => s + b.totalAmount, 0);
     const totalActive = await this.subRepo
@@ -82,6 +106,52 @@ export class CollectionsService {
       totalActivePrincipal: Number(totalActive?.total || 0),
       delinquencyRate: Number(totalActive?.total || 0) > 0 ? totalDelinquent / Number(totalActive?.total || 0) : 0,
       asOf: now,
+    };
+  }
+
+  async getCohortInstallments(
+    bucketLabel: string,
+    page = 1,
+    pageSize = 50,
+  ): Promise<{ bucket: string; total: number; page: number; pageSize: number; items: CohortInstallment[] }> {
+    const where = bucketSqlFor(bucketLabel);
+    const limit = Math.max(1, Math.min(pageSize, 200));
+    const offset = Math.max(0, (page - 1) * limit);
+
+    const countRows: Array<{ total: string }> = await this.instRepo.manager.query(
+      `SELECT COUNT(*)::text AS total
+       FROM (
+         SELECT amount, ${DAYS_LATE_SQL} AS late_days
+         FROM bnpl_installments
+         WHERE status = 'pending' AND due_date < now()
+       ) t
+       WHERE late_days >= 1 AND ${where}`,
+    );
+    const rows: Array<{ id: string; subscription_id: string; due_date: string; amount: string; days_late: string }> =
+      await this.instRepo.manager.query(
+        `SELECT id, subscription_id, due_date, amount::text AS amount, late_days::text AS days_late
+         FROM (
+           SELECT id, subscription_id, due_date, amount, ${DAYS_LATE_SQL} AS late_days
+           FROM bnpl_installments
+           WHERE status = 'pending' AND due_date < now()
+         ) t
+         WHERE late_days >= 1 AND ${where}
+         ORDER BY late_days DESC, due_date ASC
+         LIMIT ${limit} OFFSET ${offset}`,
+      );
+
+    return {
+      bucket: bucketLabel,
+      total: Number(countRows[0]?.total || 0),
+      page,
+      pageSize: limit,
+      items: rows.map((r) => ({
+        id: r.id,
+        subscriptionId: r.subscription_id,
+        dueDate: r.due_date,
+        amount: Number(r.amount),
+        daysLate: Number(r.days_late),
+      })),
     };
   }
 

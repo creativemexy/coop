@@ -2,6 +2,9 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { DataSource } from 'typeorm';
+import { DbThrottleStorage } from './common/throttler/db-throttle-storage';
+import { ThrottleSweepModule } from './common/throttler/throttle-sweep.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 // Config
@@ -18,6 +21,8 @@ import { EncryptionService } from './common/encryption.service';
 import { setEncryptionInstance } from './common/encryption.transformer';
 import { RetentionModule } from './common/retention.module';
 import { RiskModule } from './common/risk.module';
+import { SchedulerModule } from './common/scheduler/scheduler.module';
+import { HealthModule } from './common/health/health.module';
 import { AuditLog } from './common/entities/audit-log.entity';
 import { MonitoringModule } from './common/monitoring/monitoring.module';
 import { BootstrapAdminService } from './bootstrap-admin.service';
@@ -121,6 +126,8 @@ import { CollectionPlaybook } from './modules/bnpl/entities/collection-playbook.
 import { DeviceSession } from './modules/auth/entities/device-session.entity';
 import { VirtualAccount } from './modules/first-virtual/entities/virtual-account.entity';
 import { PendingDeposit } from './modules/first-virtual/entities/pending-deposit.entity';
+import { JobLock } from './common/scheduler/job-lock.entity';
+import { ThrottleCounter } from './common/throttler/throttle-counter.entity';
 
 const entities = [
   InvestmentProduct,
@@ -194,6 +201,8 @@ const entities = [
   AuditLog,
   VirtualAccount,
   PendingDeposit,
+  JobLock,
+  ThrottleCounter,
 ];
 
 @Module({
@@ -203,8 +212,13 @@ const entities = [
       load: [appConfig, jwtConfig, databaseConfig, smtpConfig],
       envFilePath: '.env',
     }),
-    ThrottlerModule.forRoot({
-      throttlers: [{ limit: 100, ttl: 60000 }],
+    ThrottlerModule.forRootAsync({
+      imports: [TypeOrmModule],
+      inject: [DataSource],
+      useFactory: (dataSource: DataSource) => ({
+        throttlers: [{ limit: 100, ttl: 60000 }],
+        storage: new DbThrottleStorage(dataSource),
+      }),
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -249,6 +263,9 @@ const entities = [
     RetentionModule,
     RiskModule,
     MonitoringModule,
+    SchedulerModule,
+    HealthModule,
+    ThrottleSweepModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

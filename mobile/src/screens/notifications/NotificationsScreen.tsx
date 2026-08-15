@@ -13,7 +13,15 @@ export default function NotificationsScreen() {
     (async () => {
       try {
         const { data } = await client.get(ENDPOINTS.notifications);
-        setNotifs(Array.isArray(data) ? data : []);
+        const payload = Array.isArray(data) ? data : (data as { data?: unknown }).data;
+        if (Array.isArray(payload)) {
+          setNotifs(
+            (payload as NotificationItem[]).map((n) => ({
+              ...n,
+              read: Boolean((n as any).isRead ?? n.read),
+            }))
+          );
+        }
       } catch { /* ignore */ } finally { setLoading(false); }
     })();
   }, []));

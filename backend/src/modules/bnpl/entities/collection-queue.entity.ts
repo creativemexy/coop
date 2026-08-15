@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum QueueStatus {
@@ -23,6 +24,8 @@ export enum QueuePriority {
 }
 
 @Entity('bnpl_collection_queues')
+@Index(['status', 'priority'])
+@Index(['userId'])
 export class CollectionQueue {
   @PrimaryGeneratedColumn('uuid')
   id: string;

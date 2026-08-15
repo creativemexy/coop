@@ -24,6 +24,7 @@ import { JournalEntry } from '../ledger/entities/journal-entry.entity';
 import { JournalLine } from '../ledger/entities/journal-line.entity';
 import { Distribution } from '../investments/entities/distribution.entity';
 import { FeeWithdrawalRequest } from '../ledger/entities/fee-withdrawal-request.entity';
+import { ApexOrganization } from '../apex-organizations/entities/apex-organization.entity';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { FeeWithdrawalRequest } from '../ledger/entities/fee-withdrawal-request.
       FeePot,
       Distribution,
       FeeWithdrawalRequest,
+      ApexOrganization,
     ]),
     AuthModule,
   ],

@@ -3,10 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { FeeSource } from '../../../common/enums/status.enum';
 
 @Entity('fee_share_ledger')
+@Index(['organizationId', 'createdAt'])
+@Index(['apexOrgId', 'createdAt'])
 export class FeeShareLedger {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -7,7 +7,7 @@ import {
   Index,
 } from 'typeorm';
 
-export type DepositType = 'general' | 'goal' | 'loan';
+export type DepositType = 'general' | 'goal' | 'loan' | 'investment';
 export type PendingDepositStatus =
   'pending' | 'credited' | 'expired' | 'failed';
 
@@ -37,6 +37,10 @@ export class PendingDeposit {
   @Index()
   @Column({ type: 'uuid', nullable: true, name: 'loan_repayment_id' })
   loanRepaymentId: string | null;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true, name: 'investment_order_id' })
+  investmentOrderId: string | null;
 
   @Column({ type: 'varchar', length: 40, unique: true })
   reference: string;

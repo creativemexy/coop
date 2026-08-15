@@ -20,6 +20,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+  app.enableShutdownHooks();
   app.use(bodyParser.json({ limit: '1mb', verify: (req: any, _res, buf) => { req.rawBody = buf.toString(); } }));
   app.use(helmet());
   app.use(cookieParser());

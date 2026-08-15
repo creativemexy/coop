@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { VirtualAccount } from './entities/virtual-account.entity';
@@ -9,6 +9,7 @@ import { VirtualAccountWebhookController } from './virtual-account-webhook.contr
 import { FirstCheckoutClient } from './firstcheckout.client';
 import { SavingsModule } from '../savings/savings.module';
 import { LoansModule } from '../loans/loans.module';
+import { InvestmentsModule } from '../investments/investments.module';
 import { User } from '../users/entities/user.entity';
 
 @Module({
@@ -17,6 +18,7 @@ import { User } from '../users/entities/user.entity';
     HttpModule,
     SavingsModule,
     LoansModule,
+    forwardRef(() => InvestmentsModule),
   ],
   controllers: [VirtualAccountsController, VirtualAccountWebhookController],
   providers: [VirtualAccountsService, FirstCheckoutClient],

@@ -14,7 +14,7 @@ import {
   Switch,
 } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 
 interface ApexOrg {
@@ -104,7 +104,7 @@ export default function RegisterScreen({ navigation }: { navigation: any }) {
         });
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Registration failed');
+      setError(getErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

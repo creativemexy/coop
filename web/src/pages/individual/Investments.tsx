@@ -54,6 +54,19 @@ const productBorders = [
   'border-cyan-500',
 ]
 
+interface PaymentInstruction {
+  id: string
+  amount: number
+  type: string
+  reference: string
+  accountNumber: string
+  accountName: string
+  bankName: string
+  status: string
+  expiresAt?: string
+  creditedAt?: string
+}
+
 interface Compliance {
   kycStatus: string
   kycApproved: boolean
@@ -70,7 +83,10 @@ export function Investments() {
   const [selected, setSelected] = useState<InvestmentProduct | null>(null)
   const [investAmount, setInvestAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [orderResult, setOrderResult] = useState<any>(null)
+  const [pay, setPay] = useState<{ orderId: string; instruction: PaymentInstruction } | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -95,8 +111,105 @@ export function Investments() {
         amount: Number(investAmount),
       })
       setOrderResult(data)
-    } catch { /* ignore */ }
+      await handleStartPayment(data.id)
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Could not place order')
+    }
     setSubmitting(false)
+  }
+
+  const handleStartPayment = async (orderId: string) => {
+    try {
+      const { data } = await api.post(`/virtual-accounts/investments/${orderId}/initiate`)
+      setPay({ orderId, instruction: data })
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Could not start payment')
+    }
+  }
+
+  const checkPayment = async (): Promise<string | 'error'> => {
+    if (!pay) return 'error'
+    setChecking(true)
+    try {
+      const { data } = await api.post(`/virtual-accounts/investments/${pay.orderId}/verify`)
+      setPay((prev) => prev && data
+        ? { orderId: prev.orderId, instruction: data }
+        : prev)
+      if (data && data.status === 'credited') {
+        setPay(null)
+        setOrderResult(null)
+        setSelected(null)
+        setInvestAmount('')
+        alert(`Investment confirmed. Order ${pay.orderId.slice(0, 8)} is now allocated.`)
+        window.location.reload()
+      } else if (data && data.status === 'expired') {
+        setPay(null)
+        alert('This payment instruction has expired. Please try again.')
+      }
+      return data?.status ?? 'pending'
+    } catch {
+      /* keep modal open; re-poll */
+      return 'error'
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  // Self-scheduling poll: the next check only starts after the previous one
+  // completes, so slow network calls can never overlap. Bounded attempts,
+  // capped exponential backoff, and stop on expiry / error threshold.
+  useEffect(() => {
+    if (!pay || pay.instruction.status !== 'pending') return
+    const MAX_ATTEMPTS = 30
+    const MAX_CONSECUTIVE_ERRORS = 3
+    const BASE_DELAY = 5000
+    const MAX_DELAY = 30000
+
+    let cancelled = false
+    let attempts = 0
+    let consecutiveErrors = 0
+    let delay = BASE_DELAY
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const poll = async () => {
+      if (cancelled) return
+      attempts += 1
+      const status = await checkPayment()
+      if (cancelled) return
+      if (status === 'credited' || status === 'expired') return
+      if (status === 'error') {
+        consecutiveErrors += 1
+      } else if (status !== 'pending') {
+        return
+      } else {
+        consecutiveErrors = 0
+      }
+      if (attempts >= MAX_ATTEMPTS || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        setPay(null)
+        alert('Payment confirmation timed out. Check your account and try again.')
+        return
+      }
+      delay = Math.min(delay * 1.5, MAX_DELAY)
+      timer = setTimeout(poll, delay)
+    }
+
+    timer = setTimeout(poll, BASE_DELAY)
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pay?.instruction.status, pay?.instruction.id])
+
+  const copyAccount = async () => {
+    if (!pay) return
+    try {
+      await navigator.clipboard.writeText(pay.instruction.accountNumber)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* ignore */
+    }
   }
 
   const filtered = products.filter((p) => p.isOpen)
@@ -305,7 +418,7 @@ export function Investments() {
         )}
       </Modal>
 
-      <Modal open={!!orderResult} onClose={() => { setOrderResult(null); setSelected(null) }} title="Order Placed">
+      <Modal open={!!orderResult && !pay} onClose={() => { setOrderResult(null); setSelected(null) }} title="Order Placed">
         {orderResult && (
           <div className="space-y-4">
             <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-center">
@@ -330,9 +443,47 @@ export function Investments() {
                 <Badge variant="warning">{orderResult.status}</Badge>
               </div>
             </div>
-            <p className="text-xs text-gray-500 text-center">
-              Complete payment to confirm your investment. Visit Portfolio to make payment.
+            <Button className="w-full" onClick={() => handleStartPayment(orderResult.id)}>
+              Pay Now with Bank Transfer
+            </Button>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!pay} onClose={() => { setPay(null); setOrderResult(null); setSelected(null) }} title="Pay via Bank Transfer">
+        {pay && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Transfer <strong className="text-gray-900 dark:text-gray-100">{formatCurrency(pay.instruction.amount)}</strong>{' '}
+              to the account below using your bank app. Your investment order will be confirmed once the payment is verified.
             </p>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 text-sm">
+              <p className="text-xs text-gray-500">{pay.instruction.bankName}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-2xl font-bold tracking-wider text-gray-900 dark:text-gray-100">
+                  {pay.instruction.accountNumber}
+                </p>
+                <button onClick={copyAccount} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{pay.instruction.accountName}</p>
+              <p className="text-xs text-gray-400 mt-2">Ref: {pay.instruction.reference}</p>
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+              Status: {pay.instruction.status}{' · '}
+              {pay.instruction.status === 'credited' ? 'Credited'
+                : pay.instruction.status === 'expired' ? 'Expired'
+                  : pay.instruction.expiresAt
+                    ? `Transfers expire ${new Date(pay.instruction.expiresAt).toLocaleTimeString()}`
+                    : 'Awaiting transfer'}
+            </p>
+            <Button className="w-full" disabled={checking} onClick={checkPayment}>
+              {checking ? 'Checking...' : "I've transferred · Check"}
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => { setPay(null); setOrderResult(null); setSelected(null) }}>
+              Close
+            </Button>
           </div>
         )}
       </Modal>

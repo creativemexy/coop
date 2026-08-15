@@ -5,10 +5,13 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { JournalEntry } from './journal-entry.entity';
 
 @Entity('journal_lines')
+@Index(['accountId', 'createdAt'])
+@Index(['organizationId'])
 export class JournalLine {
   @PrimaryGeneratedColumn('uuid')
   id: string;

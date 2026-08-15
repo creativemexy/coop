@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { InvestmentProduct } from './investment-product.entity';
 
 @Entity('investment_holdings')
+@Index(['userId', 'isActive'])
 export class InvestmentHolding {
   @PrimaryGeneratedColumn('uuid')
   id: string;

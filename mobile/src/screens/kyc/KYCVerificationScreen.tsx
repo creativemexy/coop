@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 import { useAuthStore } from '../../store/authStore';
 import { KycStatus } from '../../types';
@@ -56,7 +56,7 @@ export default function KYCVerificationScreen() {
       setKycStatus(KycStatus.PENDING);
       Alert.alert('KYC Submitted', 'Your verification is being processed. You will be notified once approved.');
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to initiate KYC');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to initiate KYC'));
     } finally {
       setInitiating(false);
     }

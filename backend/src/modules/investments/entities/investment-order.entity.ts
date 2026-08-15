@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { InvestmentProduct } from './investment-product.entity';
 
 export enum OrderStatus {
@@ -11,6 +11,8 @@ export enum OrderStatus {
 }
 
 @Entity('investment_orders')
+@Index(['userId', 'createdAt'])
+@Index(['status', 'createdAt'])
 export class InvestmentOrder {
   @PrimaryGeneratedColumn('uuid')
   id: string;

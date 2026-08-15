@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Repository, LessThan, IsNull } from 'typeorm';
+import { SchedulerLockService } from './scheduler/scheduler-lock.service';
 import { LoginHistory } from '../modules/auth/entities/login-history.entity';
 import { DeviceSession } from '../modules/auth/entities/device-session.entity';
 import { UserActivity } from '../modules/users/entities/user-activity.entity';
@@ -18,6 +19,8 @@ import { AuditAction } from './entities/audit-log.entity';
 
 const ANONYMIZED_EMAIL = 'anonymized@deleted.user';
 const ANONYMIZED_PREFIX = 'ANONYMIZED_';
+
+const PURGE_BATCH_SIZE = 5000;
 
 @Injectable()
 export class RetentionService {
@@ -37,6 +40,7 @@ export class RetentionService {
   constructor(
     private readonly config: ConfigService,
     private readonly auditService: AuditService,
+    private readonly schedulerLock: SchedulerLockService,
     @InjectRepository(LoginHistory)
     private readonly loginRepo: Repository<LoginHistory>,
     @InjectRepository(DeviceSession)
@@ -71,44 +75,59 @@ export class RetentionService {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async purgeAll(): Promise<Record<string, number>> {
-    const results: Record<string, number> = {};
+  async purgeAll(): Promise<Record<string, number> | null> {
+    return this.schedulerLock.runExclusive('retention:purge-all', 7200, async () => {
+      const results: Record<string, number> = {};
 
-    const purge = async (
-      key: string,
-      repo: Repository<any>,
-    ): Promise<number> => {
-      const days = this.retentionDays(key);
-      const deleted = await repo.delete({
-        createdAt: LessThan(this.daysAgo(days)),
+      const purge = async (
+        key: string,
+        repo: Repository<any>,
+      ): Promise<number> => {
+        const days = this.retentionDays(key);
+        const cutoff = this.daysAgo(days);
+        let total = 0;
+        let affected = 0;
+        do {
+          const ids = await repo
+            .createQueryBuilder()
+            .select('id')
+            .where('created_at < :cutoff', { cutoff })
+            .limit(PURGE_BATCH_SIZE)
+            .getRawMany<{ id: string }>();
+          if (ids.length === 0) break;
+          affected = (
+            await repo.delete(ids.map((r) => r.id))
+          ).affected ?? 0;
+          total += affected;
+        } while (affected === PURGE_BATCH_SIZE);
+        return total;
+      };
+
+      results.login_history = await purge('login_history', this.loginRepo);
+      results.device_sessions = await purge('device_sessions', this.deviceRepo);
+      results.user_activities = await purge('user_activities', this.activityRepo);
+      results.sms_logs = await purge('sms_logs', this.smsRepo);
+      results.webhook_logs = await purge('webhook_logs', this.webhookRepo);
+      results.bnpl_audit_logs = await purge('bnpl_audit_logs', this.auditRepo);
+      results.support_tickets = await purge('support_tickets', this.ticketRepo);
+      results.in_app_notifications = await purge(
+        'in_app_notifications',
+        this.notifRepo,
+      );
+      results.kyc_anonymized = await this.anonymizeKycDocuments();
+      results.kyc_submissions = await purge('kyc_submissions', this.kycRepo);
+
+      const anonymized = await this.anonymizeInactiveUsers();
+
+      await this.auditService.log(AuditAction.RETENTION_PURGE, {
+        metadata: { purged: results, anonymized },
       });
-      return deleted.affected ?? 0;
-    };
 
-    results.login_history = await purge('login_history', this.loginRepo);
-    results.device_sessions = await purge('device_sessions', this.deviceRepo);
-    results.user_activities = await purge('user_activities', this.activityRepo);
-    results.sms_logs = await purge('sms_logs', this.smsRepo);
-    results.webhook_logs = await purge('webhook_logs', this.webhookRepo);
-    results.bnpl_audit_logs = await purge('bnpl_audit_logs', this.auditRepo);
-    results.support_tickets = await purge('support_tickets', this.ticketRepo);
-    results.in_app_notifications = await purge(
-      'in_app_notifications',
-      this.notifRepo,
-    );
-    results.kyc_anonymized = await this.anonymizeKycDocuments();
-    results.kyc_submissions = await purge('kyc_submissions', this.kycRepo);
-
-    const anonymized = await this.anonymizeInactiveUsers();
-
-    await this.auditService.log(AuditAction.RETENTION_PURGE, {
-      metadata: { purged: results, anonymized },
+      this.logger.log(
+        `Retention purge complete: ${JSON.stringify(results)}, anonymized: ${anonymized}`,
+      );
+      return { ...results, users_anonymized: anonymized };
     });
-
-    this.logger.log(
-      `Retention purge complete: ${JSON.stringify(results)}, anonymized: ${anonymized}`,
-    );
-    return { ...results, users_anonymized: anonymized };
   }
 
   async anonymizeKycDocuments(): Promise<number> {
@@ -128,40 +147,46 @@ export class RetentionService {
     const retentionDays =
       Number(this.config.get('RETENTION_USER_ACCOUNT_DAYS')) || 730;
     const cutoff = this.daysAgo(retentionDays);
+    let total = 0;
 
-    const users = await this.userRepo.find({
-      where: [
-        { isActive: false, updatedAt: LessThan(cutoff), emailHash: IsNull() },
-        { isActive: false, updatedAt: LessThan(cutoff), email: IsNull() },
-      ],
-    });
-
-    for (const user of users) {
-      Object.assign(user, {
-        email: ANONYMIZED_EMAIL,
-        emailHash: `anonymized_${user.id}`,
-        phone: null,
-        phoneHash: null,
-        firstName: ANONYMIZED_PREFIX,
-        lastName: ANONYMIZED_PREFIX,
-        passwordHash: ANONYMIZED_PREFIX,
-        refreshTokenHash: null,
-        resetToken: null,
-        resetTokenExpiry: null,
-        socialProvider: null,
-        socialId: null,
-        kycReference: null,
-        notificationPreferences: null,
-        referralCode: null,
-        referredBy: null,
-        referralCount: 0,
-        referralEarnings: 0,
-        failedAttempts: 0,
-        lockedUntil: null,
+    while (true) {
+      const users = await this.userRepo.find({
+        take: PURGE_BATCH_SIZE,
+        where: [
+          { isActive: false, updatedAt: LessThan(cutoff), emailHash: IsNull() },
+          { isActive: false, updatedAt: LessThan(cutoff), email: IsNull() },
+        ],
       });
-      await this.userRepo.save(user);
+      if (users.length === 0) break;
+
+      for (const user of users) {
+        Object.assign(user, {
+          email: ANONYMIZED_EMAIL,
+          emailHash: `anonymized_${user.id}`,
+          phone: null,
+          phoneHash: null,
+          firstName: ANONYMIZED_PREFIX,
+          lastName: ANONYMIZED_PREFIX,
+          passwordHash: ANONYMIZED_PREFIX,
+          refreshTokenHash: null,
+          resetToken: null,
+          resetTokenExpiry: null,
+          socialProvider: null,
+          socialId: null,
+          kycReference: null,
+          notificationPreferences: null,
+          referralCode: null,
+          referredBy: null,
+          referralCount: 0,
+          referralEarnings: 0,
+          failedAttempts: 0,
+          lockedUntil: null,
+        });
+        await this.userRepo.save(user);
+      }
+      total += users.length;
     }
 
-    return users.length;
+    return total;
   }
 }

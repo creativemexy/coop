@@ -12,6 +12,7 @@ import { UserActivityService } from '../users/user-activity.service';
 import { AuditService } from '../../common/audit.service';
 import { AuditAction } from '../../common/entities/audit-log.entity';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import { KycStatus } from '../../common/enums/status.enum';
 import { Role } from '../../common/enums/role.enum';
 
@@ -47,20 +48,24 @@ export class LoansService {
     let vested = false;
     if (account?.id) {
       const now = new Date();
-      let allMonths = true;
+      const months: string[] = [];
       for (let i = 0; i < vestingMonths; i++) {
-        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-        const count = await this.savingsTxRepo.count({
-          where: {
-            accountId: account.id,
-            type: TransactionType.DEPOSIT,
-            createdAt: Between(monthStart, monthEnd),
-          },
-        });
-        if (count === 0) { allMonths = false; break; }
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
       }
-      vested = allMonths;
+      const earliest = new Date(now.getFullYear(), now.getMonth() - (vestingMonths - 1), 1);
+
+      const rows: Array<{ month: string }> = await this.savingsTxRepo.manager.query(
+        `SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month
+         FROM savings_transactions
+         WHERE account_id = $1
+           AND type = $2
+           AND created_at >= $3`,
+        [account.id, TransactionType.DEPOSIT, earliest],
+      );
+
+      const present = new Set(rows.map((r) => r.month));
+      vested = months.every((m) => present.has(m));
     }
 
     const maxAmount = savingsBalance * multiplier;
@@ -230,16 +235,33 @@ export class LoansService {
       order: { createdAt: 'DESC' },
       relations: { repayments: true },
     });
-    if (!reviewer) return loans;
-
-    const filtered: Loan[] = [];
-    for (const loan of loans) {
-      const withBorrower = await this.loadLoanWithBorrower(loan.id);
-      if (this.scopeForLoan(withBorrower, reviewer)) {
-        filtered.push(withBorrower);
-      }
+    if (!reviewer) {
+      const users = await this.usersService
+        .findByIds(loans.map((l) => l.userId))
+        .catch(() => [] as User[]);
+      return this.attachBorrowers(loans, users);
     }
-    return filtered;
+
+    const users = await this.usersService
+      .findByIds(loans.map((l) => l.userId))
+      .catch(() => [] as User[]);
+    const withBorrower = this.attachBorrowers(loans, users);
+
+    return withBorrower.filter((loan) => this.scopeForLoan(loan, reviewer));
+  }
+
+  private attachBorrowers(loans: Loan[], users: User[]): Loan[] {
+    const byId = new Map<string, User>(users.map((u) => [u.id, u]));
+    for (const loan of loans) {
+      const borrower = byId.get(loan.userId);
+      loan.borrower = {
+        apexOrgId: borrower?.apexOrgId ?? null,
+        organizationId: borrower?.organizationId ?? null,
+        name: borrower ? `${borrower.firstName ?? ''} ${borrower.lastName ?? ''}`.trim() || borrower.email : undefined,
+        email: borrower?.email,
+      };
+    }
+    return loans;
   }
 
   private async loadLoanWithRepayments(id: string) {
@@ -256,6 +278,8 @@ export class LoansService {
     loan.borrower = {
       apexOrgId: borrower?.apexOrgId ?? null,
       organizationId: borrower?.organizationId ?? null,
+      name: borrower ? `${borrower.firstName ?? ''} ${borrower.lastName ?? ''}`.trim() || borrower.email : undefined,
+      email: borrower?.email,
     };
     return loan;
   }

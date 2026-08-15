@@ -15,6 +15,7 @@ import {
 } from './firstcheckout.client';
 import { SavingsService } from '../savings/savings.service';
 import { LoansService } from '../loans/loans.service';
+import { InvestmentsService } from '../investments/investments.service';
 import { RiskService } from '../../common/risk.service';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
@@ -36,6 +37,7 @@ export class VirtualAccountsService {
     private readonly client: FirstCheckoutClient,
     private readonly savingsService: SavingsService,
     private readonly loansService: LoansService,
+    private readonly investmentsService: InvestmentsService,
     private readonly configService: ConfigService,
     private readonly riskService: RiskService,
   ) {}
@@ -248,10 +250,38 @@ export class VirtualAccountsService {
       return { status: 'processed', creditedAmount: expected };
     }
 
+    if (pending.type === 'investment') {
+      if (!pending.investmentOrderId) {
+        return { status: 'duplicate' };
+      }
+      const expected = Number(pending.amount);
+      const received = confirmedAmount ?? amount;
+      if (Math.abs(received - expected) / expected > 0.02) {
+        this.logger.warn(
+          `Investment payment ${pending.reference} amount mismatch: expected ₦${expected}, received ₦${received} — not crediting`,
+        );
+        return { status: 'ignored' };
+      }
+      await this.investmentsService.confirmPayment(
+        pending.investmentOrderId,
+        reference,
+        reference,
+      );
+      await this.pendingRepo.update(pending.id, {
+        status: 'credited',
+        bankReference: reference,
+        creditedAt: new Date(),
+      });
+      this.logger.log(
+        `Confirmed investment order ${pending.investmentOrderId} for ₦${expected} (${pending.reference}, ${reference}) for user ${pending.userId}`,
+      );
+      return { status: 'processed', creditedAmount: expected };
+    }
+
     const credited = await this.savingsService.applyExternalDeposit(
       pending.userId,
       amount,
-      `Bank transfer credit via virtual account — ${reference}`,
+      'Bank transfer credit',
       reference,
       pending.type,
     );
@@ -397,12 +427,22 @@ export class VirtualAccountsService {
       return deposit;
     }
 
+    const savingsType: 'general' | 'goal' | undefined =
+      deposit.type === 'goal' ? 'goal' : deposit.type === 'general' ? 'general' : undefined;
+
+    if (!savingsType) {
+      this.logger.log(
+        `Deposit ${deposit.reference} is not a savings deposit (${deposit.type}) — no balance credit`,
+      );
+      return deposit;
+    }
+
     const credited = await this.savingsService.applyExternalDeposit(
       deposit.userId,
       amount,
-      `Bank transfer credit via virtual account — ${deposit.reference}`,
+      'Bank transfer credit',
       deposit.reference,
-      deposit.type === 'loan' ? 'general' : deposit.type,
+      savingsType,
     );
     if (!credited) {
       return deposit;
@@ -586,5 +626,151 @@ export class VirtualAccountsService {
     );
 
     return this.findLoanRepaymentInstruction(userId, repaymentId) as Promise<PendingDeposit>;
+  }
+
+  /**
+   * Issue a bank-transfer payment instruction for an investment order via
+   * FirstCheckout. The order is NOT confirmed here — it stays `pending` until
+   * `verifyInvestmentOrder` confirms the transfer (or the webhook fires).
+   */
+  async initiateInvestmentOrderPayment(
+    userId: string,
+    orderId: string,
+  ): Promise<PendingDeposit> {
+    const order = await this.investmentsService.getOrderForPayment(userId, orderId);
+    const amount = Number(order.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Invalid order amount');
+    }
+
+    const active = await this.pendingRepo.findOne({
+      where: {
+        userId,
+        type: 'investment' as const,
+        investmentOrderId: orderId,
+        status: 'pending',
+        expiresAt: MoreThan(new Date()),
+      },
+    });
+    if (active) {
+      return active;
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.role !== Role.INDIVIDUAL) {
+      throw new BadRequestException('Only individual members can invest');
+    }
+
+    const name =
+      [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+      'Coop Member';
+    const reference = `FCIN-${crypto.randomUUID()
+      .replace(/-/g, '')
+      .slice(0, 26)
+      .toUpperCase()}`;
+
+    const va = await this.client.createDepositVirtualAccount({
+      reference,
+      amount,
+      email: user.email || '',
+      name,
+      purpose: 'Investment order payment',
+    });
+
+    const pending = this.pendingRepo.create({
+      userId,
+      amount,
+      type: 'investment' as DepositType,
+      investmentOrderId: orderId,
+      reference,
+      accountNumber: va.accountNumber,
+      accountName: va.accountName || name,
+      bankName: va.bankName || 'First Bank',
+      bankReference: va.accessCode,
+      token: va.token || null,
+      status: 'pending',
+      expiresAt: new Date(Date.now() + DEPOSIT_TTL_MS),
+    });
+    const saved = await this.pendingRepo.save(pending);
+    this.logger.log(
+      `Issued investment payment instruction ${saved.reference} (₦${amount}) for order ${orderId} for user ${userId} on account ${saved.accountNumber}`,
+    );
+    return saved;
+  }
+
+  /** Latest instruction (incl. status) for an investment order. */
+  async findInvestmentOrderInstruction(
+    userId: string,
+    orderId: string,
+  ): Promise<PendingDeposit | null> {
+    return this.pendingRepo.findOne({
+      where: {
+        userId,
+        investmentOrderId: orderId,
+        type: 'investment' as const,
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Confirm an investment order payment with FirstCheckout and — only if the
+   * transfer is confirmed — confirm the order (allocates the holding). Never
+   * confirms without verification. Idempotent.
+   */
+  async verifyInvestmentOrder(
+    userId: string,
+    orderId: string,
+  ): Promise<PendingDeposit> {
+    const pending = await this.findInvestmentOrderInstruction(userId, orderId);
+    if (!pending) {
+      throw new NotFoundException('Payment instruction not found');
+    }
+    if (pending.status !== 'pending') {
+      return pending;
+    }
+    if (pending.expiresAt && pending.expiresAt < new Date()) {
+      await this.pendingRepo.update(pending.id, { status: 'expired' });
+      pending.status = 'expired';
+      return pending;
+    }
+
+    const { confirmed, amount: confirmedAmount } =
+      await this.confirmInstruction(pending);
+
+    if (!confirmed) {
+      this.logger.log(
+        `Investment payment ${pending.reference} is pending — transfer not yet confirmed, order not confirmed`,
+      );
+      return pending;
+    }
+
+    const expected = Number(pending.amount);
+    const received = confirmedAmount ?? expected;
+    if (Math.abs(received - expected) / expected > 0.02) {
+      this.logger.warn(
+        `Investment payment ${pending.reference} amount mismatch: expected ₦${expected}, confirmed ₦${received} — not confirming`,
+      );
+      return pending;
+    }
+
+    await this.investmentsService.confirmPayment(
+      orderId,
+      pending.reference,
+      pending.reference,
+    );
+    await this.pendingRepo.update(pending.id, {
+      status: 'credited',
+      bankReference: pending.reference,
+      creditedAt: new Date(),
+    });
+    this.logger.log(
+      `Verified + confirmed investment order ${orderId} for ${userId} (${pending.reference})`,
+    );
+
+    return this.findInvestmentOrderInstruction(userId, orderId) as Promise<PendingDeposit>;
   }
 }

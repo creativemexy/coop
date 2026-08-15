@@ -36,19 +36,36 @@ interface Loan {
   amountPaid: number
   serviceFee: number
   serviceFeePaid: boolean
+  disbursedAmount?: number
   purpose?: string
   status: string
   createdAt: string
+  rejectedBy?: string
+  rejectedAt?: string
+  rejectionReason?: string
   repayments: LoanRepayment[]
 }
 
 const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  pending: 'warning',
+  apex_approved: 'info',
+  org_approved: 'info',
   approved: 'success',
   active: 'info',
-  pending: 'warning',
   completed: 'success',
   defaulted: 'danger',
   rejected: 'danger',
+}
+
+const statusLabels: Record<string, string> = {
+  pending: 'Awaiting apex approval',
+  apex_approved: 'Awaiting organization approval',
+  org_approved: 'Awaiting admin approval',
+  approved: 'Awaiting disbursement',
+  active: 'Active',
+  completed: 'Completed',
+  defaulted: 'Defaulted',
+  rejected: 'Rejected',
 }
 
 interface LoanEligibility {
@@ -84,8 +101,44 @@ export function Loans() {
 
   useEffect(() => {
     if (!pay || pay.pending.status !== 'pending') return
-    const t = setInterval(() => checkPayment(), 5000)
-    return () => clearInterval(t)
+    const MAX_ATTEMPTS = 30
+    const MAX_CONSECUTIVE_ERRORS = 3
+    const BASE_DELAY = 5000
+    const MAX_DELAY = 30000
+
+    let cancelled = false
+    let attempts = 0
+    let consecutiveErrors = 0
+    let delay = BASE_DELAY
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const poll = async () => {
+      if (cancelled) return
+      attempts += 1
+      const status = await checkPayment()
+      if (cancelled) return
+      if (status === 'credited') return
+      if (status === 'error') {
+        consecutiveErrors += 1
+      } else if (status !== 'pending') {
+        return
+      } else {
+        consecutiveErrors = 0
+      }
+      if (attempts >= MAX_ATTEMPTS || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        setPay(null)
+        alert('Payment confirmation timed out. Check your account and try again.')
+        return
+      }
+      delay = Math.min(delay * 1.5, MAX_DELAY)
+      timer = setTimeout(poll, delay)
+    }
+
+    timer = setTimeout(poll, BASE_DELAY)
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pay?.pending.status, pay?.pending.id])
 
@@ -114,8 +167,8 @@ export function Loans() {
     setPayingId(null)
   }
 
-  const checkPayment = async () => {
-    if (!pay) return
+  const checkPayment = async (): Promise<string | 'error'> => {
+    if (!pay) return 'error'
     setChecking(true)
     try {
       const { data } = await api.post(`/virtual-accounts/loan-repayments/${pay.repaymentId}/verify`)
@@ -124,10 +177,13 @@ export function Loans() {
         setPay(null)
         await fetch()
       }
+      return data?.status ?? 'pending'
     } catch {
       // keep modal open; re-poll
+      return 'error'
+    } finally {
+      setChecking(false)
     }
-    setChecking(false)
   }
 
   const copyAccount = async () => {
@@ -221,12 +277,16 @@ export function Loans() {
             </div>
           </div>
           {amount && duration && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-sm">
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-sm space-y-1">
               <p>Loan amount: <strong>₦{Number(amount).toLocaleString()}</strong></p>
               <p>Interest (5%): <strong>₦{Math.round(Number(amount) * 0.05).toLocaleString()}</strong></p>
               <p>Service fee (1%): <strong>₦{Math.round(Number(amount) * 0.01).toLocaleString()}</strong></p>
               <p>Total repayment: <strong>₦{Math.round(Number(amount) * 1.05).toLocaleString()}</strong></p>
               <p>Monthly payment: <strong>₦{Math.round((Number(amount) * 1.05) / Number(duration)).toLocaleString()}</strong></p>
+              <p className="text-green-700 dark:text-green-300">
+                Net amount disbursed: <strong>₦{Math.round(Number(amount) * 0.99).toLocaleString()}</strong>
+                <span className="text-xs"> (service fee deducted from the loan)</span>
+              </p>
             </div>
           )}
           <Button onClick={handleApply} disabled={loading || !amount || (eligibility ? !eligibility.eligible : false)} className="mt-4">
@@ -271,7 +331,7 @@ export function Loans() {
                   )}
                 </div>
                 <div className="text-right">
-                  <Badge variant={statusColors[loan.status] ?? 'default'}>{loan.status}</Badge>
+                  <Badge variant={statusColors[loan.status] ?? 'default'}>{statusLabels[loan.status] ?? loan.status}</Badge>
                   <p className="text-sm text-gray-500 mt-1">{loan.duration} months @ {loan.interestRate}%</p>
                 </div>
               </div>
@@ -279,10 +339,20 @@ export function Loans() {
               <div className="mt-3 flex flex-wrap gap-4 text-sm">
                 {Number(loan.serviceFee) > 0 && (
                   <div>
-                    <span className="text-gray-500">Service fee</span>
-                    <p className={`font-bold ${loan.serviceFeePaid ? 'text-green-600' : 'text-amber-600'}`}>
-                      ₦{Number(loan.serviceFee).toLocaleString()} {loan.serviceFeePaid ? '(paid)' : '(pending)'}
-                    </p>
+                    <span className="text-gray-500">Service fee (deducted from loan)</span>
+                    <p className="font-bold text-amber-600">₦{Number(loan.serviceFee).toLocaleString()}</p>
+                  </div>
+                )}
+                {loan.disbursedAmount != null && (
+                  <div>
+                    <span className="text-gray-500">Disbursed amount</span>
+                    <p className="font-bold text-green-600">₦{Number(loan.disbursedAmount).toLocaleString()}</p>
+                  </div>
+                )}
+                {loan.status === 'rejected' && (
+                  <div className="w-full">
+                    <span className="text-gray-500">Rejection reason</span>
+                    <p className="font-medium text-red-600">{loan.rejectionReason || 'Not provided'}</p>
                   </div>
                 )}
               </div>

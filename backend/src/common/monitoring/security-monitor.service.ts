@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { SchedulerLockService } from '../scheduler/scheduler-lock.service';
 import { LoginHistory } from '../../modules/auth/entities/login-history.entity';
 import { AlertService } from './alert.service';
 
@@ -16,6 +17,7 @@ export class SecurityMonitorService {
     @InjectRepository(LoginHistory)
     private readonly loginRepo: Repository<LoginHistory>,
     private readonly alert: AlertService,
+    private readonly schedulerLock: SchedulerLockService,
   ) {}
 
   async checkLoginAttempt(ipAddress?: string, userId?: string): Promise<void> {
@@ -48,12 +50,14 @@ export class SecurityMonitorService {
 
   @Cron(CronExpression.EVERY_30_MINUTES)
   async periodicScan(): Promise<void> {
-    this.logger.log('Running security scan...');
-    try {
-      await this.checkAbnormalPatterns();
-    } catch (err) {
-      this.logger.error(`Security scan failed: ${(err as Error).message}`);
-    }
+    await this.schedulerLock.runExclusive('security:periodic-scan', 1800, async () => {
+      this.logger.log('Running security scan...');
+      try {
+        await this.checkAbnormalPatterns();
+      } catch (err) {
+        this.logger.error(`Security scan failed: ${(err as Error).message}`);
+      }
+    });
   }
 
   private async checkAbnormalPatterns(): Promise<void> {

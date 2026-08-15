@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum TicketStatus {
@@ -23,6 +24,8 @@ export enum TicketCategory {
 }
 
 @Entity('support_tickets')
+@Index(['createdBy', 'createdAt'])
+@Index(['status', 'createdAt'])
 export class SupportTicket {
   @PrimaryGeneratedColumn('uuid')
   id: string;

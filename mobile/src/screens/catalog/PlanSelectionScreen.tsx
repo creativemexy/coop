@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 import { BnplPlan, BnplCatalogItem } from '../../types';
 
@@ -44,19 +44,24 @@ export default function PlanSelectionScreen({ route, navigation }: { route: any;
         { text: 'OK', style: 'cancel' },
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to subscribe');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to subscribe'));
     } finally {
       setSubscribing(null);
     }
   };
 
-  const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+  const formatPrice = (price: number | string) => `₦${Number(price || 0).toLocaleString()}`;
 
   const renderPlan = ({ item }: { item: BnplPlan }) => {
-    const totalInterest = catalogItem.price * (item.interestRate / 100);
-    const totalAmount = catalogItem.price + totalInterest;
-    const downPayment = catalogItem.price * (item.downPaymentPercent / 100);
-    const installmentAmount = (totalAmount - downPayment) / item.installmentCount;
+    const price = Number(catalogItem.price) || 0;
+    const rate = Number(item.interestRate) || 0;
+    const downPct = Number(item.downPaymentPercent) || 0;
+    const installments = Number(item.installmentCount) || 0;
+
+    const totalInterest = price * (rate / 100);
+    const totalAmount = price + totalInterest;
+    const downPayment = price * (downPct / 100);
+    const installmentAmount = installments > 0 ? (totalAmount - downPayment) / installments : 0;
 
     return (
       <View style={styles.planCard}>
@@ -66,14 +71,14 @@ export default function PlanSelectionScreen({ route, navigation }: { route: any;
         <View style={styles.planDetails}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Item Price</Text>
-            <Text style={styles.detailValue}>{formatPrice(catalogItem.price)}</Text>
+            <Text style={styles.detailValue}>{formatPrice(price)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Interest ({item.interestRate}%)</Text>
+            <Text style={styles.detailLabel}>Interest ({rate}%)</Text>
             <Text style={styles.detailValue}>{formatPrice(totalInterest)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Down Payment ({item.downPaymentPercent}%)</Text>
+            <Text style={styles.detailLabel}>Down Payment ({downPct}%)</Text>
             <Text style={styles.detailValue}>{formatPrice(downPayment)}</Text>
           </View>
           <View style={styles.detailRow}>
@@ -112,7 +117,7 @@ export default function PlanSelectionScreen({ route, navigation }: { route: any;
     <View style={styles.container}>
       <View style={styles.itemHeader}>
         <Text style={styles.itemName}>{catalogItem.name}</Text>
-        <Text style={styles.itemPrice}>{formatPrice(catalogItem.price)}</Text>
+        <Text style={styles.itemPrice}>{formatPrice(Number(catalogItem.price) || 0)}</Text>
       </View>
       <FlatList
         data={plans}

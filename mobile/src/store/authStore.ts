@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import client, { setTokens, clearTokens, getStoredTokens, fetchCsrfToken } from '../api/client';
+import client, { setTokens, clearTokens, getStoredTokens, fetchCsrfToken, setSessionExpiredHandler, getBiometricPreference, setBiometricPreference } from '../api/client';
 import { ENDPOINTS } from '../constants';
 import { User, Role } from '../types';
 import { getDeviceSecurityInfo, isDeviceCompromised } from '../utils/deviceAttestation';
@@ -27,8 +27,10 @@ interface AuthState {
     pendingUserId?: string;
   }>;
   logout: () => Promise<void>;
+  resetSession: () => Promise<void>;
   restoreSession: () => Promise<void>;
   setBiometricUnlocked: (v: boolean) => void;
+  setBiometricRequired: (v: boolean) => void;
   clearError: () => void;
 }
 
@@ -53,7 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     const { data } = await client.post(ENDPOINTS.auth.login, {
-      email,
+      emailOrPhone: email,
       password,
     });
     if (!isAllowedRole(data.user?.role)) {
@@ -61,7 +63,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     await setTokens(data);
     await fetchCsrfToken();
-    set({ user: data.user, isAuthenticated: true, error: null });
+    const biometricOn = await getBiometricPreference();
+    set({ user: data.user, isAuthenticated: true, error: null, biometricRequired: biometricOn, biometricUnlocked: false });
   },
 
   socialLogin: async (provider, idToken, profile) => {
@@ -82,7 +85,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     await setTokens(data);
     await fetchCsrfToken();
-    set({ user: data.user, isAuthenticated: true, error: null, biometricRequired: false });
+    const biometricOn = await getBiometricPreference();
+    set({ user: data.user, isAuthenticated: true, error: null, biometricRequired: biometricOn, biometricUnlocked: false });
   },
 
   register: async (registerData) => {
@@ -107,7 +111,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     await setTokens(data);
     await fetchCsrfToken();
-    set({ user: data.user, isAuthenticated: true, error: null, biometricRequired: true, biometricUnlocked: false });
+    const biometricOn = await getBiometricPreference();
+    set({ user: data.user, isAuthenticated: true, error: null, biometricRequired: biometricOn, biometricUnlocked: false });
 
     return {
       registrationFeeRequired: false,
@@ -123,6 +128,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     await clearTokens();
     set({ user: null, isAuthenticated: false, error: null, biometricUnlocked: false });
+  },
+
+  resetSession: async () => {
+    await clearTokens();
+    set({ user: null, isAuthenticated: false, error: null, isLoading: false, biometricUnlocked: false });
   },
 
   restoreSession: async () => {
@@ -155,7 +165,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
       await fetchCsrfToken();
-      set({ user: data, isAuthenticated: true, isLoading: false });
+      const biometricOn = await getBiometricPreference();
+      set({ user: data, isAuthenticated: true, isLoading: false, biometricRequired: biometricOn, biometricUnlocked: false });
     } catch {
       await clearTokens();
       set({ isLoading: false, biometricRequired: false });
@@ -164,5 +175,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setBiometricUnlocked: (v: boolean) => set({ biometricUnlocked: v }),
 
+  setBiometricRequired: (v: boolean) => {
+    setBiometricPreference(v);
+    set({ biometricRequired: v, biometricUnlocked: false });
+  },
+
   clearError: () => set({ error: null }),
 }));
+
+setSessionExpiredHandler(() => {
+  useAuthStore.getState().resetSession();
+});

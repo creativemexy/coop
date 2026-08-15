@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InvestmentsController } from './investments.controller';
 import { InvestmentsService } from './investments.service';
-import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { InvestmentProduct } from './entities/investment-product.entity';
 import { InvestmentProductVersion } from './entities/investment-product-version.entity';
@@ -37,7 +36,6 @@ import { Payment } from '../payments/entities/payment.entity';
       CorporateAction,
       Payment,
     ]),
-    AuthModule,
     UsersModule,
   ],
   controllers: [InvestmentsController],

@@ -13,8 +13,7 @@ function LandingHeader() {
 
   return (
     <header
-      className="sticky top-0 z-50 backdrop-blur border-b border-white/10"
-      style={{ backgroundColor: 'color-mix(in srgb, var(--brand-primary) 22%, #081C3A)' }}
+      className="sticky top-0 z-50 border-b border-[#F7D674]/20 bg-[#173F38]/95 backdrop-blur"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
@@ -22,12 +21,7 @@ function LandingHeader() {
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt={site.name} className="h-9 w-9 rounded-lg object-cover" />
             ) : (
-              <span
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-white"
-                style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
-              >
-                {site.logoEmoji}
-              </span>
+              <img src={site.logoPath} alt={site.name} className="h-9 w-9 rounded-lg object-cover" />
             )}
             <span className="text-lg font-bold text-white">{site.name}</span>
           </Link>
@@ -41,14 +35,12 @@ function LandingHeader() {
                   cn(
                     'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     isActive
-                      ? 'text-white'
-                      : 'text-[#D9D9D9] hover:text-white',
+                      ? 'bg-white/12 text-white'
+                      : 'text-[#E7EFE8]/80 hover:bg-white/8 hover:text-white',
                   )
                 }
                 style={({ isActive }) =>
-                  isActive
-                    ? { background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }
-                    : undefined
+                  isActive ? { background: '#ffffff1f' } : undefined
                 }
               >
                 {l.label}
@@ -57,13 +49,12 @@ function LandingHeader() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="text-sm font-medium text-[#D9D9D9] hover:text-white">
+            <Link to="/login" className="text-sm font-semibold text-[#E7EFE8] hover:text-white">
               Sign In
             </Link>
             <Link
               to="/register"
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
+              className="rounded-full bg-[#E4A42A] px-5 py-2 text-sm font-bold text-[#2B1A10] transition hover:bg-[#F7B733]"
             >
               Become a Member
             </Link>
@@ -73,6 +64,7 @@ function LandingHeader() {
             onClick={() => setOpen(!open)}
             className="md:hidden p-2 text-white"
             aria-label="Toggle menu"
+            aria-expanded={open}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               {open ? (
@@ -95,9 +87,9 @@ function LandingHeader() {
                   'block px-3 py-2 rounded-lg text-sm font-medium',
                   location.pathname === l.path
                     ? 'text-white'
-                    : 'text-[#D9D9D9]',
+                    : 'text-[#E7EFE8]',
                 )}
-                style={location.pathname === l.path ? { background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' } : undefined}
+                style={location.pathname === l.path ? { background: '#ffffff1f' } : undefined}
               >
                 {l.label}
               </NavLink>
@@ -113,8 +105,7 @@ function LandingHeader() {
               <Link
                 to="/register"
                 onClick={() => setOpen(false)}
-                className="flex-1 rounded-lg px-4 py-2 text-center text-sm font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
+                className="flex-1 rounded-full bg-[#E4A42A] px-4 py-2 text-center text-sm font-bold text-[#2B1A10]"
               >
                 Become a Member
               </Link>
@@ -129,7 +120,7 @@ function LandingHeader() {
 function LandingFooter() {
   const { branding } = useBranding()
   return (
-    <footer className="bg-gray-900 text-gray-300 dark:bg-gray-950">
+    <footer className="bg-[#173F38] text-[#E7EFE8]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-1">
@@ -137,16 +128,11 @@ function LandingFooter() {
               {branding.logoUrl ? (
                 <img src={branding.logoUrl} alt={branding.organizationName} className="h-9 w-9 rounded-lg object-cover" />
               ) : (
-                <span
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-white"
-                  style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)' }}
-                >
-                  {site.logoEmoji}
-                </span>
+                <img src={site.logoPath} alt={branding.organizationName} className="h-9 w-9 rounded-lg object-cover" />
               )}
             <span className="text-lg font-bold text-white">{branding.organizationName}</span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">{site.description}</p>
+            <p className="text-sm leading-relaxed text-[#E7EFE8]/70">{site.description}</p>
           </div>
 
           <div>

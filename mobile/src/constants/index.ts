@@ -21,9 +21,6 @@ export const ENDPOINTS = {
     activity: `${API_PREFIX}/users/me/activity`,
     changePassword: `${API_PREFIX}/auth/change-password`,
     notificationPreferences: `${API_PREFIX}/users/me/notification-preferences`,
-    referralCode: `${API_PREFIX}/users/me/referral-code`,
-    referralStats: `${API_PREFIX}/users/me/referral-stats`,
-    referrals: `${API_PREFIX}/users/me/referrals`,
   },
   dashboard: {
     individual: `${API_PREFIX}/dashboard/individual`,
@@ -43,6 +40,7 @@ export const ENDPOINTS = {
     organizations: `${API_PREFIX}/registrations/organizations`,
   },
   payments: `${API_PREFIX}/payments`,
+  branding: `${API_PREFIX}/branding`,
   verifyPayment: (reference: string) => `${API_PREFIX}/payments/verify/${reference}`,
   paymentMethods: `${API_PREFIX}/payment-methods`,
   savings: {
@@ -51,6 +49,21 @@ export const ENDPOINTS = {
     deposit: `${API_PREFIX}/savings/deposit`,
     withdraw: `${API_PREFIX}/savings/withdraw`,
     target: `${API_PREFIX}/savings/target`,
+  },
+  virtualAccounts: {
+    me: `${API_PREFIX}/virtual-accounts/me`,
+    depositsInitiate: `${API_PREFIX}/virtual-accounts/deposits/initiate`,
+    depositsLatest: `${API_PREFIX}/virtual-accounts/deposits/latest`,
+    depositsVerify: (id: string) =>
+      `${API_PREFIX}/virtual-accounts/deposits/${id}/verify`,
+    loanRepayInitiate: (repaymentId: string) =>
+      `${API_PREFIX}/virtual-accounts/loan-repayments/${repaymentId}/initiate`,
+    loanRepayVerify: (repaymentId: string) =>
+      `${API_PREFIX}/virtual-accounts/loan-repayments/${repaymentId}/verify`,
+    investPaymentInitiate: (orderId: string) =>
+      `${API_PREFIX}/virtual-accounts/investments/${orderId}/initiate`,
+    investPaymentVerify: (orderId: string) =>
+      `${API_PREFIX}/virtual-accounts/investments/${orderId}/verify`,
   },
   loans: {
     apply: `${API_PREFIX}/loans/apply`,
@@ -72,7 +85,7 @@ export const ENDPOINTS = {
     distributions: `${API_PREFIX}/investments/distributions/mine`,
     pendingDistributions: `${API_PREFIX}/investments/distributions/pending`,
     redemptions: `${API_PREFIX}/investments/redemptions`,
-    invest: `${API_PREFIX}/investments/invest`,
+    invest: `${API_PREFIX}/investments/orders`,
     statement: `${API_PREFIX}/investments/statement`,
     compliance: `${API_PREFIX}/investments/compliance`,
     confirmOrder: (id: string) =>

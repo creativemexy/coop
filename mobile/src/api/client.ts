@@ -9,6 +9,7 @@ import { validateServerCertificate, configurePinning } from '../utils/sslPinning
 
 const TOKEN_KEY = 'auth_tokens';
 const CSRF_KEY = 'csrf_token';
+const BIOMETRIC_KEY = 'biometric_login_enabled';
 
 if (config.enableSslPinning && config.pinnedCertHashes.length > 0) {
   configurePinning(
@@ -27,6 +28,16 @@ const client = axios.create({
 });
 
 const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function setSessionExpiredHandler(fn: (() => void) | null) {
+  sessionExpiredHandler = fn;
+}
+
+export function notifySessionExpired() {
+  sessionExpiredHandler?.();
+}
 
 async function fetchCsrfToken(): Promise<string | null> {
   try {
@@ -136,7 +147,11 @@ client.interceptors.response.use(
 
       try {
         const tokensJson = await SecureStore.getItemAsync(TOKEN_KEY);
-        if (!tokensJson) throw new Error('No tokens');
+        if (!tokensJson) {
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+          notifySessionExpired();
+          return Promise.reject(error);
+        }
 
         const { refreshToken } = JSON.parse(tokensJson);
         const { data } = await axios.post(
@@ -154,6 +169,7 @@ client.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         await SecureStore.deleteItemAsync(TOKEN_KEY);
+        notifySessionExpired();
         throw refreshError;
       } finally {
         isRefreshing = false;
@@ -185,5 +201,37 @@ export async function getStoredTokens(): Promise<{
 }
 
 export { fetchCsrfToken };
+
+export async function getBiometricPreference(): Promise<boolean> {
+  try {
+    return (await SecureStore.getItemAsync(BIOMETRIC_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setBiometricPreference(enabled: boolean) {
+  try {
+    if (enabled) {
+      await SecureStore.setItemAsync(BIOMETRIC_KEY, 'true');
+    } else {
+      await SecureStore.deleteItemAsync(BIOMETRIC_KEY);
+    }
+  } catch { /* ignore */ }
+}
+
+/** Safely extract a string error message from an API error response.
+ *  NestJS validation errors return `message` as an array of strings, which
+ *  cannot be passed to Alert.alert / setState (throws ReadableNativeArray cast
+ *  errors in React Native). */
+export function getErrorMessage(err: any, fallback = 'Something went wrong'): string {
+  const data = err?.response?.data;
+  const msg = data?.message ?? err?.message;
+  if (Array.isArray(msg)) {
+    return msg.filter((m) => typeof m === 'string').join('\n') || fallback;
+  }
+  if (typeof msg === 'string' && msg.trim()) return msg;
+  return fallback;
+}
 
 export default client;

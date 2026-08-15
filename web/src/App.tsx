@@ -15,6 +15,7 @@ import { SuperAdminDashboard } from './pages/super-admin/Dashboard'
 import { ApexOrganizations } from './pages/super-admin/ApexOrganizations'
 import { Organizations } from './pages/super-admin/Organizations'
 import { Users } from './pages/super-admin/Users'
+import { SuperAdminLoanApprovals } from './pages/super-admin/LoanApprovals'
 import { AdminDashboard } from './pages/admin/Dashboard'
 import { AdminConfig } from './pages/admin/Config'
 import { AdminMonitoring } from './pages/admin/Monitoring'
@@ -25,8 +26,10 @@ import { AdminAuditLogs } from './pages/admin/AuditLogs'
 import { AdminKycReview } from './pages/admin/KycReview'
 import { AdminDisputes } from './pages/admin/AdminDisputes'
 import { AdminMemberStatements } from './pages/admin/MemberStatements'
+import { AdminLoanApprovals } from './pages/admin/LoanApprovals'
 import { ApexBusinessManagerDashboard } from './pages/apex-business-manager/Dashboard'
 import { ApexBusinessManagerUsers } from './pages/apex-business-manager/Users'
+import { ApexBusinessManagerLoanApprovals } from './pages/apex-business-manager/LoanApprovals'
 import { AccountantDashboard } from './pages/accountant/Dashboard'
 import { Accounts } from './pages/accountant/Accounts'
 import { JournalEntries } from './pages/accountant/JournalEntries'
@@ -35,8 +38,10 @@ import { Reports as AccountantReports } from './pages/accountant/Reports'
 import { BnplFinancials } from './pages/accountant/BnplFinancials'
 import { ReconciliationWorkbench } from './pages/accountant/ReconciliationWorkbench'
 import { TransactionRegister } from './pages/accountant/TransactionRegister'
+import { AccountantLoanDisbursements } from './pages/accountant/LoanDisbursements'
 import { BusinessManagerDashboard } from './pages/business-manager/Dashboard'
 import { BusinessManagerUsers } from './pages/business-manager/Users'
+import { BusinessManagerLoanApprovals } from './pages/business-manager/LoanApprovals'
 import { KycReview } from './pages/business-manager/KycReview'
 import { BnplManagerDashboard } from './pages/bnpl-manager/Dashboard'
 import { Catalog } from './pages/bnpl-manager/Catalog'
@@ -67,7 +72,6 @@ import { Distributions } from './pages/individual/Distributions'
 import { Redemptions } from './pages/individual/Redemptions'
 import { InvestmentStatements } from './pages/individual/InvestmentStatements'
 import { Notifications } from './pages/individual/Notifications'
-import { Referrals } from './pages/individual/Referrals'
 import { PaymentMethods } from './pages/individual/PaymentMethods'
 import { ActivityLog } from './pages/individual/ActivityLog'
 import { Transactions } from './pages/individual/Transactions'
@@ -172,6 +176,7 @@ export default function App() {
             <Route path="/super-admin/role-permissions" element={<RolePermissions />} />
             <Route path="/super-admin/fee-pots" element={<SuperAdminFeePots />} />
             <Route path="/super-admin/support" element={<Support />} />
+            <Route path="/super-admin/loans" element={<SuperAdminLoanApprovals />} />
           </Route>
         </Route>
 
@@ -187,6 +192,7 @@ export default function App() {
             <Route path="/operational-admin/kyc-review" element={<AdminKycReview />} />
             <Route path="/operational-admin/disputes" element={<AdminDisputes />} />
             <Route path="/operational-admin/member-statements" element={<AdminMemberStatements />} />
+            <Route path="/operational-admin/loans" element={<AdminLoanApprovals />} />
           </Route>
         </Route>
 
@@ -200,6 +206,7 @@ export default function App() {
             <Route path="/accountant/reconciliation" element={<ReconciliationWorkbench />} />
             <Route path="/accountant/transactions" element={<TransactionRegister />} />
             <Route path="/accountant/reports" element={<AccountantReports />} />
+            <Route path="/accountant/loans" element={<AccountantLoanDisbursements />} />
           </Route>
         </Route>
 
@@ -214,6 +221,7 @@ export default function App() {
             <Route path="/business-manager/reports" element={<Reports />} />
             <Route path="/business-manager/audit-logs" element={<AuditLogs />} />
             <Route path="/business-manager/approvals" element={<Approvals />} />
+            <Route path="/business-manager/loans" element={<BusinessManagerLoanApprovals />} />
 
           </Route>
         </Route>
@@ -222,6 +230,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/apex-bm" element={<ApexBusinessManagerDashboard />} />
             <Route path="/apex-bm/users" element={<ApexBusinessManagerUsers />} />
+            <Route path="/apex-bm/loans" element={<ApexBusinessManagerLoanApprovals />} />
           </Route>
         </Route>
 
@@ -259,7 +268,6 @@ export default function App() {
             <Route path="/individual/redemptions" element={<Redemptions />} />
             <Route path="/individual/investment-statements" element={<InvestmentStatements />} />
             <Route path="/individual/notifications" element={<Notifications />} />
-            <Route path="/individual/referrals" element={<Referrals />} />
             <Route path="/individual/payment-methods" element={<PaymentMethods />} />
             <Route path="/individual/activity-log" element={<ActivityLog />} />
             <Route path="/individual/transactions" element={<Transactions />} />

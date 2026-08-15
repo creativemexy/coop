@@ -114,6 +114,42 @@ export class VirtualAccountsController {
     return this.toDto(pending);
   }
 
+  @Post('investments/:orderId/initiate')
+  @Roles(Role.INDIVIDUAL)
+  async initiateInvestmentPayment(
+    @CurrentUser('sub') userId: string,
+    @Param('orderId') orderId: string,
+  ) {
+    const pending = await this.service.initiateInvestmentOrderPayment(
+      userId,
+      orderId,
+    );
+    return this.toDto(pending);
+  }
+
+  @Get('investments/:orderId')
+  @Roles(Role.INDIVIDUAL)
+  async getInvestmentPaymentInstruction(
+    @CurrentUser('sub') userId: string,
+    @Param('orderId') orderId: string,
+  ) {
+    const pending = await this.service.findInvestmentOrderInstruction(
+      userId,
+      orderId,
+    );
+    return pending ? this.toDto(pending) : null;
+  }
+
+  @Post('investments/:orderId/verify')
+  @Roles(Role.INDIVIDUAL)
+  async verifyInvestmentPayment(
+    @CurrentUser('sub') userId: string,
+    @Param('orderId') orderId: string,
+  ) {
+    const pending = await this.service.verifyInvestmentOrder(userId, orderId);
+    return this.toDto(pending);
+  }
+
   private toDto(deposit: {
     id: string;
     amount: number;

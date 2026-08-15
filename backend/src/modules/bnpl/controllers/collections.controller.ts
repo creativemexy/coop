@@ -29,6 +29,19 @@ export class CollectionsController {
     return this.service.getDelinquencyCohorts();
   }
 
+  @Get('cohorts/:bucket/installments')
+  async getCohortInstallments(
+    @Param('bucket') bucket: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.service.getCohortInstallments(
+      decodeURIComponent(bucket),
+      page ? Number(page) : 1,
+      pageSize ? Number(pageSize) : 50,
+    );
+  }
+
   @Post('priority')
   async assignPriority(
     @Body() dto: { entityType: PriorityEntityType; entityId: string; priority: PriorityLevel; reason: string },

@@ -9,20 +9,32 @@ import {
   UploadedFile,
   BadRequestException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { Role } from '../../common/enums/role.enum';
 import { SettingsService } from '../settings/settings.service';
 import { sanitizeInput } from '../../common/sanitize.util';
 import { validateImageFile, isAllowedExtension } from '../../common/file-validator.util';
+import { User } from '../users/entities/user.entity';
+import { Organization } from '../organizations/entities/organization.entity';
+import { SavingsAccount } from '../savings/entities/savings-account.entity';
+import { InvestmentHolding } from '../investments/entities/investment-holding.entity';
+import { Role } from '../../common/enums/role.enum';
 
 @Controller('api/v1/branding')
 export class BrandingController {
-  constructor(private readonly settings: SettingsService) {}
+  constructor(
+    private readonly settings: SettingsService,
+    @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Organization) private readonly organizations: Repository<Organization>,
+    @InjectRepository(SavingsAccount) private readonly savingsAccounts: Repository<SavingsAccount>,
+    @InjectRepository(InvestmentHolding) private readonly holdings: Repository<InvestmentHolding>,
+  ) {}
 
   @Get()
   async get() {
@@ -38,6 +50,33 @@ export class BrandingController {
       logoUrl: logoPath ? `/uploads/branding/${logoPath}` : null,
       primaryColor: primaryColor || '#2563eb',
       accentColor: accentColor || '#7c3aed',
+    };
+  }
+
+  /** Public, aggregate-only figures for the marketing site. No member data is exposed. */
+  @Get('impact')
+  async impact() {
+    const [members, organizations, savings, investments] = await Promise.all([
+      this.users.count({ where: { role: Role.INDIVIDUAL, isActive: true } }),
+      this.organizations.count({ where: { status: 'active' as any } }),
+      this.savingsAccounts
+        .createQueryBuilder('account')
+        .select('COALESCE(SUM(account.balance + account.goal_balance), 0)', 'total')
+        .where('account.status = :status', { status: 'active' })
+        .getRawOne<{ total: string }>(),
+      this.holdings
+        .createQueryBuilder('holding')
+        .select('COALESCE(SUM(holding.current_value), 0)', 'total')
+        .where('holding.is_active = :isActive', { isActive: true })
+        .getRawOne<{ total: string }>(),
+    ]);
+
+    return {
+      members,
+      organizations,
+      savingsPool: Number(savings?.total || 0),
+      investmentValue: Number(investments?.total || 0),
+      updatedAt: new Date().toISOString(),
     };
   }
 

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../stores/auth.store'
 import { useSidebar } from '../../stores/sidebar.store'
-import { useBranding } from '../../stores/branding.store'
+import { useBranding, DEFAULT_LOGO } from '../../stores/branding.store'
 import { useRolePermissions } from '../../stores/role-permissions.store'
 import { cn } from '../../lib/utils'
 
@@ -86,6 +86,8 @@ const iconMap: Record<string, LucideIcon> = {
   'Accounts & Balances': Landmark,
   'Ledger': NotepadText,
   'Charts of Accounts': Layers,
+  'Loan Approvals': ListChecks,
+  'Loan Disbursements': HandCoins,
 }
 
 const fallbackIcon: LucideIcon = CircleCheck
@@ -158,6 +160,8 @@ const iconColors: Record<string, string> = {
   'Accounts & Balances': '#0ea5e9',
   'Ledger': '#14b8a6',
   'Charts of Accounts': '#8b5cf6',
+  'Loan Approvals': '#10b981',
+  'Loan Disbursements': '#06b6d4',
   'System': '#64748b',
   'App Settings': '#64748b',
 }
@@ -189,6 +193,7 @@ const navItems: Record<string, { label: string; path: string }[]> = {
     { label: 'Branding', path: '/super-admin/branding' },
     { label: 'Role Permissions', path: '/super-admin/role-permissions' },
     { label: 'Support', path: '/super-admin/support' },
+    { label: 'Loan Approvals', path: '/super-admin/loans' },
     { label: 'Settings', path: '/super-admin/settings' },
   ],
   operational_admin: [
@@ -200,6 +205,7 @@ const navItems: Record<string, { label: string; path: string }[]> = {
     { label: 'Reports', path: '/operational-admin/reports' },
     { label: 'Audit Logs', path: '/operational-admin/audit-logs' },
     { label: 'Approvals', path: '/operational-admin/approvals' },
+    { label: 'Loan Approvals', path: '/operational-admin/loans' },
     { label: 'Config & Toggles', path: '/operational-admin/config' },
     { label: 'Monitoring', path: '/operational-admin/monitoring' },
   ],
@@ -212,10 +218,12 @@ const navItems: Record<string, { label: string; path: string }[]> = {
     { label: 'Reconciliation', path: '/accountant/reconciliation' },
     { label: 'Transaction Register', path: '/accountant/transactions' },
     { label: 'Reports', path: '/accountant/reports' },
+    { label: 'Loan Disbursements', path: '/accountant/loans' },
   ],
   business_manager: [
     { label: 'Dashboard', path: '/business-manager' },
     { label: 'Approvals', path: '/business-manager/approvals' },
+    { label: 'Loan Approvals', path: '/business-manager/loans' },
     { label: 'Users', path: '/business-manager/users' },
     { label: 'Orders', path: '/business-manager/orders' },
     { label: 'Collections', path: '/business-manager/collections' },
@@ -224,6 +232,7 @@ const navItems: Record<string, { label: string; path: string }[]> = {
   apex_business_manager: [
     { label: 'Apex Dashboard', path: '/apex-bm' },
     { label: 'Users', path: '/apex-bm/users' },
+    { label: 'Loan Approvals', path: '/apex-bm/loans' },
     { label: 'Withdraw Share', path: '/apex-bm/withdraw' },
   ],
   bnpl_manager: [
@@ -291,10 +300,7 @@ export function Sidebar() {
               {branding.logoUrl ? (
                 <img src={branding.logoUrl} alt={branding.organizationName} className="h-8 w-8 rounded object-contain" />
               ) : (
-                <div className="h-8 w-8 rounded flex items-center justify-center text-white text-xs font-bold shrink-0"
-                  style={{ backgroundColor: branding.primaryColor }}>
-                  {branding.organizationName.charAt(0)}
-                </div>
+                <img src={DEFAULT_LOGO} alt={branding.organizationName} className="h-8 w-8 rounded object-contain" />
               )}
               <span className="font-bold text-lg truncate" style={{ color: branding.primaryColor }}>{branding.organizationName}</span>
             </div>

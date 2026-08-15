@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 
 const REDIRECT = Linking.createURL('paystack');
@@ -48,7 +48,7 @@ export default function RegisterFeeScreen({ route, navigation }: { route: any; n
       }
     } catch (error: any) {
       setStatus('failed');
-      Alert.alert('Payment Failed', error?.response?.data?.message || 'Failed to initiate payment.');
+      Alert.alert('Payment Failed', getErrorMessage(error, 'Failed to initiate payment.'));
     } finally {
       setProcessing(false);
     }

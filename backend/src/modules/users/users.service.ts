@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserActivity } from './entities/user-activity.entity';
 import { Referral } from './entities/referral.entity';
@@ -46,6 +46,13 @@ export class UsersService {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (!ids.length) return [];
+    return this.userRepository.find({
+      where: { id: In(ids) },
+    });
   }
 
   async findByEmail(email: string): Promise<User | null> {

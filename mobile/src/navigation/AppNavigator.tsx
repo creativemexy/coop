@@ -1,7 +1,9 @@
-import { ActivityIndicator, View, Text } from 'react-native';
+import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { colors, layout } from '../ui/theme';
 import { useAuthStore } from '../store/authStore';
 import BiometricGate from '../components/BiometricGate';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -22,7 +24,7 @@ import SavingsScreen from '../screens/savings/SavingsScreen';
 import LoansScreen from '../screens/loans/LoansScreen';
 import RepaymentsScreen from '../screens/repayments/RepaymentsScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
-import ReferralsScreen from '../screens/referrals/ReferralsScreen';
+
 import PaymentMethodsScreen from '../screens/payment-methods/PaymentMethodsScreen';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import ActivityLogScreen from '../screens/activity/ActivityLogScreen';
@@ -53,7 +55,7 @@ function AuthNavigator() {
 
 function HomeStackNavigator() {
   return (
-    <HomeStack.Navigator>
+    <HomeStack.Navigator screenOptions={makeStackOptions('Home')}>
       <HomeStack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <HomeStack.Screen name="KYCVerification" component={KYCVerificationScreen} options={{ title: 'KYC Verification' }} />
     </HomeStack.Navigator>
@@ -62,7 +64,7 @@ function HomeStackNavigator() {
 
 function CatalogStackNavigator() {
   return (
-    <CatalogStack.Navigator>
+    <CatalogStack.Navigator screenOptions={makeStackOptions('CatalogList')}>
       <CatalogStack.Screen name="CatalogList" component={CatalogScreen} options={{ title: 'BNPL Catalog' }} />
       <CatalogStack.Screen name="PlanSelection" component={PlanSelectionScreen} options={{ title: 'Choose Plan' }} />
     </CatalogStack.Navigator>
@@ -71,7 +73,7 @@ function CatalogStackNavigator() {
 
 function SubStackNavigator() {
   return (
-    <SubStack.Navigator>
+    <SubStack.Navigator screenOptions={makeStackOptions('SubscriptionsList')}>
       <SubStack.Screen name="SubscriptionsList" component={SubscriptionsScreen} options={{ title: 'My Subscriptions' }} />
       <SubStack.Screen name="SubscriptionDetail" component={SubscriptionDetailScreen} options={{ title: 'Subscription Details' }} />
       <SubStack.Screen name="PaymentWebView" component={PaymentWebViewScreen} options={{ title: 'Payment' }} />
@@ -82,13 +84,12 @@ function SubStackNavigator() {
 
 function ProfileStackNavigator() {
   return (
-    <ProfileStack.Navigator>
+    <ProfileStack.Navigator screenOptions={makeStackOptions('ProfileMain')}>
       <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
       <ProfileStack.Screen name="Savings" component={SavingsScreen} options={{ title: 'Savings' }} />
       <ProfileStack.Screen name="Loans" component={LoansScreen} options={{ title: 'Loans' }} />
       <ProfileStack.Screen name="Repayments" component={RepaymentsScreen} options={{ title: 'Repayments' }} />
       <ProfileStack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
-      <ProfileStack.Screen name="Referrals" component={ReferralsScreen} options={{ title: 'Referrals' }} />
       <ProfileStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} options={{ title: 'Payment Methods' }} />
       <ProfileStack.Screen name="Transactions" component={TransactionsScreen} options={{ title: 'Transactions' }} />
       <ProfileStack.Screen name="ActivityLog" component={ActivityLogScreen} options={{ title: 'Activity Log' }} />
@@ -107,19 +108,48 @@ function AppTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: '#1a1a2e' },
-        headerTintColor: '#fff',
-        tabBarActiveTintColor: '#1a1a2e',
-        tabBarInactiveTintColor: '#999',
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '700' },
+        headerShadowVisible: false,
+        tabBarActiveTintColor: colors.brand,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600', marginBottom: 2 },
+        tabBarStyle: {
+          height: 68,
+          paddingTop: 7,
+          paddingBottom: 7,
+          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
+        },
       }}
     >
-      <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home', tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Catalog" component={CatalogStackNavigator} options={{ title: 'Catalog', tabBarLabel: 'Shop' }} />
-      <Tab.Screen name="Subscriptions" component={SubStackNavigator} options={{ title: 'Subscriptions', tabBarLabel: 'My Plans' }} />
-      <Tab.Screen name="Profile" component={ProfileStackNavigator} options={{ title: 'Profile', tabBarLabel: 'Profile' }} />
+      <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home', tabBarLabel: 'Home', tabBarAccessibilityLabel: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} /> }} />
+      <Tab.Screen name="Catalog" component={CatalogStackNavigator} options={{ title: 'Shop', tabBarLabel: 'Shop', tabBarAccessibilityLabel: 'Shop for items', tabBarIcon: ({ color, size }) => <Ionicons name="bag-handle-outline" color={color} size={size} /> }} />
+      <Tab.Screen name="Subscriptions" component={SubStackNavigator} options={{ title: 'My plans', tabBarLabel: 'Plans', tabBarAccessibilityLabel: 'My payment plans', tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} /> }} />
+      <Tab.Screen name="Profile" component={ProfileStackNavigator} options={{ title: 'Account', tabBarLabel: 'Account', tabBarAccessibilityLabel: 'Account and more', popToTopOnBlur: true, tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} /> }} listeners={({ navigation, route }) => ({ tabPress: () => { navigation.navigate(route.name, { screen: 'ProfileMain' }); } })} />
     </Tab.Navigator>
   );
 }
+
+const makeStackOptions = (rootScreen: string) => ({ navigation, route }: any) => ({
+  headerStyle: { backgroundColor: colors.surface },
+  headerTintColor: colors.brand,
+  headerTitleStyle: { fontWeight: '700' as const, color: colors.text },
+  headerShadowVisible: false,
+  contentStyle: { backgroundColor: colors.background },
+  headerBackTitle: 'Back',
+  headerBackButtonDisplayMode: 'minimal' as const,
+  headerLeft: ({ canGoBack }: { canGoBack?: boolean }) => {
+    const showBack = canGoBack || route.name !== rootScreen;
+    if (!showBack) return null;
+    return (
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={() => (canGoBack ? navigation.goBack() : navigation.navigate('HomeTab'))} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+        <Ionicons name="arrow-back" size={24} color={colors.brand} />
+      </TouchableOpacity>
+    );
+  },
+});
 
 function RestrictedScreen() {
   const error = useAuthStore((s) => s.error);

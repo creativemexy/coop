@@ -38,27 +38,30 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
+export interface DashboardPortfolio {
+  totalInvested: number;
+  currentValue: number;
+  totalEarned: number;
+  holdingCount: number;
+  unrealizedReturn: number;
+  unrealizedReturnPct: number;
+}
+
 export interface DashboardData {
   activeSubscriptions: number;
   nextPaymentDate: string | null;
   nextPaymentAmount: number;
   kycStatus: KycStatus;
   savingsBalance: number;
-  savingsGoalBalance: number;
+  goalBalance: number;
   savingsTarget: number;
   activeLoans: number;
-  totalLoanOutstanding: number;
-  portfolioValue: number;
-  totalInvested: number;
-  totalEarned: number;
-  holdingsCount: number;
-  unrealizedReturn: number;
-  availableCredit: number;
-  usedCredit: number;
-  creditLimit: number;
-  referralCode: string;
-  referralCount: number;
-  referralEarnings: number;
+  totalOutstanding: number;
+  portfolio: DashboardPortfolio;
+  bnplEligible: boolean;
+  bnplAvailable: number;
+  bnplUsed: number;
+  bnplCreditLimit: number;
 }
 
 export interface SavingsAccount {
@@ -75,6 +78,28 @@ export interface SavingsTransaction {
   description: string | null;
   status: string;
   createdAt: string;
+}
+
+export interface VirtualAccount {
+  id: string;
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  status: string;
+  provider: string;
+}
+
+export interface DepositInstruction {
+  id: string;
+  amount: number;
+  type: 'general' | 'goal' | 'loan';
+  reference: string;
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  status: string;
+  expiresAt: string | null;
+  creditedAt: string | null;
 }
 
 export interface Loan {
@@ -226,7 +251,7 @@ export interface PaymentMethod {
 export interface ActivityEntry {
   id: string;
   action: string;
-  details?: string;
+  details?: string | Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
   success?: boolean;
@@ -268,6 +293,7 @@ export interface PortfolioSummary {
   totalEarned: number;
   holdingsCount: number;
   unrealizedReturn: number;
+  unrealizedReturnPct?: number;
 }
 
 export interface DistributionItem {

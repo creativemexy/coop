@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { InvestmentHolding } from './investment-holding.entity';
 
 export enum RedemptionStatus {
@@ -10,6 +10,8 @@ export enum RedemptionStatus {
 }
 
 @Entity('redemption_requests')
+@Index(['userId', 'createdAt'])
+@Index(['status', 'createdAt'])
 export class RedemptionRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;

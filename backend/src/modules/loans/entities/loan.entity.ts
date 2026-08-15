@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
 import { LoanRepayment } from './loan-repayment.entity';
 
 export enum LoanStatus {
@@ -13,6 +13,8 @@ export enum LoanStatus {
 }
 
 @Entity('loans')
+@Index(['userId', 'createdAt'])
+@Index(['status', 'createdAt'])
 export class Loan {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -102,7 +104,12 @@ export class Loan {
   repayments: LoanRepayment[];
 
   /** Transient (non-persisted) borrower info loaded for approval scoping. */
-  borrower?: { apexOrgId?: string | null; organizationId?: string | null };
+  borrower?: {
+    apexOrgId?: string | null;
+    organizationId?: string | null;
+    name?: string;
+    email?: string;
+  };
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

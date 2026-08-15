@@ -17,13 +17,14 @@ import { AuditLog } from '../bnpl/entities/audit-log.entity';
 import { ReconciliationRun, ReconciliationStatus } from './entities/reconciliation-run.entity';
 import { ReconciliationResult, ResultStatus } from './entities/reconciliation-result.entity';
 import { AdjustmentRequest, AdjustmentType, AdjustmentStatus } from './entities/adjustment-request.entity';
-import { SubscriptionStatus, InstallmentStatus, PaymentStatus, JournalStatus, PayoutStatus } from '../../common/enums/status.enum';
+import { SubscriptionStatus, InstallmentStatus, PaymentStatus, JournalStatus, PayoutStatus, PotType } from '../../common/enums/status.enum';
 import { Loan, LoanStatus } from '../loans/entities/loan.entity';
 import { LoanRepayment } from '../loans/entities/loan-repayment.entity';
 import { SavingsAccount } from '../savings/entities/savings-account.entity';
 import { SavingsTransaction } from '../savings/entities/savings-transaction.entity';
 import { JournalEntry } from '../ledger/entities/journal-entry.entity';
 import { JournalLine } from '../ledger/entities/journal-line.entity';
+import { ApexOrganization } from '../apex-organizations/entities/apex-organization.entity';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -72,6 +73,8 @@ export class AccountantService {
     private readonly distributionRepo: Repository<Distribution>,
     @InjectRepository(FeeWithdrawalRequest)
     private readonly withdrawalRepo: Repository<FeeWithdrawalRequest>,
+    @InjectRepository(ApexOrganization)
+    private readonly apexOrgRepo: Repository<ApexOrganization>,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════
@@ -906,6 +909,133 @@ export class AccountantService {
       offset,
       returned: paged.length,
       transactions: paged,
+    };
+  }
+
+  async getApexOrganizations() {
+    return this.apexOrgRepo.find({
+      select: { id: true, name: true, code: true },
+      order: { name: 'ASC' },
+    });
+  }
+
+  /**
+   * Fee pot stats broken down by organization, optionally scoped to a
+   * single apex org. Uses SQL aggregates (GROUP BY) so it scales instead
+   * of loading the full fee ledger into memory.
+   */
+  async getFeePotStatsByOrg(apexOrgId?: string) {
+    const orgWhere: any = {};
+    if (apexOrgId) orgWhere.apexOrgId = apexOrgId;
+
+    const [orgs, apexRows] = await Promise.all([
+      this.orgRepo
+        .createQueryBuilder('o')
+        .select([
+          'o.id AS "orgId"',
+          'o.name AS "orgName"',
+          'o.code AS "orgCode"',
+          'o.apex_org_id AS "apexOrgId"',
+          'a.name AS "apexName"',
+        ])
+        .leftJoin('apex_organizations', 'a', 'a.id = o.apex_org_id')
+        .where(apexOrgId ? 'o.apex_org_id = :apexOrgId' : '1=1', {
+          apexOrgId,
+        })
+        .orderBy('o.name', 'ASC')
+        .getRawMany(),
+      this.apexOrgRepo.find({
+        select: { id: true, name: true, code: true },
+        order: { name: 'ASC' },
+      }),
+    ]);
+
+    const orgIds = orgs.map((o) => o.orgId);
+    const potWhere: any = {
+      potType: PotType.ORGANIZATION,
+      entityId: In(orgIds),
+    };
+    const pots = orgIds.length
+      ? await this.feePotRepo.find({ where: potWhere })
+      : [];
+
+    const potByOrg = new Map<string, FeePot>();
+    for (const p of pots) potByOrg.set(p.entityId, p);
+
+    const ledgerRows: any[] = orgIds.length
+      ? await this.feeShareRepo
+          .createQueryBuilder('f')
+          .select('f.organization_id', 'organizationId')
+          .addSelect('COALESCE(SUM(f.total_fee), 0)', 'totalFees')
+          .addSelect('COALESCE(SUM(f.organization_share), 0)', 'organizationShare')
+          .addSelect(
+            "COALESCE(SUM(CASE WHEN f.source = 'registration' THEN f.organization_share ELSE 0 END), 0)",
+            'registrationShare',
+          )
+          .addSelect(
+            "COALESCE(SUM(CASE WHEN f.source != 'registration' THEN f.organization_share ELSE 0 END), 0)",
+            'bnplShare',
+          )
+          .addSelect('COALESCE(SUM(f.platform_share), 0)', 'platformShare')
+          .addSelect('COALESCE(SUM(f.apex_share), 0)', 'apexShare')
+          .addSelect('COALESCE(SUM(f.super_admin_share), 0)', 'superAdminShare')
+          .where('f.organization_id IN (:...orgIds)', { orgIds })
+          .groupBy('f.organization_id')
+          .getRawMany()
+      : [];
+
+    const ledgerByOrg = new Map<string, any>();
+    for (const r of ledgerRows) ledgerByOrg.set(r.organizationId, r);
+
+    const organizations = orgs.map((o) => {
+      const pot = potByOrg.get(o.orgId);
+      const l = ledgerByOrg.get(o.orgId);
+      return {
+        organizationId: o.orgId,
+        organizationName: o.orgName,
+        organizationCode: o.orgCode,
+        apexOrgId: o.apexOrgId,
+        apexName: o.apexName || '—',
+        potBalance: pot ? Number(pot.balance) : 0,
+        potUpdatedAt: pot?.updatedAt || null,
+        totalFees: l ? Number(l.totalFees) : 0,
+        organizationShare: l ? Number(l.organizationShare) : 0,
+        registrationShare: l ? Number(l.registrationShare) : 0,
+        bnplShare: l ? Number(l.bnplShare) : 0,
+        platformShare: l ? Number(l.platformShare) : 0,
+        apexShare: l ? Number(l.apexShare) : 0,
+        superAdminShare: l ? Number(l.superAdminShare) : 0,
+      };
+    });
+
+    const totals = organizations.reduce(
+      (acc, o) => {
+        acc.potBalance += o.potBalance;
+        acc.totalFees += o.totalFees;
+        acc.organizationShare += o.organizationShare;
+        acc.registrationShare += o.registrationShare;
+        acc.bnplShare += o.bnplShare;
+        acc.platformShare += o.platformShare;
+        acc.apexShare += o.apexShare;
+        acc.superAdminShare += o.superAdminShare;
+        return acc;
+      },
+      {
+        potBalance: 0,
+        totalFees: 0,
+        organizationShare: 0,
+        registrationShare: 0,
+        bnplShare: 0,
+        platformShare: 0,
+        apexShare: 0,
+        superAdminShare: 0,
+      },
+    );
+
+    return {
+      apexOrganizations: apexRows,
+      summary: { organizationCount: organizations.length, ...totals },
+      organizations,
     };
   }
 

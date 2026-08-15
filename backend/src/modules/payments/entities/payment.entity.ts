@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import {
   PaymentStatus,
@@ -12,6 +13,9 @@ import {
 } from '../../../common/enums/status.enum';
 
 @Entity('payments')
+@Index(['userId', 'createdAt'])
+@Index(['subscriptionId'])
+@Index(['status', 'createdAt'])
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

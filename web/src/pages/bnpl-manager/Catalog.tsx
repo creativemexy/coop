@@ -36,6 +36,7 @@ export function Catalog() {
   const [form, setForm] = useState({ name: '', description: '', price: 0, imageUrls: [''] })
   const [editForm, setEditForm] = useState({ name: '', description: '', price: 0, imageUrls: [''] })
   const [editError, setEditError] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const fetch = useCallback(() => {
     api.get('/bnpl/catalog').then((r) => setItems(r.data))
@@ -79,6 +80,30 @@ export function Catalog() {
     setSelected(null)
     setSelectedOrgIds([])
     fetch()
+  }
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selected) return
+    setUploading(true)
+    setEditError('')
+    try {
+      const fd = new FormData()
+      fd.append('files', file)
+      const { data } = await api.post(`/bnpl/catalog/${selected.id}/upload-images`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const urls: string[] = (data?.images ?? []).map((img: { url: string }) => img.url)
+      if (urls.length) {
+        setEditForm((f) => ({ ...f, imageUrls: [...f.imageUrls.filter(Boolean), ...urls] }))
+      }
+      fetch()
+    } catch (err: any) {
+      setEditError(err?.response?.data?.message || 'Failed to upload image')
+    } finally {
+      setUploading(false)
+      if (e.target) e.target.value = ''
+    }
   }
 
   return (
@@ -195,9 +220,22 @@ export function Catalog() {
               )}
             </div>
           ))}
-          <Button variant="ghost" size="sm" onClick={() => setEditForm({ ...editForm, imageUrls: [...editForm.imageUrls, ''] })}>
-            + Add image
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditForm({ ...editForm, imageUrls: [...editForm.imageUrls, ''] })}>
+              + Add image
+            </Button>
+            <label className="inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="hidden"
+                onChange={handleUpload}
+              />
+              <span className="text-sm text-blue-600 font-medium hover:underline">
+                {uploading ? 'Uploading...' : 'Upload image'}
+              </span>
+            </label>
+          </div>
           {editError && <p className="text-sm text-red-600">{editError}</p>}
           <Button onClick={handleEdit} className="w-full">Save</Button>
         </div>

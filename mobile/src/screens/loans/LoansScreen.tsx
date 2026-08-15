@@ -1,11 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, StyleSheet, Alert, Modal,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
-import { Loan, LoanEligibility } from '../../types';
+import { Loan, LoanEligibility, DepositInstruction } from '../../types';
 
 export default function LoansScreen() {
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -16,6 +17,8 @@ export default function LoansScreen() {
   const [duration, setDuration] = useState('');
   const [purpose, setPurpose] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [pay, setPay] = useState<{ repaymentId: string; pending: DepositInstruction } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     try {
@@ -30,6 +33,25 @@ export default function LoansScreen() {
 
   useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
 
+  const checkRepayment = useCallback(async (repaymentId: string) => {
+    try {
+      const { data } = await client.post(ENDPOINTS.virtualAccounts.loanRepayVerify(repaymentId));
+      const d: DepositInstruction = data;
+      setPay((prev) => prev && d ? { repaymentId, pending: d } : prev);
+      if (d && d.status === 'credited') {
+        setPay(null);
+        Alert.alert('Success', `Repayment received (${d.reference})`);
+        fetch();
+      }
+    } catch { /* keep modal open; re-poll */ }
+  }, []);
+
+  useEffect(() => {
+    if (!pay || pay.pending.status !== 'pending') return;
+    const t = setInterval(() => checkRepayment(pay.repaymentId), 5000);
+    return () => clearInterval(t);
+  }, [pay?.pending.status, pay?.pending.id, checkRepayment]);
+
   const handleApply = async () => {
     if (!amount || !duration) { Alert.alert('Error', 'Amount and duration required'); return; }
     setSubmitting(true);
@@ -39,16 +61,24 @@ export default function LoansScreen() {
       setShowApply(false);
       setAmount(''); setDuration(''); setPurpose('');
       fetch();
-    } catch (e: any) { Alert.alert('Error', e?.response?.data?.message || 'Failed to apply'); }
+    } catch (e: any) { Alert.alert('Error', getErrorMessage(e, 'Failed to apply')); }
     finally { setSubmitting(false); }
   };
 
-  const handleRepay = async (loanId: string, repaymentId: string) => {
+  const handleRepay = async (repaymentId: string) => {
     try {
-      await client.post(ENDPOINTS.loans.repay(loanId, repaymentId));
-      Alert.alert('Success', 'Repayment recorded');
-      fetch();
-    } catch (e: any) { Alert.alert('Error', e?.response?.data?.message || 'Repayment failed'); }
+      const { data } = await client.post(ENDPOINTS.virtualAccounts.loanRepayInitiate(repaymentId));
+      const pending: DepositInstruction = data;
+      setPay({ repaymentId, pending });
+    } catch (e: any) { Alert.alert('Error', getErrorMessage(e, 'Could not start payment')); }
+  };
+
+  const copyNumber = async (number: string) => {
+    try {
+      await Clipboard.setStringAsync(number);
+      setCopied(number);
+      setTimeout(() => setCopied(null), 2000);
+    } catch { /* ignore */ }
   };
 
   return (
@@ -77,12 +107,49 @@ export default function LoansScreen() {
           <Text style={styles.loanDetail}>Monthly: ₦{Number(loan.monthlyPayment).toLocaleString()} · Balance: ₦{Number(loan.balance).toLocaleString()}</Text>
           {loan.nextDueDate && <Text style={styles.loanDetail}>Next due: {new Date(loan.nextDueDate).toLocaleDateString('en-NG')}</Text>}
           {loan.repayments?.filter((r) => r.status === 'pending').slice(0, 1).map((r) => (
-            <TouchableOpacity key={r.id} style={styles.repayBtn} onPress={() => handleRepay(loan.id, r.id)}>
+            <TouchableOpacity key={r.id} style={styles.repayBtn} onPress={() => handleRepay(r.id)}>
               <Text style={styles.repayBtnText}>Pay ₦{Number(r.amount).toLocaleString()}</Text>
             </TouchableOpacity>
           ))}
         </View>
       ))}
+
+      {pay && (
+        <Modal visible transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modal}>
+              <Text style={styles.modalTitle}>Pay via Bank Transfer</Text>
+              <Text style={styles.payNote}>
+                Transfer <Text style={styles.bold}>₦{Number(pay.pending.amount).toLocaleString()}</Text> to the
+                account below using your bank app. Your repayment will be recorded once confirmed.
+              </Text>
+              <View style={styles.vaBox}>
+                <Text style={styles.vaLabel}>{pay.pending.bankName}</Text>
+                <TouchableOpacity onPress={() => copyNumber(pay.pending.accountNumber)}>
+                  <Text style={styles.vaNumberBig}>{pay.pending.accountNumber}</Text>
+                </TouchableOpacity>
+                <Text style={styles.vaName}>{pay.pending.accountName}</Text>
+                <Text style={styles.vaRef}>Ref: {pay.pending.reference}</Text>
+              </View>
+              <Text style={styles.payMeta}>
+                Status: {pay.pending.status} ·{' '}
+                {pay.pending.status === 'credited' ? 'Credited'
+                  : pay.pending.status === 'expired' ? 'Expired'
+                    : pay.pending.expiresAt ? `Transfers expire ${new Date(pay.pending.expiresAt).toLocaleTimeString()}`
+                      : 'Awaiting transfer'}
+              </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setPay(null)}>
+                  <Text style={styles.cancelText}>Close</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.submitBtn} onPress={() => checkRepayment(pay.repaymentId)}>
+                  <Text style={styles.submitText}>I've transferred · Check</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       <Modal visible={showApply} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -128,4 +195,12 @@ const styles = StyleSheet.create({
   cancelText: { color: '#666', fontWeight: '600' },
   submitBtn: { flex: 1, padding: 14, borderRadius: 8, backgroundColor: '#1a1a2e', alignItems: 'center' },
   submitText: { color: '#fff', fontWeight: '600' },
+  payNote: { fontSize: 14, color: '#555', marginBottom: 16, lineHeight: 20 },
+  bold: { fontWeight: '700', color: '#1a1a2e' },
+  vaBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, marginBottom: 12 },
+  vaLabel: { fontSize: 13, color: '#666' },
+  vaNumberBig: { fontSize: 24, fontWeight: 'bold', color: '#1a1a2e', letterSpacing: 1, marginTop: 2 },
+  vaName: { fontSize: 13, color: '#333', marginTop: 2 },
+  vaRef: { fontSize: 12, color: '#999', marginTop: 8 },
+  payMeta: { fontSize: 13, color: '#888', marginBottom: 16, textAlign: 'center' },
 });

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/ui/card'
 
-const sections = [
+export const termsSections = [
   {
     title: '1. Introduction',
     body: 'These Terms & Conditions ("Terms") govern your membership and use of the Coop BNPL digital platform and services (the "Platform"), operated by the Cooperative. By creating an account, you agree to be bound by these Terms, our Privacy Policy, and any other policies referenced herein. If you do not agree, do not register or use the Platform.',
@@ -116,7 +116,7 @@ export function Terms() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Effective date: August 5, 2026</p>
 
           <div className="space-y-6">
-            {sections.map((s) => (
+            {termsSections.map((s) => (
               <section key={s.title}>
                 <h2 className="text-base font-semibold mb-2 dark:text-gray-100">{s.title}</h2>
                 {Array.isArray(s.body) ? (

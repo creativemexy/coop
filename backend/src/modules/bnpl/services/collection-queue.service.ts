@@ -85,24 +85,35 @@ export class CollectionQueueService {
   }
 
   async getAgingSummary() {
-    const all = await this.queueRepo.find();
-    const now = new Date();
-    const buckets = [
-      { label: '0–30 days', min: 0, max: 30, count: 0, totalAmount: 0 },
-      { label: '31–60 days', min: 31, max: 60, count: 0, totalAmount: 0 },
-      { label: '61–90 days', min: 61, max: 90, count: 0, totalAmount: 0 },
-      { label: '90+ days', min: 91, max: Infinity, count: 0, totalAmount: 0 },
-    ];
+    interface AgingRow { label: string; count: string; total_amount: string }
+    const rows: AgingRow[] = await this.queueRepo.manager.query(
+      `SELECT CASE
+                WHEN actual_days BETWEEN 0 AND 30 THEN '0–30 days'
+                WHEN actual_days BETWEEN 31 AND 60 THEN '31–60 days'
+                WHEN actual_days BETWEEN 61 AND 90 THEN '61–90 days'
+                ELSE '90+ days'
+              END AS label,
+              COUNT(*)::text AS count,
+              COALESCE(SUM(total_overdue_amount), 0)::text AS total_amount
+       FROM (
+         SELECT total_overdue_amount,
+                CASE WHEN days_overdue > 0 THEN days_overdue
+                     ELSE FLOOR(EXTRACT(EPOCH FROM (now() - created_at)) / 86400)
+                END AS actual_days
+         FROM bnpl_collection_queues
+       ) t
+       GROUP BY label`,
+    );
 
-    for (const entry of all) {
-      const actualDays = entry.daysOverdue > 0 ? entry.daysOverdue : Math.floor((now.getTime() - new Date(entry.createdAt).getTime()) / 86400000);
-      const bucket = buckets.find((b) => actualDays >= b.min && actualDays <= b.max);
-      if (bucket) {
-        bucket.count++;
-        bucket.totalAmount += Number(entry.totalOverdueAmount);
-      }
-    }
-
-    return buckets;
+    const byLabel = new Map(rows.map((r) => [r.label, r]));
+    const labels = ['0–30 days', '31–60 days', '61–90 days', '90+ days'];
+    return labels.map((label) => {
+      const row = byLabel.get(label);
+      return {
+        label,
+        count: row ? Number(row.count) : 0,
+        totalAmount: row ? Number(row.total_amount) : 0,
+      };
+    });
   }
 }

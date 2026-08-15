@@ -164,36 +164,43 @@ export class DashboardService {
   }
 
   async getBusinessManagerDashboard(organizationId: string) {
-    const members = await this.userRepo.find({
-      where: { organizationId: organizationId ?? undefined, role: Role.INDIVIDUAL },
-    });
-    const memberIds = members.map((m) => m.id);
-
-    const [orgPot, org, savings, loans] =
+    const [orgPot, org, savings, loans, totalMembers] =
       await Promise.all([
         this.feePotRepo.findOne({
           where: { potType: PotType.ORGANIZATION, entityId: organizationId },
         }),
         this.orgRepo.findOne({ where: { id: organizationId } }),
-        memberIds.length > 0
-          ? this.savingsAccountRepo
-              .createQueryBuilder('sa')
-              .where('sa.user_id IN (:...memberIds)', { memberIds })
-              .select('COALESCE(SUM(sa.balance), 0)', 'total')
-              .getRawOne<{ total: string }>()
-          : Promise.resolve({ total: '0' }),
-        memberIds.length > 0
-          ? this.loanRepo
-              .createQueryBuilder('l')
-              .where('l.user_id IN (:...memberIds)', { memberIds })
-              .select([
-                'COUNT(l.id) AS total',
-                "COALESCE(SUM(CASE WHEN l.status IN ('active','approved','defaulted') THEN l.total_repayment - l.amount_paid ELSE 0 END), 0) AS balance",
-                "COALESCE(SUM(CASE WHEN l.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending",
-                "COALESCE(SUM(CASE WHEN l.status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected",
-              ])
-              .getRawOne<{ total: string; balance: string; pending: string; rejected: string }>()
-          : Promise.resolve({ total: '0', balance: '0', pending: '0', rejected: '0' }),
+        this.savingsAccountRepo
+          .createQueryBuilder('sa')
+          .innerJoin(User, 'u', 'u.id = sa.user_id')
+          .where('u.organization_id = :orgId AND u.role = :role', {
+            orgId: organizationId,
+            role: Role.INDIVIDUAL,
+          })
+          .select('COALESCE(SUM(sa.balance), 0)', 'total')
+          .getRawOne<{ total: string }>()
+          .catch(() => ({ total: '0' })),
+        this.loanRepo
+          .createQueryBuilder('l')
+          .innerJoin(User, 'u', 'u.id = l.user_id')
+          .where('u.organization_id = :orgId AND u.role = :role', {
+            orgId: organizationId,
+            role: Role.INDIVIDUAL,
+          })
+          .select([
+            'COUNT(l.id) AS total',
+            "COALESCE(SUM(CASE WHEN l.status IN ('active','approved','defaulted') THEN l.total_repayment - l.amount_paid ELSE 0 END), 0) AS balance",
+            "COALESCE(SUM(CASE WHEN l.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending",
+            "COALESCE(SUM(CASE WHEN l.status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected",
+          ])
+          .getRawOne<{ total: string; balance: string; pending: string; rejected: string }>()
+          .catch(() => ({ total: '0', balance: '0', pending: '0', rejected: '0' })),
+        this.userRepo.count({
+          where: {
+            organizationId: organizationId ?? undefined,
+            role: Role.INDIVIDUAL,
+          },
+        }),
       ]);
 
     const totalSavings = Number(savings?.total || 0);
@@ -205,7 +212,7 @@ export class DashboardService {
     return {
       organizationId,
       organizationName: org?.name || null,
-      totalMembers: members.length,
+      totalMembers,
       totalSavings,
       totalLoans,
       loanBalance,

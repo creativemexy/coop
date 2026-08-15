@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum ExceptionCaseStatus {
@@ -14,6 +15,8 @@ export enum ExceptionCaseStatus {
 }
 
 @Entity('bnpl_exception_cases')
+@Index(['status', 'createdAt'])
+@Index(['subscriptionId'])
 export class ExceptionCase {
   @PrimaryGeneratedColumn('uuid')
   id: string;

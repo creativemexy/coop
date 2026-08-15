@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, Between, In, DataSource } from 'typeorm';
 import { InvestmentProduct, InvestmentType, RiskTier, ProductStatus, DistributionFrequency, VALID_LIFECYCLE_TRANSITIONS } from './entities/investment-product.entity';
 import { InvestmentProductVersion } from './entities/investment-product-version.entity';
 import { InvestmentEligibilityRule, KycLevel } from './entities/investment-eligibility-rule.entity';
@@ -22,6 +22,7 @@ import { UsersService } from '../users/users.service';
 export class InvestmentsService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly dataSource: DataSource,
     @InjectRepository(InvestmentProduct)
     private readonly productRepo: Repository<InvestmentProduct>,
     @InjectRepository(InvestmentProductVersion)
@@ -105,6 +106,23 @@ export class InvestmentsService {
     order.productVersion = product.version;
     order.status = OrderStatus.PLACED;
     return this.orderRepo.save(order);
+  }
+
+  /**
+   * Returns a placed order owned by the user, ready to be paid via FirstCheckout.
+   */
+  async getOrderForPayment(userId: string, orderId: string) {
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: { product: true },
+    });
+    if (!order || order.userId !== userId) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.status !== OrderStatus.PLACED) {
+      throw new BadRequestException('Order is not payable');
+    }
+    return order;
   }
 
   async confirmPayment(orderId: string, paymentReference: string, paymentId: string) {
@@ -798,51 +816,68 @@ export class InvestmentsService {
     const dist = await this.distRepo.findOne({ where: { id: distId } });
     if (!dist) throw new NotFoundException('Distribution not found');
     if (dist.status !== DistributionStatus.APPROVED) throw new BadRequestException('Distribution must be approved first');
+    if (dist.isPaid) throw new BadRequestException('Distribution is already paid out');
 
-    const holdings = await this.holdingRepo.find({
-      where: { productId: dist.productId, isActive: true },
+    const priorRun = await this.distRunRepo.findOne({
+      where: {
+        distributionId: distId,
+        status: In([DistRunStatus.COMPUTING, DistRunStatus.PAYOUTS_READY, DistRunStatus.APPROVED]),
+      },
     });
-
-    let totalAccrued = 0;
-    const payouts: Array<{ userId: string; holdingId: string; amount: number; units: number }> = [];
-
-    for (const holding of holdings) {
-      const amount = holding.units * Number(dist.amountPerUnit);
-      totalAccrued += amount;
-      payouts.push({
-        userId: holding.userId,
-        holdingId: holding.id,
-        amount: Math.round(amount * 100) / 100,
-        units: holding.units,
-      });
+    if (priorRun) {
+      throw new BadRequestException(
+        `An active run already exists for this distribution (status: ${priorRun.status}). Reject, pay, or fail it before computing a new run.`,
+      );
     }
 
-    const run = new DistributionRun();
-    run.distributionId = distId;
-    run.productId = dist.productId;
-    run.periodStart = new Date(dist.createdAt);
-    run.periodEnd = new Date();
-    run.totalAccrued = totalAccrued;
-    run.totalHoldings = holdings.length;
-    run.payoutCount = payouts.length;
-    run.status = DistRunStatus.PAYOUTS_READY;
-    run.createdBy = createdBy;
-    run.runSummary = { computedPayouts: payouts.length, totalAccrued };
-    const savedRun = await this.distRunRepo.save(run);
+    return this.dataSource.transaction(async (em) => {
+      const holdings = await em.find(InvestmentHolding, {
+        where: { productId: dist.productId, isActive: true },
+      });
 
-    const distPays = payouts.map((p) => {
-      const dp = new DistributionPayment();
-      dp.userId = p.userId;
-      dp.holdingId = p.holdingId;
-      dp.distributionId = distId;
-      dp.amount = p.amount;
-      dp.unitsAtRecord = p.units;
-      dp.isPaid = false;
-      return dp;
+      let totalAccrued = 0;
+      const payouts: Array<{ userId: string; holdingId: string; amount: number; units: number }> = [];
+
+      for (const holding of holdings) {
+        const amount = holding.units * Number(dist.amountPerUnit);
+        totalAccrued += amount;
+        payouts.push({
+          userId: holding.userId,
+          holdingId: holding.id,
+          amount: Math.round(amount * 100) / 100,
+          units: holding.units,
+        });
+      }
+
+      const run = em.create(DistributionRun, {
+        distributionId: distId,
+        productId: dist.productId,
+        periodStart: new Date(dist.createdAt),
+        periodEnd: new Date(),
+        totalAccrued,
+        totalHoldings: holdings.length,
+        payoutCount: payouts.length,
+        status: DistRunStatus.PAYOUTS_READY,
+        createdBy,
+        runSummary: { computedPayouts: payouts.length, totalAccrued },
+      });
+      const savedRun = await em.save(run);
+
+      const distPays = payouts.map((p) =>
+        em.create(DistributionPayment, {
+          userId: p.userId,
+          holdingId: p.holdingId,
+          distributionId: distId,
+          runId: savedRun.id,
+          amount: p.amount,
+          unitsAtRecord: p.units,
+          isPaid: false,
+        }),
+      );
+      await em.save(distPays);
+
+      return savedRun;
     });
-    await this.distPayRepo.save(distPays);
-
-    return savedRun;
   }
 
   async approveDistributionRun(runId: string, approvedBy: string) {
@@ -856,41 +891,43 @@ export class InvestmentsService {
   }
 
   async executeDistributionRun(runId: string, executedBy: string) {
-    const run = await this.distRunRepo.findOne({ where: { id: runId } });
-    if (!run) throw new NotFoundException('Distribution run not found');
-    if (run.status !== DistRunStatus.APPROVED) throw new BadRequestException('Run must be approved first');
+    return this.dataSource.transaction(async (em) => {
+      const run = await em.findOne(DistributionRun, {
+        where: { id: runId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!run) throw new NotFoundException('Distribution run not found');
+      if (run.status !== DistRunStatus.APPROVED) throw new BadRequestException('Run must be approved first');
 
-    const dist = await this.distRepo.findOne({ where: { id: run.distributionId } });
-    if (!dist) throw new NotFoundException('Distribution not found');
+      const dist = await em.findOne(Distribution, { where: { id: run.distributionId } });
+      if (!dist) throw new NotFoundException('Distribution not found');
+      if (dist.isPaid) throw new BadRequestException('Distribution is already paid');
 
-    const payouts = await this.distPayRepo.find({ where: { distributionId: run.distributionId, isPaid: false } });
+      const now = new Date();
 
-    let successCount = 0;
-    let failedCount = 0;
+      const result = await em.update(
+        DistributionPayment,
+        { runId: run.id, isPaid: false },
+        { isPaid: true, paidAt: now },
+      );
 
-    for (const payout of payouts) {
-      try {
-        payout.isPaid = true;
-        payout.paidAt = new Date();
-        await this.distPayRepo.save(payout);
-        successCount++;
-      } catch {
-        failedCount++;
-      }
-    }
+      const successCount = result.affected ?? 0;
+      const failedCount = run.payoutCount - successCount;
 
-    run.successCount = successCount;
-    run.failedCount = failedCount;
-    run.status = failedCount > 0 && successCount === 0 ? DistRunStatus.FAILED : DistRunStatus.PAID;
-    run.executedBy = executedBy;
-    run.executedAt = new Date();
-    await this.distRunRepo.save(run);
+      run.successCount = successCount;
+      run.failedCount = failedCount;
+      run.status =
+        run.payoutCount > 0 && successCount === 0 ? DistRunStatus.FAILED : DistRunStatus.PAID;
+      run.executedBy = executedBy;
+      run.executedAt = now;
+      await em.save(run);
 
-    dist.isPaid = true;
-    dist.status = DistributionStatus.EXECUTED;
-    await this.distRepo.save(dist);
+      dist.isPaid = true;
+      dist.status = DistributionStatus.EXECUTED;
+      await em.save(dist);
 
-    return { run, paid: successCount, failed: failedCount };
+      return { run, paid: successCount, failed: failedCount };
+    });
   }
 
   async listDistributionRuns(productId?: string) {

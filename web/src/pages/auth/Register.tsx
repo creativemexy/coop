@@ -5,6 +5,7 @@ import { useAuth } from '../../stores/auth.store'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
+import { termsSections } from './Terms'
 
 interface ApexOrg { id: string; name: string }
 interface Org { id: string; name: string; code: string }
@@ -37,6 +38,7 @@ export function Register() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
 
   const strength = useMemo(() => passwordStrength(form.password), [form.password])
 
@@ -188,9 +190,9 @@ export function Register() {
                 />
                 <span className="text-gray-600 dark:text-gray-400">
                   I accept the{' '}
-                  <Link to="/terms" className="text-blue-600 dark:text-blue-400 hover:underline">
+                  <button type="button" onClick={() => setShowTerms(true)} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
                     Terms &amp; Conditions
-                  </Link>
+                  </button>
                 </span>
               </label>
               {error && <p className="text-sm text-red-600">{error}</p>}
@@ -205,6 +207,36 @@ export function Register() {
         <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Already have an account? <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Sign in</Link>
         </p>
+
+        {showTerms && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-2xl max-h-[85vh] flex flex-col rounded-xl bg-white dark:bg-gray-900 shadow-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 className="text-lg font-bold dark:text-gray-100">Terms &amp; Conditions</h2>
+                <button type="button" onClick={() => setShowTerms(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer text-2xl leading-none">×</button>
+              </div>
+              <div className="px-6 py-4 overflow-y-auto space-y-5">
+                {termsSections.map((s) => (
+                  <section key={s.title}>
+                    <h3 className="text-sm font-semibold mb-1 dark:text-gray-100">{s.title}</h3>
+                    {Array.isArray(s.body) ? (
+                      <ul className="list-disc pl-5 space-y-1">
+                        {s.body.map((b, i) => (
+                          <li key={i} className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{b}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{s.body}</p>
+                    )}
+                  </section>
+                ))}
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                <Button type="button" onClick={() => setShowTerms(false)}>Close</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
       <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }`}</style>
     </div>

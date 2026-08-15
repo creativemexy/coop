@@ -45,23 +45,6 @@ interface BankOption {
   name: string
 }
 
-const potTypeBorder: Record<string, string> = {
-  total: 'border-indigo-500',
-  platform: 'border-blue-500',
-  admin: 'border-purple-500',
-  business_manager: 'border-emerald-500',
-  organization: 'border-amber-500',
-  apex: 'border-fuchsia-500',
-}
-
-const potTypeColors: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
-  business_manager: 'success',
-  platform: 'info',
-  admin: 'info',
-  organization: 'warning',
-  apex: 'danger',
-}
-
 const payoutStatusColors: Record<string, 'warning' | 'success' | 'danger'> = {
   pending: 'warning',
   completed: 'success',
@@ -78,6 +61,37 @@ export function FeePots() {
   const [requestForm, setRequestForm] = useState({ accountNumber: '', bankCode: '', bankName: '' })
   const [banks, setBanks] = useState<BankOption[]>([])
   const [requestMsg, setRequestMsg] = useState('')
+  const [apexOrgs, setApexOrgs] = useState<{ id: string; name: string }[]>([])
+  const [apexOrgId, setApexOrgId] = useState('')
+  const [feePotsStats, setFeePotsStats] = useState<{
+    summary: {
+      organizationCount: number
+      potBalance: number
+      totalFees: number
+      organizationShare: number
+      registrationShare: number
+      bnplShare: number
+      platformShare: number
+      apexShare: number
+      superAdminShare: number
+    }
+    organizations: Array<{
+      organizationId: string
+      organizationName: string
+      organizationCode: string
+      apexOrgId: string
+      apexName: string
+      potBalance: number
+      potUpdatedAt: string | null
+      totalFees: number
+      organizationShare: number
+      registrationShare: number
+      bnplShare: number
+      platformShare: number
+      apexShare: number
+      superAdminShare: number
+    }>
+  } | null>(null)
 
   const fetch = useCallback(() => {
     api.get('/ledger/fee-pots').then((r) => setPots(r.data))
@@ -87,6 +101,18 @@ export function FeePots() {
   }, [])
 
   useEffect(() => { fetch() }, [fetch])
+
+  useEffect(() => {
+    api.get('/accountant/apex-organizations').then((r) => setApexOrgs(r.data)).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (apexOrgId) params.set('apexOrgId', apexOrgId)
+    api.get(`/accountant/dashboard/fee-pots?${params}`)
+      .then((r) => setFeePotsStats(r.data))
+      .catch(() => {})
+  }, [apexOrgId])
 
   const detectBank = (accountNumber: string): BankOption | null => {
     if (accountNumber.length !== 10) return null
@@ -101,7 +127,6 @@ export function FeePots() {
     )
   }
 
-  const totalBalance = pots.reduce((s, p) => s + Number(p.balance), 0)
   const platformPot = pots.find((p) => p.potType === 'platform')
 
   const handleRequestWithdrawal = async () => {
@@ -124,7 +149,16 @@ export function FeePots() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold dark:text-gray-100">Fee Pots</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <select
+            value={apexOrgId}
+            onChange={(e) => setApexOrgId(e.target.value)}
+            className="border rounded-lg px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+          >
+            <option value="">All Apex Organizations</option>
+            {apexOrgs.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <div className="flex gap-2">
           <button
             onClick={() => setTab('pots')}
             className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors cursor-pointer ${tab === 'pots' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}
@@ -145,22 +179,72 @@ export function FeePots() {
           </button>
         </div>
       </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-indigo-500">
+          <CardTitle className="text-sm font-medium text-gray-500">Organizations</CardTitle>
+          <p className="mt-1 text-2xl font-bold">{feePotsStats?.summary.organizationCount ?? 0}</p>
+        </Card>
+        <Card className="border-amber-500">
+          <CardTitle className="text-sm font-medium text-gray-500">Org Pot Balance</CardTitle>
+          <p className="mt-1 text-2xl font-bold">₦{(feePotsStats?.summary.potBalance ?? 0).toLocaleString()}</p>
+        </Card>
+        <Card className="border-blue-500">
+          <CardTitle className="text-sm font-medium text-gray-500">Total Fee Income</CardTitle>
+          <p className="mt-1 text-2xl font-bold">₦{(feePotsStats?.summary.totalFees ?? 0).toLocaleString()}</p>
+        </Card>
+        <Card className="border-emerald-500">
+          <CardTitle className="text-sm font-medium text-gray-500">Org Share Earned</CardTitle>
+          <p className="mt-1 text-2xl font-bold">₦{(feePotsStats?.summary.organizationShare ?? 0).toLocaleString()}</p>
+        </Card>
+      </div>
+
+      <Card>
+        <Table>
+          <THead>
+            <THeadRow>
+              <THeadCell>Organization</THeadCell>
+              <THeadCell>Apex</THeadCell>
+              <THeadCell>Pot Balance</THeadCell>
+              <THeadCell>Total Fees</THeadCell>
+              <THeadCell>Org Share</THeadCell>
+              <THeadCell>Registration</THeadCell>
+              <THeadCell>BNPL</THeadCell>
+              <THeadCell>Platform</THeadCell>
+              <THeadCell>Apex Share</THeadCell>
+              <THeadCell>Super Admin</THeadCell>
+            </THeadRow>
+          </THead>
+          <TBody>
+            {(feePotsStats?.organizations ?? []).map((o) => (
+              <TBodyRow key={o.organizationId}>
+                <TBodyCell>
+                  <div className="font-medium">{o.organizationName}</div>
+                  <div className="text-xs text-gray-400">{o.organizationCode}</div>
+                </TBodyCell>
+                <TBodyCell><Badge variant="info">{o.apexName}</Badge></TBodyCell>
+                <TBodyCell className="font-medium">₦{o.potBalance.toLocaleString()}</TBodyCell>
+                <TBodyCell>₦{o.totalFees.toLocaleString()}</TBodyCell>
+                <TBodyCell className="font-medium">₦{o.organizationShare.toLocaleString()}</TBodyCell>
+                <TBodyCell>₦{o.registrationShare.toLocaleString()}</TBodyCell>
+                <TBodyCell>₦{o.bnplShare.toLocaleString()}</TBodyCell>
+                <TBodyCell>₦{o.platformShare.toLocaleString()}</TBodyCell>
+                <TBodyCell>₦{o.apexShare.toLocaleString()}</TBodyCell>
+                <TBodyCell>₦{o.superAdminShare.toLocaleString()}</TBodyCell>
+              </TBodyRow>
+            ))}
+            {(!feePotsStats || feePotsStats.organizations.length === 0) && (
+              <TBodyRow>
+                <TBodyCell colSpan={10} className="text-center text-gray-400 py-8">No fee pot data found</TBodyCell>
+              </TBodyRow>
+            )}
+          </TBody>
+        </Table>
+      </Card>
 
       {tab === 'pots' && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card className={potTypeBorder.total}>
-              <CardTitle className="text-sm font-medium text-gray-500">Total Balance</CardTitle>
-              <p className="mt-1 text-2xl font-bold">₦{totalBalance.toLocaleString()}</p>
-            </Card>
-            {pots.map((pot) => (
-              <Card key={pot.id} className={potTypeBorder[pot.potType] ?? 'border-gray-300'}>
-                <CardTitle className="text-sm font-medium text-gray-500 capitalize">{pot.potType.replace('_', ' ')}</CardTitle>
-                <p className="mt-1 text-2xl font-bold">₦{Number(pot.balance).toLocaleString()}</p>
-              </Card>
-            ))}
-          </div>
-
           <Card>
             <div className="flex items-center justify-between">
               <div>
@@ -244,36 +328,6 @@ export function FeePots() {
               </div>
             </div>
           )}
-
-          <Table>
-            <THead>
-              <THeadRow>
-                <THeadCell>Type</THeadCell>
-                <THeadCell>Entity ID</THeadCell>
-                <THeadCell>Balance</THeadCell>
-                <THeadCell>Updated</THeadCell>
-              </THeadRow>
-            </THead>
-            <TBody>
-              {pots.map((pot) => (
-                <TBodyRow key={pot.id}>
-                  <TBodyCell>
-                    <Badge variant={potTypeColors[pot.potType] ?? 'default'}>
-                      {pot.potType.replace('_', ' ')}
-                    </Badge>
-                  </TBodyCell>
-                  <TBodyCell className="text-xs font-mono">{pot.entityId.slice(0, 12)}...</TBodyCell>
-                  <TBodyCell className="font-medium">₦{Number(pot.balance).toLocaleString()}</TBodyCell>
-                  <TBodyCell>{new Date(pot.updatedAt).toLocaleString()}</TBodyCell>
-                </TBodyRow>
-              ))}
-              {pots.length === 0 && (
-                <TBodyRow>
-                  <TBodyCell colSpan={4} className="text-center text-gray-400 py-8">No fee pots found</TBodyCell>
-                </TBodyRow>
-              )}
-            </TBody>
-          </Table>
         </>
       )}
 

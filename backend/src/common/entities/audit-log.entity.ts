@@ -28,6 +28,8 @@ export enum AuditAction {
 }
 
 @Entity('audit_logs')
+@Index(['entityType', 'entityId'])
+@Index(['performedBy', 'createdAt'])
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -51,6 +53,5 @@ export class AuditLog {
   ipAddress: string;
 
   @CreateDateColumn({ name: 'created_at' })
-  @Index()
   createdAt: Date;
 }

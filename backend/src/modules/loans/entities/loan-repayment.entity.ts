@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Loan } from './loan.entity';
 
 export enum RepaymentStatus {
@@ -8,6 +8,7 @@ export enum RepaymentStatus {
 }
 
 @Entity('loan_repayments')
+@Index(['loanId', 'status'])
 export class LoanRepayment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

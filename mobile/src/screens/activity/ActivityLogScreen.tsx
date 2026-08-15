@@ -14,7 +14,8 @@ export default function ActivityLogScreen() {
     (async () => {
       try {
         const { data } = await client.get(ENDPOINTS.users.activity);
-        setEntries(Array.isArray(data) ? data : []);
+        const payload = Array.isArray(data) ? data : (data as { data?: unknown }).data;
+        setEntries(Array.isArray(payload) ? payload : []);
       } catch { /* ignore */ } finally { setLoading(false); }
     })();
   }, []));
@@ -43,7 +44,7 @@ export default function ActivityLogScreen() {
               <Text style={[styles.success, { color: e.success ? '#22c55e' : '#ef4444' }]}>{e.success ? 'Success' : 'Failed'}</Text>
             )}
           </View>
-          {e.details && <Text style={styles.details}>{e.details}</Text>}
+          {e.details && <Text style={styles.details}>{typeof e.details === 'string' ? e.details : JSON.stringify(e.details)}</Text>}
           <Text style={styles.date}>{new Date(e.createdAt).toLocaleString('en-NG')}</Text>
           {e.ipAddress && <Text style={styles.ip}>IP: {e.ipAddress}</Text>}
         </View>

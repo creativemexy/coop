@@ -27,7 +27,10 @@ interface RepaymentSchedule {
 
 interface CohortBucket {
   label: string; count: number; totalAmount: number
-  installments: { id: string; subscriptionId: string; dueDate: string; amount: number; daysLate: number }[]
+}
+interface CohortDrillDown {
+  bucket: string; total: number; page: number; pageSize: number
+  items: { id: string; subscriptionId: string; dueDate: string; amount: number; daysLate: number }[]
 }
 interface CohortsData {
   cohorts: CohortBucket[]; totalDelinquentAmount: number; totalActivePrincipal: number
@@ -65,6 +68,8 @@ export function Collections() {
 
   /* cohorts */
   const [cohorts, setCohorts] = useState<CohortsData | null>(null)
+  const [cohortDetail, setCohortDetail] = useState<Record<string, CohortDrillDown>>({})
+  const [cohortDetailLoading, setCohortDetailLoading] = useState<string | null>(null)
 
   /* priorities */
   const [priorities, setPriorities] = useState<PriorityItem[]>([])
@@ -109,7 +114,21 @@ export function Collections() {
   }, [orderId])
 
   const loadCohorts = useCallback(async () => {
-    try { const { data } = await api.get('/api/v1/bnpl/collections/cohorts'); setCohorts(data) } catch {}
+    try { const { data } = await api.get('/api/v1/bnpl/collections/cohorts'); setCohorts(data); setCohortDetail({}) } catch {}
+  }, [])
+
+  const loadCohortDetail = useCallback(async (bucket: string, page = 1) => {
+    setCohortDetailLoading(bucket)
+    try {
+      const params: Record<string, string> = {}
+      if (page > 1) params.page = String(page)
+      const { data } = await api.get(
+        `/api/v1/bnpl/collections/cohorts/${encodeURIComponent(bucket)}/installments`,
+        { params },
+      )
+      setCohortDetail((prev) => ({ ...prev, [bucket]: data }))
+    } catch { /* ignore */ }
+    setCohortDetailLoading(null)
   }, [])
 
   const loadPriorities = useCallback(async () => {
@@ -327,27 +346,50 @@ export function Collections() {
             ))}
           </div>
 
-          {cohorts?.cohorts.filter((b) => b.installments.length > 0).map((bucket) => (
+          {cohorts?.cohorts.filter((b) => b.count > 0).map((bucket) => (
             <Card key={bucket.label}>
               <CardTitle className="text-sm">{bucket.label} Detail</CardTitle>
-              <Table>
-                <THead><THeadRow>
-                  <THeadCell>Subscription</THeadCell>
-                  <THeadCell>Due Date</THeadCell>
-                  <THeadCell>Amount</THeadCell>
-                  <THeadCell>Days Late</THeadCell>
-                </THeadRow></THead>
-                <TBody>
-                  {bucket.installments.map((inst) => (
-                    <TBodyRow key={inst.id}>
-                      <TBodyCell className="text-xs font-mono">{inst.subscriptionId.slice(0, 8)}…</TBodyCell>
-                      <TBodyCell>{new Date(inst.dueDate).toLocaleDateString()}</TBodyCell>
-                      <TBodyCell>₦{inst.amount.toLocaleString()}</TBodyCell>
-                      <TBodyCell><Badge variant="danger">{inst.daysLate}d</Badge></TBodyCell>
-                    </TBodyRow>
-                  ))}
-                </TBody>
-              </Table>
+              {cohortDetailLoading === bucket.label ? (
+                <div className="flex items-center justify-between px-4 py-6 text-sm text-gray-400">
+                  <span>Loading…</span>
+                </div>
+              ) : cohortDetail[bucket.label] ? (
+                <>
+                  <Table>
+                    <THead><THeadRow>
+                      <THeadCell>Subscription</THeadCell>
+                      <THeadCell>Due Date</THeadCell>
+                      <THeadCell>Amount</THeadCell>
+                      <THeadCell>Days Late</THeadCell>
+                    </THeadRow></THead>
+                    <TBody>
+                      {cohortDetail[bucket.label].items.map((inst) => (
+                        <TBodyRow key={inst.id}>
+                          <TBodyCell className="text-xs font-mono">{inst.subscriptionId.slice(0, 8)}…</TBodyCell>
+                          <TBodyCell>{new Date(inst.dueDate).toLocaleDateString()}</TBodyCell>
+                          <TBodyCell>₦{inst.amount.toLocaleString()}</TBodyCell>
+                          <TBodyCell><Badge variant="danger">{inst.daysLate}d</Badge></TBodyCell>
+                        </TBodyRow>
+                      ))}
+                      {cohortDetail[bucket.label].items.length === 0 && (
+                        <TBodyRow><TBodyCell colSpan={4} className="text-center py-4 text-gray-400">None</TBodyCell></TBodyRow>
+                      )}
+                    </TBody>
+                  </Table>
+                  {cohortDetail[bucket.label].total > cohortDetail[bucket.label].page * cohortDetail[bucket.label].pageSize && (
+                    <div className="p-3">
+                      <Button size="sm" variant="secondary" onClick={() => loadCohortDetail(bucket.label, cohortDetail[bucket.label].page + 1)}>
+                        Load more
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-between px-4 py-4 text-sm text-gray-500">
+                  <span>{bucket.count} installment{bucket.count === 1 ? '' : 's'}</span>
+                  <Button size="sm" variant="secondary" onClick={() => loadCohortDetail(bucket.label)}>View</Button>
+                </div>
+              )}
             </Card>
           ))}
         </div>

@@ -27,7 +27,6 @@ const actionLabels: Record<string, { label: string; icon: string; color: string 
   savings_deposit: { label: 'Savings deposit', icon: '💰', color: 'text-green-600' },
   savings_withdrawal: { label: 'Savings withdrawal', icon: '🏦', color: 'text-red-600' },
   loan_apply: { label: 'Loan application', icon: '📋', color: 'text-purple-600' },
-  sent_referral: { label: 'Sent referral', icon: '📨', color: 'text-blue-600' },
 }
 
 export function ActivityLog() {

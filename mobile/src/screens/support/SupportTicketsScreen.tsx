@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, StyleSheet, Alert, Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 import { SupportTicket } from '../../types';
 
@@ -33,7 +33,7 @@ export default function SupportTicketsScreen() {
       setShowNew(false); setSubject(''); setDescription('');
       const { data } = await client.get(ENDPOINTS.dashboard.tickets);
       setTickets(data);
-    } catch (e: any) { Alert.alert('Error', e?.response?.data?.message || 'Failed'); }
+    } catch (e: any) { Alert.alert('Error', getErrorMessage(e, 'Failed')); }
     finally { setSubmitting(false); }
   };
 

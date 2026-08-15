@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { SavingsAccount } from './savings-account.entity';
 
@@ -19,6 +20,7 @@ export enum TransactionType {
 }
 
 @Entity('savings_transactions')
+@Index(['accountId', 'createdAt'])
 export class SavingsTransaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;

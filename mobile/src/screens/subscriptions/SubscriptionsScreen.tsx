@@ -39,7 +39,7 @@ export default function SubscriptionsScreen({ navigation }: { navigation: any })
     fetchSubscriptions();
   };
 
-  const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+  const formatPrice = (price: number | string) => `₦${Number(price || 0).toLocaleString()}`;
 
   const getStatusColor = (status: string) => {
     switch (status) {

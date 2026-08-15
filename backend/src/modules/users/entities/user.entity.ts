@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Role } from '../../../common/enums/role.enum';
 import { KycStatus } from '../../../common/enums/status.enum';
@@ -14,6 +15,10 @@ import { Organization } from '../../organizations/entities/organization.entity';
 import { encryptColumn } from '../../../common/encryption.transformer';
 
 @Entity('users')
+@Index(['role', 'isActive'])
+@Index(['organizationId'])
+@Index(['apexOrgId'])
+@Index(['kycStatus'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -5,7 +5,7 @@ export default function SubscriptionDetailScreen({ route }: { route: any }) {
   const subscription: BnplSubscription = route.params.subscription;
   const installments = subscription.installments || [];
 
-  const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+  const formatPrice = (price: number | string) => `₦${Number(price || 0).toLocaleString()}`;
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });

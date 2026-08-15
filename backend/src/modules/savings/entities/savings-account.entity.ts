@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
 import { SavingsTransaction } from './savings-transaction.entity';
 
 @Entity('savings_accounts')
+@Index(['userId'])
 export class SavingsAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;

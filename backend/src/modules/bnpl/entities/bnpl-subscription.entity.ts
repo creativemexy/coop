@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import {
   SubscriptionStatus,
@@ -16,6 +17,9 @@ import { BnplPlan } from './bnpl-plan.entity';
 import { BnplInstallment } from './bnpl-installment.entity';
 
 @Entity('bnpl_subscriptions')
+@Index(['userId', 'createdAt'])
+@Index(['status', 'createdAt'])
+@Index(['providerReference'])
 export class BnplSubscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;

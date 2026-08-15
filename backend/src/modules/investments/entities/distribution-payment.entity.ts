@@ -1,7 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Distribution } from './distribution.entity';
+import { DistributionRun } from './distribution-run.entity';
 
 @Entity('distribution_payments')
+@Index(['userId'])
+@Index(['distributionId'])
+@Index(['runId'])
 export class DistributionPayment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -18,6 +22,13 @@ export class DistributionPayment {
   @ManyToOne(() => Distribution)
   @JoinColumn({ name: 'distribution_id' })
   distribution: Distribution;
+
+  @Column({ type: 'uuid', name: 'run_id', nullable: true })
+  runId: string | null;
+
+  @ManyToOne(() => DistributionRun)
+  @JoinColumn({ name: 'run_id' })
+  run: DistributionRun;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   amount: number;

@@ -8,11 +8,11 @@ export enum NotificationType {
 }
 
 @Entity('in_app_notifications')
+@Index(['userId', 'isRead', 'createdAt'])
 export class InAppNotification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
   @Column({ name: 'user_id' })
   userId: string;
 

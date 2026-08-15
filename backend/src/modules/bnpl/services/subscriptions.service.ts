@@ -232,22 +232,34 @@ export class SubscriptionsService {
     qb.orderBy('sub.created_at', 'DESC');
 
     const subs = await qb.getMany();
+    const ids = subs.map((s) => s.id);
+
+    const rows: Array<{ entity_id: string; active_cnt: string; open_cnt: string }> = ids.length
+      ? await this.auditRepo.manager.query(
+          `SELECT entity_id,
+                  COUNT(*) FILTER (WHERE status = 'open' OR status = 'investigating') AS active_cnt,
+                  COUNT(*) FILTER (WHERE status = 'open') AS open_cnt
+           FROM bnpl_risk_flags
+           WHERE entity_id = ANY($1::uuid[])
+             AND (status = 'open' OR status = 'investigating')
+           GROUP BY entity_id`,
+          [ids],
+        )
+      : [];
+
+    const riskByEntity = new Map<string, { active: number; open: number }>();
+    for (const r of rows) {
+      riskByEntity.set(r.entity_id, {
+        active: Number(r.active_cnt || 0),
+        open: Number(r.open_cnt || 0),
+      });
+    }
+
     const enriched: any[] = [];
 
     for (const sub of subs) {
-      const riskCount = await this.auditRepo.manager
-        .query(
-          `SELECT COUNT(*) as cnt FROM bnpl_risk_flags WHERE entity_id = $1 AND (status = 'open' OR status = 'investigating')`,
-          [sub.id],
-        )
-        .then((r) => Number(r[0]?.cnt || 0));
-
-      const openRiskCount = await this.auditRepo.manager
-        .query(
-          `SELECT COUNT(*) as cnt FROM bnpl_risk_flags WHERE entity_id = $1 AND status = 'open'`,
-          [sub.id],
-        )
-        .then((r) => Number(r[0]?.cnt || 0));
+      const riskCount = riskByEntity.get(sub.id)?.active ?? 0;
+      const openRiskCount = riskByEntity.get(sub.id)?.open ?? 0;
 
       const overdueInst = (sub.installments || []).filter(
         (i) => i.status === InstallmentStatus.PENDING && new Date(i.dueDate) < new Date(),

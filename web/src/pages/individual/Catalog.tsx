@@ -135,11 +135,15 @@ export function Catalog() {
             <div className="space-y-2">
               {plans.map((plan) => {
                 const el = eligibility[plan.id]
-                const downPayment = selectedItem.price * (plan.downPaymentPercent / 100)
-                const totalWithInterest = selectedItem.price + (selectedItem.price * plan.interestRate / 100)
-                const installmentAmount = (totalWithInterest - downPayment) / plan.installmentCount
-                const priceOk = (!plan.minPrincipal || selectedItem.price >= plan.minPrincipal) &&
-                  (!plan.maxPrincipal || selectedItem.price <= plan.maxPrincipal)
+                const price = Number(selectedItem.price) || 0
+                const rate = Number(plan.interestRate) || 0
+                const downPct = Number(plan.downPaymentPercent) || 0
+                const installments = Number(plan.installmentCount) || 0
+                const downPayment = price * (downPct / 100)
+                const totalWithInterest = price + (price * rate / 100)
+                const installmentAmount = installments > 0 ? (totalWithInterest - downPayment) / installments : 0
+                const priceOk = (!plan.minPrincipal || price >= Number(plan.minPrincipal)) &&
+                  (!plan.maxPrincipal || price <= Number(plan.maxPrincipal))
                 const eligible = el?.eligible !== false
                 return (
                   <div key={plan.id} className="rounded-lg border dark:border-gray-700 p-3 space-y-2">
@@ -149,7 +153,7 @@ export function Catalog() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-500">Interest: {plan.interestRate}%</span>
-                      <span className="text-gray-500">₦{installmentAmount.toLocaleString()}/installment</span>
+                      <span className="text-gray-500">₦{Number(installmentAmount).toLocaleString()}/installment</span>
                     </div>
                     {(plan.minPrincipal || plan.maxPrincipal) && (
                       <div className="text-xs text-gray-500">

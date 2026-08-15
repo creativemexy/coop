@@ -1,483 +1,178 @@
+import { useEffect, useState } from 'react'
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { site } from './site.config'
 import { useBranding } from '../../stores/branding.store'
+import { api } from '../../api/client'
+
+const serviceColors = ['#C85B23', '#176B5B', '#D49728', '#7F3F2A']
+
+const heroSlides = [
+  { title: 'Agriculture that feeds futures', label: 'Agro', image: 'https://pachamamafoodsng.com/wp-content/uploads/2024/06/Empowering-women-through-cooperative-farming-in-Nigeria.png', alt: 'Nigerian women working together on a farm' },
+  { title: 'A cooperative built by its members', label: 'Cooperatives', image: 'https://www.awf.org/sites/default/files/media/images/Nasaruni_Jane%20Meshami.jpg', alt: 'Members gathered for a cooperative meeting' },
+  { title: 'Every contribution moves us forward', label: 'Savings', image: 'https://www.coopi.org/uploads/home/15dea3f421cf67.png', alt: 'A community savings group meeting' },
+  { title: 'More room to grow', label: 'Empowerment', image: 'https://womenforwomen.org.uk/sites/default/files/styles/gallery_image/public/Countries/Nigeria/NIG_Sept142017_DemonstrationFarm_Monilekan_P.jpg?itok=db0gGg4_', alt: 'Women working together in a Nigerian field' },
+  { title: 'Invest in what matters to your community', label: 'Investment', image: 'https://static.wixstatic.com/media/a1f099_6610827a727846189fc8314e1d5f82bf~mv2.jpg/v1/fill/w_1000%2Ch_626%2Cal_c%2Cq_85%2Cusm_0.66_1.00_0.01/a1f099_6610827a727846189fc8314e1d5f82bf~mv2.jpg', alt: 'A rural cooperative community meeting' },
+]
+
+type Impact = { members: number; organizations: number; savingsPool: number; investmentValue: number }
+
+function compactNaira(value: number) {
+  if (value >= 1_000_000_000) return `₦${(value / 1_000_000_000).toFixed(1)}B`
+  if (value >= 1_000_000) return `₦${(value / 1_000_000).toFixed(1)}M`
+  return `₦${Math.round(value).toLocaleString()}`
+}
 
 export default function Home() {
   const { branding } = useBranding()
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [impact, setImpact] = useState<Impact | null>(null)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const timer = window.setInterval(() => setActiveSlide((slide) => (slide + 1) % heroSlides.length), 5600)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    api.get<Impact>('/branding/impact').then(({ data }) => setImpact(data)).catch(() => undefined)
+  }, [])
+
+  const stats = impact
+    ? [
+        { value: impact.members.toLocaleString(), label: 'Active members' },
+        { value: compactNaira(impact.savingsPool), label: 'Savings pool' },
+        { value: impact.organizations.toLocaleString(), label: 'Partner cooperatives' },
+        { value: compactNaira(impact.investmentValue), label: 'Member investments' },
+      ]
+    : site.stats
+  const slide = heroSlides[activeSlide]
+
   return (
-    <div>
-      {/* Hero */}
-      <section
-        className="relative overflow-hidden min-h-[calc(100vh-4rem)] flex items-center"
-        style={{ backgroundColor: 'color-mix(in srgb, var(--brand-primary) 22%, #081C3A)' }}
-      >
-        <div className="absolute inset-0 pointer-events-none">
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(1200px 700px at 85% -10%, color-mix(in srgb, var(--brand-accent) 14%, transparent) 0%, transparent 60%), radial-gradient(900px 600px at 8% 110%, color-mix(in srgb, var(--brand-primary) 12%, transparent) 0%, transparent 55%)',
-            }}
-          />
-          <div
-            className="absolute inset-0 opacity-[0.05]"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
-              backgroundSize: '64px 64px',
-              maskImage: 'radial-gradient(ellipse at 50% 20%, black 0%, transparent 75%)',
-              WebkitMaskImage: 'radial-gradient(ellipse at 50% 20%, black 0%, transparent 75%)',
-            }}
-          />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 md:py-24 w-full">
-          <div className="grid items-center gap-14 lg:grid-cols-2">
-            {/* Left — content */}
+    <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
+      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]">
+        <div className="afro-pattern absolute inset-0 opacity-35" aria-hidden="true" />
+        <div className="absolute -right-24 top-10 h-72 w-72 rounded-full border-[32px] border-[#E4A42A]/20" aria-hidden="true" />
+        <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pb-24 lg:px-8 lg:pb-28 lg:pt-24">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.06fr_.94fr]">
             <div className="max-w-2xl">
-              <span
-                className="inline-flex items-center gap-2.5 rounded-full border px-5 py-2 text-xs font-semibold tracking-wide"
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--brand-accent) 45%, transparent)',
-                  backgroundColor: 'color-mix(in srgb, var(--brand-accent) 12%, transparent)',
-                  color: 'var(--brand-accent)',
-                }}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--brand-accent)' }} />
-                A Member-Owned Digital Cooperative
-              </span>
-
-              <h1 className="mt-7 text-4xl sm:text-5xl xl:text-6xl font-extrabold text-white leading-[1.1] tracking-tight">
-                {site.tagline.split('. ').map((part, i, arr) => (
-                  <span key={i}>
-                    <span
-                      style={
-                        part.toLowerCase().includes('wealth')
-                          ? {
-                              background:
-                                'linear-gradient(120deg, var(--brand-accent) 0%, var(--brand-primary) 45%, var(--brand-accent) 100%)',
-                              WebkitBackgroundClip: 'text',
-                              backgroundClip: 'text',
-                              color: 'transparent',
-                            }
-                          : undefined
-                      }
-                    >
-                      {part}
-                    </span>
-                    {i < arr.length - 1 ? '. ' : '.'}
-                  </span>
-                ))}
-              </h1>
-
-              <p className="mt-7 text-lg text-[#D9D9D9] leading-relaxed max-w-xl">
-                {site.description}
+              <p className="inline-flex items-center gap-2 rounded-full border border-[#E4A42A]/45 bg-white/10 px-4 py-2 text-xs font-bold tracking-[0.16em] text-[#F8CE68] uppercase">
+                <Sparkles size={14} /> Rooted in community
               </p>
-
-              <div
-                className="mt-8 h-px w-40"
-                style={{
-                  background:
-                    'linear-gradient(90deg, var(--brand-accent) 0%, color-mix(in srgb, var(--brand-accent) 15%, transparent) 100%)',
-                }}
-              />
-
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/register"
-                  className="rounded-full px-9 py-4 text-base font-semibold text-white text-center transition-all hover:scale-[1.03]"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-primary) 100%)',
-                    boxShadow: '0 18px 40px -12px color-mix(in srgb, var(--brand-primary) 60%, transparent)',
-                  }}
-                >
-                  Become a Member
+              <h1 className="mt-7 font-serif text-5xl font-bold leading-[0.98] tracking-tight sm:text-6xl xl:text-7xl">
+                Prosperity is better when <span className="text-[#F7B733]">shared.</span>
+              </h1>
+              <p className="mt-7 max-w-xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">
+                {site.description} Build your savings, access what you need, and move forward with a cooperative that grows with you.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-7 py-4 font-bold text-[#26170F] transition hover:-translate-y-0.5 hover:bg-[#F7B733]">
+                  Join the cooperative <ArrowRight size={18} />
                 </Link>
-                <Link
-                  to="/about"
-                  className="rounded-full border-2 px-9 py-4 text-base font-semibold text-center backdrop-blur transition-all"
-                  style={{
-                    borderColor: 'var(--brand-accent)',
-                    color: 'var(--brand-accent)',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--brand-accent) 10%, transparent)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  Learn More
+                <Link to="/about" className="inline-flex items-center justify-center rounded-full border border-white/45 px-7 py-4 font-semibold transition hover:bg-white/10">
+                  Discover our story
                 </Link>
               </div>
-
-              <div className="mt-10 flex items-center gap-4">
-                <div className="flex -space-x-3">
-                  {[
-                    'var(--brand-accent)',
-                    'var(--brand-primary)',
-                    'color-mix(in srgb, var(--brand-accent) 55%, #ffffff)',
-                    'color-mix(in srgb, var(--brand-primary) 55%, #ffffff)',
-                  ].map((c, i) => (
-                    <span
-                      key={i}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#081C3A] text-sm font-semibold text-white"
-                      style={{ backgroundColor: c }}
-                    >
-                      {['JD', 'MA', 'KO', 'SL'][i]}
-                    </span>
-                  ))}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 text-sm" style={{ color: 'var(--brand-accent)' }}>★★★★★</div>
-                  <p className="text-sm text-[#D9D9D9]">Trusted by 10,000+ members nationwide</p>
-                </div>
+              <div className="mt-11 flex flex-wrap gap-x-8 gap-y-4 text-sm text-[#FFF3D8]">
+                <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Member-owned</span>
+                <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Built for Nigeria</span>
+                <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Clear, fair terms</span>
               </div>
             </div>
 
-            {/* Right — premium graphic */}
-            <div className="hidden lg:block relative h-[560px]">
-              <div
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[440px] w-[440px] rounded-full animate-pulse-glow"
-                style={{
-                  background:
-                    'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 32%, transparent) 0%, color-mix(in srgb, var(--brand-primary) 12%, transparent) 45%, transparent 70%)',
-                  filter: 'blur(8px)',
-                }}
-              />
-
-              {/* Abstract growth curve */}
-              <svg
-                className="absolute -top-4 right-0 h-64 w-80 opacity-80"
-                viewBox="0 0 320 260"
-                fill="none"
-              >
-                <path
-                  d="M10,220 C60,200 80,150 130,140 C180,130 200,80 250,60 C280,48 300,40 315,30"
-                  stroke="var(--brand-accent)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  opacity="0.55"
-                />
-                <path
-                  d="M10,235 C70,220 100,175 150,165 C200,155 220,110 270,92 C292,84 305,78 315,70"
-                  stroke="var(--brand-primary)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  opacity="0.35"
-                />
-                <path
-                  d="M10,220 C60,200 80,150 130,140 C180,130 200,80 250,60 C280,48 300,40 315,30 L315,260 L10,260 Z"
-                  fill="url(#brandCurveFade)"
-                  opacity="0.35"
-                />
-                <defs>
-                  <linearGradient id="brandCurveFade" x1="160" y1="30" x2="160" y2="260" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="var(--brand-accent)" stopOpacity="0.35" />
-                    <stop offset="1" stopColor="var(--brand-accent)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <circle cx="315" cy="30" r="5" fill="var(--brand-accent)" opacity="0.9" />
-              </svg>
-
-              {/* Main glass dashboard card */}
-              <div
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] rounded-[28px] p-7 border border-white/10 animate-float-slow"
-                style={{
-                  background: 'linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  boxShadow: '0 40px 80px -24px rgba(0,0,0,0.6)',
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-[#D9D9D9]/70">Portfolio Growth</p>
-                    <p className="mt-1 text-3xl font-extrabold text-white">₦2.4B</p>
+            <div className="relative mx-auto w-full max-w-lg lg:mx-0">
+              <div className="afro-arch relative overflow-hidden rounded-t-[12rem] border-[10px] border-[#F4D586] bg-[#D78135] p-3 shadow-2xl sm:p-5">
+                <div className="relative aspect-[.92] overflow-hidden rounded-t-[9rem] bg-[#2B1A10]">
+                  {heroSlides.map((item, index) => <img key={item.label} src={item.image} alt={index === activeSlide ? item.alt : ''} aria-hidden={index !== activeSlide} className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ${index === activeSlide ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`} />)}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#25140D]/90 via-[#25140D]/10 to-transparent" aria-hidden="true" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 text-white sm:p-9"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#F7D674]">{slide.label}</p><p className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl">{slide.title}</p></div>
+                  <button type="button" onClick={() => setActiveSlide((activeSlide + heroSlides.length - 1) % heroSlides.length)} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white transition hover:bg-black/60" aria-label="Show previous image"><ChevronLeft size={19} /></button>
+                  <button type="button" onClick={() => setActiveSlide((activeSlide + 1) % heroSlides.length)} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white transition hover:bg-black/60" aria-label="Show next image"><ChevronRight size={19} /></button>
+                  <div className="absolute bottom-4 right-5 flex gap-1.5">{heroSlides.map((item, index) => <button type="button" key={item.label} onClick={() => setActiveSlide(index)} aria-label={`Show ${item.label} image`} aria-current={index === activeSlide} className={`h-2 rounded-full transition-all ${index === activeSlide ? 'w-6 bg-[#F7D674]' : 'w-2 bg-white/70 hover:bg-white'}`} />)}</div>
+                </div>
+                <div className="afro-mini-pattern absolute inset-x-0 bottom-0 h-24 opacity-30" aria-hidden="true" />
+                <div className="relative grid grid-cols-2 gap-3 bg-[#F4D586] p-4 text-[#301B10] sm:p-5">
+                  {stats.slice(0, 4).map((stat, index) => (
+                      <div key={stat.label} className={index === 0 ? 'col-span-2 rounded-2xl bg-[#176B5B] p-5 text-white' : 'rounded-2xl bg-white/65 p-4'}>
+                        <p className={index === 0 ? 'font-serif text-3xl font-bold' : 'font-serif text-2xl font-bold text-[#8F4C22]'}>{stat.value}</p>
+                        <p className={index === 0 ? 'mt-1 text-sm text-white/80' : 'mt-1 text-xs font-semibold text-[#6B4A36]'}>{stat.label}</p>
+                      </div>
+                    ))}
                   </div>
-                  <span
-                    className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, var(--brand-accent), var(--brand-primary))' }}
-                  >
-                    +24.8%
-                  </span>
                 </div>
-
-                <div className="mt-6 flex h-32 items-end gap-3">
-                  {[45, 65, 52, 80, 60, 92, 70, 100].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-t-lg"
-                      style={{
-                        height: `${h}%`,
-                        background:
-                          i === 7
-                            ? 'linear-gradient(180deg, var(--brand-accent), var(--brand-primary))'
-                            : 'linear-gradient(180deg, color-mix(in srgb, var(--brand-accent) 55%, transparent), color-mix(in srgb, var(--brand-primary) 30%, transparent))',
-                        boxShadow:
-                          i === 7
-                            ? '0 0 24px color-mix(in srgb, var(--brand-primary) 60%, transparent)'
-                            : undefined,
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <div className="mt-6 space-y-3 border-t border-white/10 pt-5">
-                  {[
-                    ['Savings', '₦ 1,200,000'],
-                    ['Investments', '₦ 860,000'],
-                    ['Affordable Loans', '₦ 340,000'],
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between text-sm">
-                      <span className="text-[#D9D9D9]/80">{label}</span>
-                      <span className="font-semibold text-white">{value}</span>
-                    </div>
-                  ))}
-                </div>
+                <div className="absolute -bottom-5 -left-5 rounded-full bg-[#176B5B] p-5 text-[#F7D674] shadow-lg"><span className="text-3xl">✦</span></div>
               </div>
+            </div>
+          </div>
+      </section>
 
-              {/* Floating card — top right */}
-              <div
-                className="absolute right-[4%] top-[6%] rounded-2xl border border-white/10 px-5 py-4 animate-float-slower"
-                style={{
-                  background: 'linear-gradient(160deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03))',
-                  backdropFilter: 'blur(16px)',
-                  boxShadow: '0 24px 48px -16px rgba(0,0,0,0.55)',
-                }}
-              >
-                <p className="text-xs text-[#D9D9D9]/80">Monthly Savings</p>
-                <p className="mt-1 text-xl font-bold" style={{ color: 'var(--brand-accent)' }}>₦ 480,000</p>
+      <section className="relative -mt-1 bg-[#FFF9EF] py-18 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[.78fr_1.22fr] lg:items-end">
+            <div>
+              <p className="afro-kicker">Made for everyday progress</p>
+              <h2 className="mt-4 max-w-md font-serif text-4xl font-bold leading-tight text-[#2C1B13] sm:text-5xl">Your ambitions deserve a community behind them.</h2>
+            </div>
+            <p className="max-w-2xl text-lg leading-relaxed text-[#6B5245]">From school fees and stock for your business to a home deposit and long-term investments, our services are shaped around the moments that matter to you.</p>
+          </div>
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {site.services.map((service, index) => (
+              <article key={service.title} className="group relative overflow-hidden rounded-[1.6rem] bg-white p-7 shadow-[0_12px_35px_rgba(79,43,17,0.08)] transition duration-300 hover:-translate-y-1">
+                <div className="absolute inset-x-0 top-0 h-2" style={{ backgroundColor: serviceColors[index] }} />
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl" style={{ backgroundColor: `${serviceColors[index]}18` }}>{service.icon}</span>
+                <h3 className="mt-6 text-xl font-bold text-[#2C1B13]">{service.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-[#6B5245]">{service.description}</p>
+                <Link to="/services" className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#176B5B] opacity-0 transition group-hover:opacity-100">Explore <ArrowRight size={15} /></Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="afro-sand-pattern bg-[#F0DDAD] py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="afro-kicker text-[#9D4824]">A simple beginning</p>
+            <h2 className="mt-4 font-serif text-4xl font-bold text-[#2C1B13] sm:text-5xl">Come in. Grow with us.</h2>
+          </div>
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {site.steps.map((step, index) => (
+              <div key={step.title} className="relative rounded-[1.8rem] border border-[#9D623A]/15 bg-[#FFF9EF] p-8 shadow-sm">
+                <span className="font-serif text-6xl font-bold leading-none text-[#D78135]/35">0{index + 1}</span>
+                <h3 className="mt-7 text-xl font-bold text-[#2C1B13]">{step.title}</h3>
+                <p className="mt-3 leading-relaxed text-[#6B5245]">{step.description}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {/* Floating card — bottom left */}
-              <div
-                className="absolute bottom-[8%] left-[2%] flex items-center gap-3 rounded-2xl border border-white/10 px-5 py-4 animate-float-slow"
-                style={{
-                  background: 'linear-gradient(160deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03))',
-                  backdropFilter: 'blur(16px)',
-                  boxShadow: '0 24px 48px -16px rgba(0,0,0,0.55)',
-                }}
-              >
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
-                  style={{ background: 'linear-gradient(135deg, var(--brand-accent), var(--brand-primary))' }}
-                >
-                  🤝
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-white">2,400+ members</p>
-                  <p className="text-xs text-[#D9D9D9]/80">joined this month</p>
+      <section className="bg-[#176B5B] py-20 text-[#FFF9EF] sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr]">
+            <div>
+              <p className="afro-kicker text-[#F7D674]">The cooperative way</p>
+              <h2 className="mt-4 font-serif text-4xl font-bold leading-tight sm:text-5xl">Finance with dignity, warmth, and a shared purpose.</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {site.values.map((value, index) => (
+                <div key={value.title} className="rounded-2xl border border-white/15 bg-white/8 p-6">
+                  <span className="font-serif text-2xl text-[#F7D674]">0{index + 1}</span>
+                  <h3 className="mt-5 text-lg font-bold">{value.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#E5F0E7]/75">{value.description}</p>
                 </div>
-              </div>
-
-              {/* Geometric accents */}
-              <div
-                className="absolute left-[8%] top-[16%] h-10 w-10 rotate-45 rounded-md border-2 animate-float-slow"
-                style={{ borderColor: 'color-mix(in srgb, var(--brand-accent) 70%, transparent)' }}
-              />
-              <div
-                className="absolute right-[14%] bottom-[20%] h-24 w-24 rounded-full border-2 border-dashed animate-spin-slow"
-                style={{ borderColor: 'color-mix(in srgb, var(--brand-accent) 40%, transparent)' }}
-              />
-              <div
-                className="absolute left-[16%] bottom-[30%] h-14 w-14 rotate-12 rounded-2xl border animate-float-slower"
-                style={{ borderColor: 'color-mix(in srgb, var(--brand-accent) 50%, transparent)' }}
-              />
-
-              {/* Glowing particles */}
-              {[
-                { left: '4%', top: '46%', size: 10, delay: '0s' },
-                { left: '18%', top: '4%', size: 7, delay: '1.2s' },
-                { left: '38%', top: '-2%', size: 12, delay: '0.6s' },
-                { left: '72%', top: '2%', size: 6, delay: '1.8s' },
-                { left: '96%', top: '28%', size: 9, delay: '0.9s' },
-                { left: '2%', top: '68%', size: 6, delay: '2.1s' },
-                { left: '90%', top: '66%', size: 8, delay: '0.3s' },
-                { left: '10%', top: '90%', size: 7, delay: '1.5s' },
-              ].map((p, i) => (
-                <div
-                  key={i}
-                  className="absolute rounded-full animate-pulse-glow"
-                  style={{
-                    left: p.left,
-                    top: p.top,
-                    width: p.size,
-                    height: p.size,
-                    backgroundColor: 'var(--brand-accent)',
-                    boxShadow: '0 0 16px color-mix(in srgb, var(--brand-primary) 90%, transparent)',
-                    animationDelay: p.delay,
-                  }}
-                />
               ))}
             </div>
-
-            {/* Mobile graphic */}
-            <div className="lg:hidden relative h-64">
-              <div
-                className="absolute inset-x-0 top-1/2 h-48 -translate-y-1/2 rounded-[24px] border border-white/10"
-                style={{
-                  background: 'linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
-                  boxShadow: '0 30px 60px -20px rgba(0,0,0,0.5)',
-                }}
-              />
-              <div className="relative flex h-full items-center justify-center">
-                <div className="text-center">
-                  <p className="text-xs uppercase tracking-widest text-[#D9D9D9]/70">Portfolio Growth</p>
-                  <p className="mt-2 text-4xl font-extrabold text-white">₦2.4B</p>
-                  <span
-                    className="mt-3 inline-block rounded-full px-4 py-1.5 text-sm font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, var(--brand-accent), var(--brand-primary))' }}
-                  >
-                    +24.8%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Glassmorphism feature cards */}
-          <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {site.heroCards.map((c) => (
-              <div
-                key={c.title}
-                className="rounded-2xl border border-white/10 p-6 transition-colors hover:border-[color-mix(in_srgb,var(--brand-accent)_50%,transparent)]"
-                style={{
-                  background: 'linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 20px 40px -18px rgba(0,0,0,0.5)',
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className="flex h-11 w-11 items-center justify-center rounded-xl text-xl"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, color-mix(in srgb, var(--brand-accent) 25%, transparent), color-mix(in srgb, var(--brand-primary) 15%, transparent))',
-                      border: '1px solid color-mix(in srgb, var(--brand-accent) 35%, transparent)',
-                    }}
-                  >
-                    {c.icon}
-                  </span>
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{
-                      backgroundColor: 'var(--brand-accent)',
-                      boxShadow: '0 0 10px color-mix(in srgb, var(--brand-primary) 90%, transparent)',
-                    }}
-                  />
-                </div>
-                <h3 className="mt-5 text-base font-bold text-white">{c.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#D9D9D9]/85">{c.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Curved divider */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
-          <svg
-            viewBox="0 0 1440 120"
-            className="block w-full h-[80px] md:h-[120px] text-white dark:text-gray-950"
-            fill="currentColor"
-            preserveAspectRatio="none"
-          >
-            <path d="M0,70 C360,130 1080,10 1440,70 L1440,120 L0,120 Z" />
-          </svg>
-        </div>
-      </section>
-
-      {/* Services */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">What We Offer</h2>
-          <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Financial services built around the needs of our members — transparent, accessible, and
-            member-first.
-          </p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {site.services.map((s) => (
-            <div
-              key={s.title}
-              className="group rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl text-white"
-                style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-              >
-                {s.icon}
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{s.title}</h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{s.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="bg-gray-50 dark:bg-gray-900/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Getting Started</h2>
-            <p className="mt-3 text-gray-600 dark:text-gray-400">Join in three simple steps.</p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {site.steps.map((step, i) => (
-              <div key={step.title} className="relative rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-8 shadow-sm">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-white text-lg font-bold"
-                  style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-                >
-                  {i + 1}
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{step.title}</h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{step.description}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
-      {/* Values */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Our Values</h2>
-          <p className="mt-3 text-gray-600 dark:text-gray-400">What guides every decision we make.</p>
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {site.values.map((v) => (
-            <div key={v.title} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{v.title}</h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{v.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
-        <div
-          className="rounded-3xl px-8 py-14 text-center text-white"
-          style={{
-            background:
-              'linear-gradient(135deg, var(--brand-primary, #2563eb) 0%, var(--brand-accent, #7c3aed) 100%)',
-          }}
-        >
-          <h2 className="text-3xl font-bold">Ready to grow together?</h2>
-          <p className="mt-3 max-w-xl mx-auto text-white/85">
-            Join thousands of members building a stronger financial future with {branding.organizationName}.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="rounded-xl bg-white px-8 py-4 text-base font-semibold text-gray-900 hover:bg-gray-50"
-            >
-              Become a Member
-            </Link>
-            <Link
-              to="/contact"
-              className="rounded-xl border border-white/40 px-8 py-4 text-base font-semibold text-white hover:bg-white/10"
-            >
-              Talk to Us
-            </Link>
-          </div>
+      <section className="px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+        <div className="afro-cta mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] px-7 py-14 text-center text-[#FFF9EF] sm:px-12 sm:py-20">
+          <p className="text-sm font-bold tracking-[0.16em] uppercase text-[#F8CE68]">The next chapter is yours</p>
+          <h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl font-bold leading-tight sm:text-6xl">Let’s build a future that reaches further.</h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-[#FFF3D8]/80">Join {branding.organizationName} and turn collective strength into real possibilities.</p>
+          <Link to="/register" className="mt-9 inline-flex items-center gap-2 rounded-full bg-[#F7B733] px-8 py-4 font-bold text-[#28170E] transition hover:-translate-y-0.5 hover:bg-[#FFE08B]">Become a member <ArrowRight size={18} /></Link>
         </div>
       </section>
     </div>

@@ -3,9 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('webhook_logs')
+@Index(['status', 'createdAt'])
+@Index(['paymentId'])
 export class WebhookLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;

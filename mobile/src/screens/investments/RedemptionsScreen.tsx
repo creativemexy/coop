@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, StyleSheet, Alert, Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
 
 interface Redemption {
@@ -40,7 +40,7 @@ export default function RedemptionsScreen() {
       setShowRedeem(false); setSelectedId(''); setRedeemAmount('');
       const { data } = await client.get(ENDPOINTS.investments.redemptions);
       setRedemptions(Array.isArray(data) ? data : []);
-    } catch (e: any) { Alert.alert('Error', e?.response?.data?.message || 'Failed'); }
+    } catch (e: any) { Alert.alert('Error', getErrorMessage(e, 'Failed')); }
     finally { setLoading(false); }
   };
 

@@ -723,9 +723,24 @@ export class AdminService {
 
   async getUsersByOrganization() {
     const orgs = await this.orgRepo.find({ order: { name: 'ASC' } });
-    const users = await this.userRepo.find({ order: { createdAt: 'ASC' } });
 
-    const orgMap = new Map<string, typeof users>();
+    const users = await this.userRepo
+      .createQueryBuilder('u')
+      .select([
+        'u.id',
+        'u.email',
+        'u.firstName',
+        'u.lastName',
+        'u.role',
+        'u.isActive',
+        'u.kycStatus',
+        'u.createdAt',
+        'u.organizationId',
+      ])
+      .orderBy('u.createdAt', 'ASC')
+      .getMany();
+
+    const orgMap = new Map<string, User[]>();
     for (const u of users) {
       const key = u.organizationId || 'unassigned';
       if (!orgMap.has(key)) orgMap.set(key, []);
@@ -757,22 +772,44 @@ export class AdminService {
     const planIds = plans.map((p) => p.id);
     if (planIds.length === 0) return { totalOrders: 0, activeSubscriptions: 0, totalVolume: 0, byPlan: [] };
 
-    const subs = await this.subRepo.find({ where: planIds.map((id) => ({ planId: id })) });
-    const totalVolume = subs.reduce((s, sub) => s + Number(sub.totalAmount), 0);
+    const subs = await this.subRepo
+      .createQueryBuilder('s')
+      .select('s.plan_id', 'planId')
+      .addSelect('COUNT(*)', 'orderCount')
+      .addSelect('COALESCE(SUM(s.total_amount), 0)', 'totalVolume')
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN s.status = :active THEN 1 ELSE 0 END), 0)`,
+        'activeCount',
+      )
+      .where('s.plan_id IN (:...planIds)', { planIds })
+      .groupBy('s.plan_id')
+      .setParameter('active', SubscriptionStatus.ACTIVE_REPAYMENT)
+      .getRawMany<{
+        planId: string;
+        orderCount: string;
+        totalVolume: string;
+        activeCount: string;
+      }>();
+
+    const totalOrders = subs.reduce((s, r) => s + Number(r.orderCount), 0);
+    const activeSubscriptions = subs.reduce((s, r) => s + Number(r.activeCount), 0);
+    const totalVolume = subs.reduce((s, r) => s + Number(r.totalVolume), 0);
+
+    const subMap = new Map(subs.map((r) => [r.planId, r]));
 
     const byPlan = plans.map((p) => {
-      const planSubs = subs.filter((s) => s.planId === p.id);
+      const row = subMap.get(p.id);
       return {
         planId: p.id,
         planName: p.catalogItem?.name || `Plan ${p.id.slice(0, 8)}`,
-        orderCount: planSubs.length,
-        totalVolume: planSubs.reduce((s2, sub) => s2 + Number(sub.totalAmount), 0),
+        orderCount: Number(row?.orderCount ?? 0),
+        totalVolume: Number(row?.totalVolume ?? 0),
       };
     });
 
     return {
-      totalOrders: subs.length,
-      activeSubscriptions: subs.filter((s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT).length,
+      totalOrders,
+      activeSubscriptions,
       totalVolume,
       byPlan,
     };
@@ -783,24 +820,60 @@ export class AdminService {
     const planIds = plans.map((p) => p.id);
     if (planIds.length === 0) return { totalInstallments: 0, paidRate: 0, overdueAmount: 0, paidMtd: 0 };
 
-    const subs = await this.subRepo.find({ where: planIds.map((id) => ({ planId: id })), relations: { installments: true } });
-    const allInsts = subs.flatMap((s) => s.installments || []);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const totalInsts = allInsts.length;
-    const paidInsts = allInsts.filter((i) => i.status === InstallmentStatus.PAID);
-    const overdueInsts = allInsts.filter((i) => i.status === InstallmentStatus.PENDING && new Date(i.dueDate) < now);
-    const paidMtd = allInsts.filter((i) => i.status === InstallmentStatus.PAID && i.paidAt && i.paidAt >= startOfMonth);
+    const agg = await this.instRepo
+      .createQueryBuilder('i')
+      .innerJoin(BnplSubscription, 's', 's.id = i.subscription_id')
+      .select('COUNT(*)', 'total')
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.status = :paid THEN 1 ELSE 0 END), 0)`,
+        'paidCount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.status = :paid AND i.paid_at >= :from THEN 1 ELSE 0 END), 0)`,
+        'paidMtdCount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.status = :paid AND i.paid_at >= :from THEN i.amount ELSE 0 END), 0)`,
+        'paidMtdAmount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.status = :pending AND i.due_date < :now THEN i.amount ELSE 0 END), 0)`,
+        'overdueAmount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.status = :pending AND i.due_date < :now THEN 1 ELSE 0 END), 0)`,
+        'overdueCount',
+      )
+      .where('s.plan_id IN (:...planIds)', { planIds })
+      .setParameters({
+        paid: InstallmentStatus.PAID,
+        pending: InstallmentStatus.PENDING,
+        from: startOfMonth,
+        now,
+      })
+      .getRawOne<{
+        total: string;
+        paidCount: string;
+        paidMtdCount: string;
+        paidMtdAmount: string;
+        overdueAmount: string;
+        overdueCount: string;
+      }>();
+
+    const totalInsts = Number(agg?.total ?? 0);
+    const paidInsts = Number(agg?.paidCount ?? 0);
 
     return {
       totalInstallments: totalInsts,
-      paidInstallments: paidInsts.length,
-      paidRate: totalInsts > 0 ? paidInsts.length / totalInsts : 0,
-      overdueCount: overdueInsts.length,
-      overdueAmount: Math.round(overdueInsts.reduce((s, i) => s + Number(i.amount), 0) * 100) / 100,
-      paidMtdCount: paidMtd.length,
-      paidMtdAmount: Math.round(paidMtd.reduce((s, i) => s + Number(i.amount), 0) * 100) / 100,
+      paidInstallments: paidInsts,
+      paidRate: totalInsts > 0 ? paidInsts / totalInsts : 0,
+      overdueCount: Number(agg?.overdueCount ?? 0),
+      overdueAmount: Math.round(Number(agg?.overdueAmount ?? 0) * 100) / 100,
+      paidMtdCount: Number(agg?.paidMtdCount ?? 0),
+      paidMtdAmount: Math.round(Number(agg?.paidMtdAmount ?? 0) * 100) / 100,
     };
   }
 
@@ -809,33 +882,84 @@ export class AdminService {
     const planIds = plans.map((p) => p.id);
     if (planIds.length === 0) return { totalDelinquent: 0, totalDelinquentAmount: 0, buckets: [] };
 
-    const subs = await this.subRepo.find({ where: planIds.map((id) => ({ planId: id })) });
-    const subIds = subs.map((s) => s.id);
-    if (subIds.length === 0) return { totalDelinquent: 0, totalDelinquentAmount: 0, buckets: [] };
-
     const now = new Date();
-    const allInsts = await this.instRepo.find({
-      where: { subscriptionId: In(subIds), status: InstallmentStatus.PENDING, dueDate: LessThan(now) },
-    });
+    const b30 = new Date(now.getTime() - 30 * 86400000);
+    const b60 = new Date(now.getTime() - 60 * 86400000);
+    const b90 = new Date(now.getTime() - 90 * 86400000);
 
-    const bucketDefs = [
-      { label: '1-30 days', min: 1, max: 30 },
-      { label: '31-60 days', min: 31, max: 60 },
-      { label: '61-90 days', min: 61, max: 90 },
-      { label: '90+ days', min: 91, max: Infinity },
+    const agg = await this.instRepo
+      .createQueryBuilder('i')
+      .innerJoin(BnplSubscription, 's', 's.id = i.subscription_id')
+      .select('COALESCE(SUM(i.amount), 0)', 'totalAmount')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :now AND i.due_date >= :b30 THEN i.amount ELSE 0 END), 0)`,
+        'b1_30Amount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :now AND i.due_date >= :b30 THEN 1 ELSE 0 END), 0)`,
+        'b1_30Count',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :b30 AND i.due_date >= :b60 THEN i.amount ELSE 0 END), 0)`,
+        'b31_60Amount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :b30 AND i.due_date >= :b60 THEN 1 ELSE 0 END), 0)`,
+        'b31_60Count',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :b60 AND i.due_date >= :b90 THEN i.amount ELSE 0 END), 0)`,
+        'b61_90Amount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :b60 AND i.due_date >= :b90 THEN 1 ELSE 0 END), 0)`,
+        'b61_90Count',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :b90 THEN i.amount ELSE 0 END), 0)`,
+        'b90plusAmount',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN i.due_date < :b90 THEN 1 ELSE 0 END), 0)`,
+        'b90plusCount',
+      )
+      .where('i.status = :status', { status: InstallmentStatus.PENDING })
+      .andWhere('s.plan_id IN (:...planIds)', { planIds })
+      .andWhere('i.due_date < :now', { now })
+      .setParameters({
+        status: InstallmentStatus.PENDING,
+        now,
+        b30,
+        b60,
+        b90,
+      })
+      .getRawOne<{
+        totalAmount: string;
+        total: string;
+        b1_30Amount: string;
+        b1_30Count: string;
+        b31_60Amount: string;
+        b31_60Count: string;
+        b61_90Amount: string;
+        b61_90Count: string;
+        b90plusAmount: string;
+        b90plusCount: string;
+      }>();
+
+    const totalDelinquent = Number(agg?.total ?? 0);
+    const totalDelinquentAmount = Math.round(Number(agg?.totalAmount ?? 0) * 100) / 100;
+
+    const buckets = [
+      { label: '1-30 days', count: Number(agg?.b1_30Count ?? 0), amount: Math.round(Number(agg?.b1_30Amount ?? 0) * 100) / 100 },
+      { label: '31-60 days', count: Number(agg?.b31_60Count ?? 0), amount: Math.round(Number(agg?.b31_60Amount ?? 0) * 100) / 100 },
+      { label: '61-90 days', count: Number(agg?.b61_90Count ?? 0), amount: Math.round(Number(agg?.b61_90Amount ?? 0) * 100) / 100 },
+      { label: '90+ days', count: Number(agg?.b90plusCount ?? 0), amount: Math.round(Number(agg?.b90plusAmount ?? 0) * 100) / 100 },
     ];
 
-    const buckets = bucketDefs.map((b) => {
-      const items = allInsts.filter((i) => {
-        const d = Math.floor((now.getTime() - new Date(i.dueDate).getTime()) / 86400000);
-        return d >= b.min && d <= b.max;
-      });
-      return { label: b.label, count: items.length, amount: Math.round(items.reduce((s, i) => s + Number(i.amount), 0) * 100) / 100 };
-    });
-
     return {
-      totalDelinquent: allInsts.length,
-      totalDelinquentAmount: Math.round(allInsts.reduce((s, i) => s + Number(i.amount), 0) * 100) / 100,
+      totalDelinquent,
+      totalDelinquentAmount,
       buckets,
     };
   }
@@ -897,76 +1021,137 @@ export class AdminService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
+    const paymentAgg = (where: string, params: Record<string, unknown> = {}) =>
+      this.paymentRepo
+        .createQueryBuilder('p')
+        .select('COALESCE(SUM(p.amount), 0)', 'volume')
+        .addSelect('COALESCE(SUM(p.fee), 0)', 'fees')
+        .where(where, params)
+        .getRawOne<{ volume: string; fees: string }>();
+
     const [
-      totalPayments,
-      monthPayments,
-      yearPayments,
-      subscriptions,
-      activeHoldings,
-      investOrders,
+      totalPay,
+      monthPay,
+      yearPay,
+      subAgg,
+      holdingAgg,
+      orderAgg,
       totalUsers,
       monthUsers,
     ] = await Promise.all([
-      this.paymentRepo.find({ where: { status: PaymentStatus.SUCCESS } }),
-      this.paymentRepo.find({ where: { status: PaymentStatus.SUCCESS, createdAt: Between(startOfMonth, now) } }),
-      this.paymentRepo.find({ where: { status: PaymentStatus.SUCCESS, createdAt: Between(startOfYear, now) } }),
-      this.subRepo.find(),
-      this.holdingRepo.find({ where: { isActive: true } }),
-      this.investOrderRepo.find(),
+      paymentAgg('p.status = :status', { status: PaymentStatus.SUCCESS }),
+      paymentAgg('p.status = :status AND p.created_at >= :from AND p.created_at <= :to', {
+        status: PaymentStatus.SUCCESS, from: startOfMonth, to: now,
+      }),
+      paymentAgg('p.status = :status AND p.created_at >= :from AND p.created_at <= :to', {
+        status: PaymentStatus.SUCCESS, from: startOfYear, to: now,
+      }),
+      this.subRepo
+        .createQueryBuilder('s')
+        .select('COUNT(*)', 'count')
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN s.status IN (:...active) THEN s.total_amount - s.amount_paid ELSE 0 END), 0)`,
+          'outstanding',
+        )
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN s.status = :def THEN 1 ELSE 0 END), 0)`,
+          'defaulted',
+        )
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN s.status = :act THEN 1 ELSE 0 END), 0)`,
+          'activeRepayment',
+        )
+        .setParameters({
+          active: [SubscriptionStatus.ACTIVE_REPAYMENT, SubscriptionStatus.DEFAULTED],
+          def: SubscriptionStatus.DEFAULTED,
+          act: SubscriptionStatus.ACTIVE_REPAYMENT,
+        })
+        .getRawOne(),
+      this.holdingRepo
+        .createQueryBuilder('h')
+        .select('COALESCE(SUM(h.current_value), 0) + COALESCE(SUM(CASE WHEN h.current_value IS NULL THEN h.cost_basis ELSE 0 END), 0)', 'aum')
+        .where('h.is_active = true')
+        .getRawOne(),
+      this.investOrderRepo
+        .createQueryBuilder('o')
+        .select('COALESCE(SUM(o.amount), 0)', 'invested')
+        .where('o.status = :status', { status: OrderStatus.ALLOCATED })
+        .getRawOne(),
       this.userRepo.count(),
       this.userRepo.count({ where: { createdAt: Between(startOfMonth, now) } }),
     ]);
 
-    const totalVolume = totalPayments.reduce((s, p) => s + Number(p.amount), 0);
-    const totalFees = totalPayments.reduce((s, p) => s + Number(p.fee), 0);
-    const monthVolume = monthPayments.reduce((s, p) => s + Number(p.amount), 0);
-    const yearVolume = yearPayments.reduce((s, p) => s + Number(p.amount), 0);
+    const totalVolume = Number(totalPay?.volume ?? 0);
+    const totalFees = Number(totalPay?.fees ?? 0);
+    const monthVolume = Number(monthPay?.volume ?? 0);
+    const yearVolume = Number(yearPay?.volume ?? 0);
 
-    const outstandingPrincipal = subscriptions
-      .filter((s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT || s.status === SubscriptionStatus.DEFAULTED)
-      .reduce((sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)), 0);
-
-    const defaultedCount = subscriptions.filter((s) => s.status === SubscriptionStatus.DEFAULTED).length;
-    const activeRepaymentCount = subscriptions.filter((s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT).length;
+    const outstandingPrincipal = Number(subAgg?.outstanding ?? 0);
+    const defaultedCount = Number(subAgg?.defaulted ?? 0);
+    const activeRepaymentCount = Number(subAgg?.activeRepayment ?? 0);
     const defaultRate = activeRepaymentCount + defaultedCount > 0
       ? (defaultedCount / (activeRepaymentCount + defaultedCount)) * 100
       : 0;
 
-    const aum = activeHoldings.reduce((s, h) => s + Number(h.currentValue || h.costBasis), 0);
-    const totalInvested = investOrders
-      .filter((o) => o.status === OrderStatus.ALLOCATED)
-      .reduce((s, o) => s + Number(o.amount), 0);
+    const aum = Number(holdingAgg?.aum ?? 0);
+    const totalInvested = Number(orderAgg?.invested ?? 0);
 
-    const [savingsAccounts, savingsDeposits, savingsWithdrawals, activeLoans] = await Promise.all([
-      this.savingsAccRepo.find(),
-      this.savingsTxRepo.find({ where: { type: In([TransactionType.DEPOSIT, TransactionType.GOAL_DEPOSIT]) } }),
-      this.savingsTxRepo.find({ where: { type: In([TransactionType.WITHDRAWAL, TransactionType.GOAL_WITHDRAWAL]) } }),
-      this.loanRepo.find(),
+    const [
+      savingsAccountAgg,
+      savingsDepositAgg,
+      savingsWithdrawalAgg,
+      loanAgg,
+    ] = await Promise.all([
+      this.savingsAccRepo
+        .createQueryBuilder('a')
+        .select('COALESCE(SUM(a.balance), 0)', 'balance')
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN a.status = 'active' THEN 1 ELSE 0 END), 0)`,
+          'activeCount',
+        )
+        .getRawOne(),
+      this.savingsTxRepo
+        .createQueryBuilder('t')
+        .select('COALESCE(SUM(t.amount), 0)', 'total')
+        .where('t.type IN (:...types)', { types: [TransactionType.DEPOSIT, TransactionType.GOAL_DEPOSIT] })
+        .getRawOne(),
+      this.savingsTxRepo
+        .createQueryBuilder('t')
+        .select('COALESCE(SUM(t.amount), 0)', 'total')
+        .where('t.type IN (:...types)', { types: [TransactionType.WITHDRAWAL, TransactionType.GOAL_WITHDRAWAL] })
+        .getRawOne(),
+      this.loanRepo
+        .createQueryBuilder('l')
+        .select('COUNT(*)', 'count')
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN l.status = 'active' THEN l.total_repayment - l.amount_paid ELSE 0 END), 0)`,
+          'outstanding',
+        )
+        .getRawOne(),
     ]);
 
-    const savingsBalance = savingsAccounts.reduce((s, a) => s + Number(a.balance || 0), 0);
-    const totalSavingsDeposits = savingsDeposits.reduce((s, t) => s + Number(t.amount || 0), 0);
-    const totalSavingsWithdrawals = savingsWithdrawals.reduce((s, t) => s + Number(t.amount || 0), 0);
-    const activeSavingsAccounts = savingsAccounts.filter((a) => a.status === 'active').length;
-    const activeLoanCount = activeLoans.filter((l) => l.status === 'active').length;
-    const loanOutstanding = activeLoans.reduce(
-      (s, l) => s + (Number(l.totalRepayment) - Number(l.amountPaid || 0)),
-      0,
-    );
+    const savingsBalance = Number(savingsAccountAgg?.balance ?? 0);
+    const activeSavingsAccounts = Number(savingsAccountAgg?.activeCount ?? 0);
+    const totalSavingsDeposits = Number(savingsDepositAgg?.total ?? 0);
+    const totalSavingsWithdrawals = Number(savingsWithdrawalAgg?.total ?? 0);
+    const activeLoanCount = Number(loanAgg?.count ?? 0);
+    const loanOutstanding = Number(loanAgg?.outstanding ?? 0);
 
     const last12Months: Array<{ month: string; volume: number; fees: number; users: number }> = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
       const label = d.toLocaleString('default', { month: 'short', year: '2-digit' });
-      const [monthPaymentsData, monthNewUsers] = await Promise.all([
-        this.paymentRepo.find({ where: { status: PaymentStatus.SUCCESS, createdAt: Between(d, end) } }),
+      const [monthPayAgg, monthNewUsers] = await Promise.all([
+        paymentAgg('p.status = :status AND p.created_at >= :from AND p.created_at <= :to', {
+          status: PaymentStatus.SUCCESS, from: d, to: end,
+        }),
         this.userRepo.count({ where: { createdAt: Between(d, end) } }),
       ]);
       last12Months.push({
         month: label,
-        volume: monthPaymentsData.reduce((s, p) => s + Number(p.amount), 0),
-        fees: monthPaymentsData.reduce((s, p) => s + Number(p.fee), 0),
+        volume: Number(monthPayAgg?.volume ?? 0),
+        fees: Number(monthPayAgg?.fees ?? 0),
         users: monthNewUsers,
       });
     }

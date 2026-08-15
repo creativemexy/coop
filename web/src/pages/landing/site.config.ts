@@ -11,6 +11,7 @@ export const site = {
   description:
     'Join a trusted cooperative committed to helping individuals and businesses grow through savings, investments, affordable financing, and shared prosperity.',
   logoEmoji: '🤝',
+  logoPath: '/logo.jpg',
 
   // Hero image — replace with your own photo/illustration (absolute path or URL)
   heroImage: '/hero-placeholder.svg',
