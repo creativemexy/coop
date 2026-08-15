@@ -30,10 +30,10 @@ export default function App() {
           await sound.playAsync();
           
           // Wait for sound to finish playing
-          await new Promise((resolve) => {
+          await new Promise<void>((resolve) => {
             sound.setOnPlaybackStatusUpdate((status) => {
-              if (status.didJustFinish) {
-                resolve(null);
+              if ('didJustFinish' in status && status.didJustFinish) {
+                resolve();
               }
             });
           });
