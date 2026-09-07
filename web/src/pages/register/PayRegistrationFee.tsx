@@ -10,7 +10,7 @@ export function PayRegistrationFee() {
   const [fee, setFee] = useState(location.state?.feeAmount as number | null)
   const [pendingUserId] = useState(location.state?.pendingUserId as string | undefined)
   const [loading, setLoading] = useState(false)
-  const [paid, setPaid] = useState(false)
+  const [paid] = useState(false)
 
   useEffect(() => {
     if (!fee) {

@@ -33,6 +33,10 @@ interface VerifiedIdentity {
   }
 }
 
+interface ProfileUser {
+  kycImage?: string
+}
+
 export function Profile() {
   const { user, refreshUser } = useAuth()
   const [korayData, setKorayData] = useState<VerifiedIdentity | null>(null)
@@ -123,10 +127,10 @@ export function Profile() {
       <Card>
         <CardTitle>Account Status</CardTitle>
         <div className="mt-4 space-y-3">
-          {user?.kycImage && (
+          {(user as (typeof user & ProfileUser))?.kycImage && (
             <div className="flex justify-center mb-2">
               <img
-                src={user.kycImage}
+                src={(user as (typeof user & ProfileUser)).kycImage}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500"
               />

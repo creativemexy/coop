@@ -24,6 +24,7 @@ interface CatalogItem {
 interface Plan {
   id: string
   catalogItemId: string
+  status: string
   downPaymentPercent: number
   installmentCount: number
   installmentFrequency: string
@@ -144,7 +145,7 @@ export function Catalog() {
                 const installmentAmount = installments > 0 ? (totalWithInterest - downPayment) / installments : 0
                 const priceOk = (!plan.minPrincipal || price >= Number(plan.minPrincipal)) &&
                   (!plan.maxPrincipal || price <= Number(plan.maxPrincipal))
-                const eligible = el?.eligible !== false
+                const eligible = priceOk && el?.eligible !== false
                 return (
                   <div key={plan.id} className="rounded-lg border dark:border-gray-700 p-3 space-y-2">
                     <div className="flex items-center justify-between text-sm">

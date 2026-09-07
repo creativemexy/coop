@@ -74,7 +74,6 @@ export function PlanConfigPage() {
   }, [orgId])
 
   const addTenor = () => {
-    const next = config.availableTenors.length + 1
     const counts = [3, 6, 9, 12]
     const count = counts[config.availableTenors.length] || 12
     setConfig({

@@ -3,7 +3,6 @@ import { api } from '../../api/client'
 import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Card, CardTitle } from '../../components/ui/card'
 import { Modal } from '../../components/ui/modal'
 import { Input } from '../../components/ui/input'
 
