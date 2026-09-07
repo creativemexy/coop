@@ -55,7 +55,8 @@ api.interceptors.response.use(
   async (err) => {
     const original = err.config
     if (err.response?.status === 403 &&
-        err.response?.data?.message === 'CSRF token missing' &&
+        (err.response?.data?.message === 'CSRF token missing' ||
+         err.response?.data?.message === 'Invalid CSRF token') &&
         !original._csrfRetry) {
       original._csrfRetry = true
       const token = await fetchCsrfToken()
@@ -94,3 +95,16 @@ api.interceptors.response.use(
 )
 
 export { fetchCsrfToken }
+
+export async function refreshAccessToken(): Promise<string | null> {
+  const refresh = localStorage.getItem('refresh_token')
+  if (!refresh) return null
+  try {
+    const { data } = await axios.post('/api/v1/auth/refresh', { refreshToken: refresh }, { withCredentials: true })
+    localStorage.setItem('access_token', data.accessToken)
+    localStorage.setItem('refresh_token', data.refreshToken)
+    return data.accessToken as string
+  } catch {
+    return null
+  }
+}
