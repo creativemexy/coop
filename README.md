@@ -4,6 +4,8 @@ Coop BNPL is a multi-tenant cooperative finance platform for buy-now-pay-later (
 
 The repository contains a NestJS API, an Expo React Native mobile app, and a React/Vite web console.
 
+For production deployment on an Oracle Cloud VPS, see [host.md](host.md).
+
 ## Repository Structure
 
 ```text
