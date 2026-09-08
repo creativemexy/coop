@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../../stores/auth.store'
 import { useBranding, DEFAULT_LOGO } from '../../stores/branding.store'
+import { api } from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
@@ -27,10 +28,19 @@ export function Login() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [resetError, setResetError] = useState('')
   const [resetting, setResetting] = useState(false)
+  const [maintenance, setMaintenance] = useState(false)
+  const [maintenanceLoaded, setMaintenanceLoaded] = useState(false)
 
   useEffect(() => { if (!loaded) load() }, [loaded, load])
 
-  if (isAuthenticated && user) {
+  useEffect(() => {
+    api.get<{ maintenance: boolean }>('/branding/maintenance')
+      .then(({ data }) => setMaintenance(data.maintenance))
+      .catch(() => setMaintenance(false))
+      .finally(() => setMaintenanceLoaded(true))
+  }, [])
+
+  if (isAuthenticated && user && maintenanceLoaded && (!maintenance || user.role === 'super_admin')) {
     return <Navigate to={rolePath(user.role)} replace />
   }
 
