@@ -3,11 +3,11 @@ import { LegalPage } from './LegalPage'
 const sections = [
   {
     title: '1. Introduction',
-    body: 'The Cooperative respects your privacy and is committed to protecting the personal data you entrust to us. This Privacy Policy explains what information we collect, why we collect it, how we use, store, and share it, and the rights you have over it. It applies to the Coop BNPL platform, our website, and the Coop BNPL mobile app.',
+    body: 'FENAC Cooperative Society Ltd. respects your privacy and protects the personal data entrusted to us. This policy explains what we collect, why we collect it, how we use and share it, how long we retain it, and the rights available to you. It applies to the FENAC COOP website, web platform, and mobile app.',
   },
   {
     title: '2. Who we are & how to contact us',
-    body: '"The Cooperative", "we", "us" or "our" refers to the entity operating Coop BNPL. We are based in the Federal Republic of Nigeria and are subject to the Nigeria Data Protection Regulation (NDPR) and other applicable law. For privacy questions, contact our Data Protection Officer at privacy@coop-bnpl.com or through the member support team in the app.',
+    body: '"FENAC COOP", "we", "us" and "our" mean FENAC Cooperative Society Ltd., also known as Forward Ever Apex Cooperative Society Ltd. We operate from Nigeria and process data under the Nigeria Data Protection Act 2023 and other applicable law. Contact our privacy team at hello@fenacoop.org.',
   },
   {
     title: '3. Information we collect (data minimisation)',
@@ -33,11 +33,11 @@ const sections = [
   },
   {
     title: '5. Lawful basis for processing',
-    body: 'We process personal data on the basis of contract (membership and service agreements), legal obligation (KYC and financial regulation), legitimate interests (security and fraud prevention), and consent (optional marketing and advertising, which you can withdraw at any time).',
+    body: 'We process personal data on the basis of contract, legal obligation, legitimate interests such as security and fraud prevention, and consent for optional marketing or advertising. You may withdraw consent at any time.',
   },
   {
     title: '6. How we share your data',
-    body: 'We never sell your personal data. We share it only with service providers who need it to operate the platform, under contracts that oblige them to protect it:',
+    body: 'We do not sell personal data. We disclose it only when necessary, with trusted processors that are required to protect it, or when disclosure is required by law:',
     items: [
       'Paystack — card and bank payment processing and reconciliation.',
       'Korapay — identity verification (KYC).',
@@ -48,11 +48,11 @@ const sections = [
   },
   {
     title: '7. Cookies, local storage & tracking',
-    body: 'The web console sets no advertising, analytics or marketing cookies. We use a strictly-necessary security cookie (CSRF protection), and your tokens are stored in your browser\u2019s local storage so you stay signed in. See our Cookie Policy for the full list and how to control them.',
+    body: 'The website currently uses only strictly necessary security cookies and browser storage for consent, authentication, and session security. We do not run optional analytics or advertising tracking on the website. See the Cookie Policy for details.',
   },
   {
     title: '8. How long we keep your data',
-    body: 'We keep personal data only for as long as required by law or needed for the purpose it was collected, then delete or anonymise it. Retention periods are defined by platform policy and include: login history (90 days), device sessions (180 days), webhook logs (30 days), support tickets (365 days), KYC submissions (5 years, as required by regulation), and closed accounts (up to 2 years where law may require records). Transactions and audit records are kept according to financial record-keeping rules.',
+    body: 'We keep personal data only for as long as needed for the stated purpose or required by law, then securely delete or anonymise it. Retention periods are documented in our retention schedule; financial, KYC, tax, audit, and transaction records may be retained longer where a legal or regulatory duty requires it.',
   },
   {
     title: '9. Your rights',
@@ -83,7 +83,7 @@ const sections = [
   },
   {
     title: '14. Contact',
-    body: 'Questions, requests, or complaints about your personal data can be sent to privacy@coop-bnpl.com. We aim to respond within 30 days.',
+    body: 'Questions, rights requests, or complaints about personal data can be sent to hello@fenacoop.org. Please provide enough information for us to verify your identity and locate your records. We aim to respond within the period required by applicable law.',
   },
 ]
 
@@ -91,6 +91,7 @@ export function PrivacyPolicy() {
   return (
     <LegalPage
       title="Privacy Policy"
+      description="Learn how FENAC COOP collects, uses, protects, shares, and retains personal data and how to exercise your privacy rights."
       effectiveDate="September 8, 2026"
       sections={sections}
     />

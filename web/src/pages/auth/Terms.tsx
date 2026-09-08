@@ -1,15 +1,16 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/ui/card'
 
 export const termsSections = [
   {
     title: '1. Introduction',
-    body: 'These Terms & Conditions ("Terms") govern your membership and use of the Coop BNPL digital platform and services (the "Platform"), operated by the Cooperative. By creating an account, you agree to be bound by these Terms, our Privacy Policy, our Cookie Policy, and any other policies referenced herein. If you do not agree, do not register or use the Platform.',
+    body: 'These Terms of Service ("Terms") govern membership and use of the FENAC COOP website, digital platform, and services (the "Platform"), operated by FENAC Cooperative Society Ltd. By creating an account or using the Platform, you agree to these Terms, the Privacy Policy, and the Cookie Policy. If you do not agree, do not use the Platform.',
   },
   {
-    title: '2. Membership & Eligibility',
+    title: '2. Membership and eligibility',
     body: [
-      'Membership is open to individuals who are 18 years or older and legally capable of entering into binding agreements.',
+      'Membership is available to eligible associations, clubs, NGOs, and other approved member organizations. Authorized representatives must be legally capable of entering into binding agreements.',
       'You must provide accurate, current, and complete information during registration and keep it up to date.',
       'Each registration creates a single member account. Duplicate or fraudulent registrations are prohibited.',
       'Membership is subject to a one-time registration fee as set by the Cooperative from time to time. Your account becomes fully active once the fee is paid.',
@@ -18,19 +19,19 @@ export const termsSections = [
   {
     title: '3. Know Your Customer (KYC) & Verification',
     body: [
-      'All members must complete KYC verification before accessing BNPL and certain financial services.',
+      'Members must complete KYC and organization verification before accessing certain financial services.',
       'You agree to provide valid identification and any supporting documents requested.',
       'Failure to complete or pass KYC verification may limit or prevent access to services.',
       'The Cooperative may decline, suspend, or revoke membership if verification fails or information is found to be false.',
     ],
   },
   {
-    title: '4. BNPL (Buy Now, Pay Later) Services',
+    title: '4. Digital financial services',
     body: [
-      'BNPL credit limits and approvals are discretionary and subject to the Cooperative\u2019s credit assessment.',
-      'Approved purchase plans are repaid in installments according to the schedule disclosed at checkout.',
+      'Any financing or credit limits are discretionary and subject to FENAC\u2019s assessment and the applicable product terms.',
+      'Approved financial plans are repaid according to the schedule and terms disclosed before you accept them.',
       'You agree to make all payments by their due dates. Late payments may incur fees as disclosed in the plan and in line with applicable law.',
-      'Defaulting on a plan may result in suspension of services, reporting to credit bureaus where permitted, and recovery action.',
+      'Default may result in suspension of services, reporting to credit bureaus where permitted, and lawful recovery action.',
     ],
   },
   {
@@ -103,17 +104,25 @@ export const termsSections = [
   },
   {
     title: '15. Contact',
-    body: 'Questions about these Terms or your membership should be directed to the Cooperative\u2019s member support team through the Platform or the contact details provided on the official website.',
+    body: 'Questions about these Terms or your membership should be directed to hello@fenacoop.org or the contact details provided on the official website.',
   },
 ]
 
 export function Terms() {
+  useEffect(() => {
+    document.title = 'Terms of Service | FENAC COOP'
+    const description = document.querySelector('meta[name="description"]')
+    description?.setAttribute('content', 'Read the FENAC COOP Terms of Service covering membership, digital financial services, account security, privacy, and disputes.')
+    const canonical = document.querySelector('link[rel="canonical"]')
+    canonical?.setAttribute('href', window.location.href.split('?')[0])
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4">
       <div className="mx-auto max-w-2xl">
         <Card>
-          <h1 className="text-2xl font-bold mb-1 dark:text-gray-100">Terms &amp; Conditions</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Effective date: August 5, 2026</p>
+          <h1 className="text-2xl font-bold mb-1 dark:text-gray-100">Terms of Service</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Effective date: September 8, 2026 · Last updated: September 8, 2026</p>
 
           <div className="space-y-6">
             {termsSections.map((s) => (

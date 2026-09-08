@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 /**
@@ -12,10 +13,30 @@ export interface LegalSection {
 
 export function LegalPage(opts: {
   title: string
+  description: string
   effectiveDate: string
   updatedDate?: string
   sections: LegalSection[]
 }) {
+  useEffect(() => {
+    document.title = `${opts.title} | FENAC COOP`
+    let description = document.querySelector('meta[name="description"]')
+    if (!description) {
+      description = document.createElement('meta')
+      description.setAttribute('name', 'description')
+      document.head.appendChild(description)
+    }
+    description.setAttribute('content', opts.description)
+
+    let canonical = document.querySelector('link[rel="canonical"]')
+    if (!canonical) {
+      canonical = document.createElement('link')
+      canonical.setAttribute('rel', 'canonical')
+      document.head.appendChild(canonical)
+    }
+    canonical.setAttribute('href', window.location.href.split('?')[0])
+  }, [opts.description, opts.title])
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 py-12 px-4">
       <div className="mx-auto max-w-3xl">

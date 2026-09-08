@@ -7,7 +7,7 @@ const sections = [
   },
   {
     title: '2. Cookies and storage we use',
-    body: 'The Coop BNPL web console sets no advertising, analytics or marketing cookies. The only cookies and browser storage used are listed below:',
+    body: 'The FENAC COOP website sets no advertising, analytics, or marketing cookies. The only cookies and browser storage currently used are listed below:',
     items: [
       'csrf-secret — strictly necessary security cookie set by our API to protect you from cross-site request forgery (CSRF) attacks. It is HTTP-only, SameSite=Strict, and contains no personal information. It cannot be disabled without weakening your account security.',
       'coop_consent — records your privacy/cookie consent choice so we do not repeatedly ask. It stores only your choice, a version number, and a timestamp.',
@@ -19,12 +19,12 @@ const sections = [
     title: '3. Third-party cookies & tracking',
     body: [
       'Website: we have audited the web console and it loads no third-party trackers such as Google Analytics, Meta Pixel, or advertising scripts, and embeds no third-party iframes or social widgets. Nothing loads from ad or analytics domains.',
-      'Mobile app: the Coop BNPL app may display advertisements served by Google\u2019s mobile ads SDK. This is only enabled with your consent — you can turn ads off at any time from your profile settings (Account → Personalised ads). When ads are off, the ad component is not loaded and no ad data is sent.',
+      'Mobile app: the FENAC COOP app may display advertisements served by Google\u2019s mobile ads SDK. This is enabled only with your consent. You can turn ads off from your profile settings; when ads are off, the ad component is not loaded and no optional ad data is sent.',
     ],
   },
   {
     title: '4. Your consent',
-    body: 'When you first visit the website you are shown a consent banner. Choosing "Accept" records your informed consent; choosing "Decline" records that only strictly-necessary cookies may be set. Either way, no optional tracking runs today. You can change your mind at any time by clearing your cookies and reloading the site.',
+    body: 'When optional cookies are introduced, the consent banner will explain them before they are set. You may accept or decline optional cookies, and you can withdraw consent at any time. Strictly necessary security and session storage may still operate because the service cannot function safely without them.',
   },
   {
     title: '5. Controlling cookies in your browser',
@@ -36,7 +36,7 @@ const sections = [
   },
   {
     title: '7. Contact',
-    body: 'Questions about cookies and tracking can be sent to privacy@coop-bnpl.com.',
+    body: 'Questions about cookies and tracking can be sent to hello@fenacoop.org.',
   },
 ]
 
@@ -44,6 +44,7 @@ export function CookiesPolicy() {
   return (
     <LegalPage
       title="Cookie Policy"
+      description="See which cookies and browser storage FENAC COOP uses, why they are needed, and how to control optional tracking."
       effectiveDate="September 8, 2026"
       sections={sections}
     />
