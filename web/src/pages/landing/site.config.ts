@@ -1,15 +1,15 @@
 // ============================================================
-//  Coop BNPL — Corporate Website Content
+//  FENAC COOP — Corporate Website Content
 //  Edit these values to reflect your cooperative's real details.
 // ============================================================
 
 export const site = {
   // Identity
-  name: 'Coop BNPL',
-  shortName: 'Coop',
-  tagline: 'Empowering Communities. Building Wealth. Creating Sustainable Growth.',
+  name: 'FENAC COOP',
+  shortName: 'FENAC',
+  tagline: 'Building Wealth Together.',
   description:
-    'Join a trusted cooperative committed to helping individuals and businesses grow through savings, investments, affordable financing, and shared prosperity.',
+    'A Digital Smart Cooperative Financial Institution strengthening associations and communities through shared ownership, smart technology, and collective strength.',
   logoEmoji: '🤝',
   logoPath: '/logo.jpg',
 
