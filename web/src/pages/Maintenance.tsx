@@ -1,4 +1,9 @@
+import { Link } from 'react-router-dom'
+import { useAuth } from '../stores/auth.store'
+
 export function Maintenance() {
+  const { user } = useAuth()
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-6">
       <div className="text-center max-w-md">
@@ -12,15 +17,15 @@ export function Maintenance() {
           The platform is currently undergoing scheduled maintenance.
         </p>
         <p className="text-gray-500 dark:text-gray-400">
-          Your savings balance and deposits are still available. Other services will be back shortly.
+          The super-admin dashboard remains available while other platform services are being updated.
         </p>
         <div className="mt-8 flex justify-center gap-4">
-          <a
-            href="/individual/savings"
+          {user?.role === 'super_admin' && <Link
+            to="/super-admin"
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
-            Go to Savings
-          </a>
+            Go to Super Admin Dashboard
+          </Link>}
         </div>
       </div>
     </div>

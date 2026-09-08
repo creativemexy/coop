@@ -81,6 +81,11 @@ export class BrandingController {
     };
   }
 
+  @Get('maintenance')
+  async maintenance() {
+    return { maintenance: (await this.settings.getValue('maintenance_mode')) === 'true' };
+  }
+
   @Put('name')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN)

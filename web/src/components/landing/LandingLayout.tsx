@@ -49,9 +49,6 @@ function LandingHeader() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="text-sm font-semibold text-[#E7EFE8] hover:text-white">
-              Sign In
-            </Link>
             <Link
               to="/register"
               className="rounded-full bg-[#E4A42A] px-5 py-2 text-sm font-bold text-[#2B1A10] transition hover:bg-[#F7B733]"
@@ -94,18 +91,11 @@ function LandingHeader() {
                 {l.label}
               </NavLink>
             ))}
-            <div className="pt-3 flex gap-3 px-3">
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-center text-sm font-semibold text-white"
-              >
-                Sign In
-              </Link>
+            <div className="pt-3 px-3">
               <Link
                 to="/register"
                 onClick={() => setOpen(false)}
-                className="flex-1 rounded-full bg-[#E4A42A] px-4 py-2 text-center text-sm font-bold text-[#2B1A10]"
+                className="block rounded-full bg-[#E4A42A] px-4 py-2 text-center text-sm font-bold text-[#2B1A10]"
               >
                 Become a Member
               </Link>

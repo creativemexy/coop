@@ -3,8 +3,11 @@ import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { SettingsService } from '../../modules/settings/settings.service';
 
 const ALLOWED_PATHS = [
-  { method: 'GET', path: '/api/v1/savings' },
-  { method: 'POST', path: '/api/v1/savings/deposit' },
+  { method: 'GET', path: '/api/v1/branding/maintenance' },
+  { method: 'GET', path: '/api/v1/auth/csrf-token' },
+  { method: 'POST', path: '/api/v1/auth/login' },
+  { method: 'POST', path: '/api/v1/auth/refresh' },
+  { method: 'GET', path: '/api/v1/users/me' },
 ];
 
 @Injectable()
@@ -28,6 +31,6 @@ export class MaintenanceGuard implements CanActivate {
       }
     }
 
-    throw new ServiceUnavailableException('Platform is under maintenance. Only savings and deposits are available.');
+    throw new ServiceUnavailableException('Platform is under maintenance. Please try again later.');
   }
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { useAuth } from './stores/auth.store'
 import { useTheme } from './stores/theme.store'
 import { ProtectedRoute } from './components/guards/ProtectedRoute'
@@ -112,6 +114,27 @@ import LandingServices from './pages/landing/Services'
 import LandingMembership from './pages/landing/Membership'
 import LandingFaq from './pages/landing/Faq'
 import LandingContact from './pages/landing/Contact'
+import { api } from './api/client'
+
+function MaintenanceGate({ children }: { children: ReactNode }) {
+  const { isAuthenticated, user } = useAuth()
+  const location = useLocation()
+  const [maintenance, setMaintenance] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    api.get<{ maintenance: boolean }>('/branding/maintenance')
+      .then(({ data }) => setMaintenance(data.maintenance))
+      .catch(() => setMaintenance(false))
+      .finally(() => setLoaded(true))
+  }, [])
+
+  if (loaded && maintenance && isAuthenticated && user?.role !== 'super_admin' && location.pathname !== '/maintenance') {
+    return <Navigate to="/maintenance" replace />
+  }
+
+  return <>{children}</>
+}
 
 export default function App() {
   const { restoreSession } = useAuth()
@@ -126,7 +149,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
+      <MaintenanceGate>
+        <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/terms" element={<Terms />} />
@@ -288,7 +312,8 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+        </Routes>
+      </MaintenanceGate>
       <CookieConsentBanner />
     </BrowserRouter>
   )
