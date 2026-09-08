@@ -34,6 +34,7 @@ export function Branding() {
   const [accent, setAccent] = useState(branding.accentColor)
   const [savedKey, setSavedKey] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -48,12 +49,14 @@ export function Branding() {
   }
 
   const handleUpload = async () => {
-    const file = fileRef.current?.files?.[0]
+    const file = selectedFile
     if (!file) return
     setUploading(true)
     try {
       await uploadLogo(file)
       flashSaved('logo')
+      setSelectedFile(null)
+      if (fileRef.current) fileRef.current.value = ''
     } catch (e: any) {
       alert(e?.response?.data?.message || 'Failed to upload logo')
     } finally {
@@ -163,12 +166,13 @@ export function Branding() {
                     type="file"
                     accept="image/png,image/jpeg,image/svg+xml,image/webp"
                     className="hidden"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
                   />
                   <span className="truncate text-sm text-gray-500 dark:text-gray-400">
-                    {fileRef.current?.files?.[0]?.name || 'Choose an image or drag it here'}
+                    {selectedFile?.name || 'Choose an image or drag it here'}
                   </span>
                 </label>
-                <Button onClick={handleUpload} disabled={!fileRef.current?.files?.[0] || uploading}>
+                <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
                   <span className="inline-flex items-center gap-1.5">
                     <Upload size={16} /> {uploading ? 'Uploading...' : 'Upload'}
                   </span>

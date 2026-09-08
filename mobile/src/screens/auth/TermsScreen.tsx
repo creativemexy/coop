@@ -1,4 +1,5 @@
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
+import { LEGAL } from '../../constants';
 
 const sections = [
   {
@@ -104,6 +105,16 @@ const sections = [
     title: '15. Contact',
     body: 'Questions about these Terms or your membership should be directed to the Cooperative\u2019s member support team through the Platform or the contact details provided on the official website.',
   },
+  {
+    title: '16. Privacy & Cookie Policy at a glance',
+    body: [
+      'We only collect the information needed to run your account, comply with the law, and protect you from fraud.',
+      'The web platform sets no advertising, analytics or marketing cookies. It uses one strictly-necessary security cookie (CSRF) and local storage to keep you signed in.',
+      'We never sell your data. It is shared only with regulated payment, KYC and messaging providers (Paystack, Korapay, FirstCheckout, Termii) under data-protection agreements.',
+      'The mobile app may display advertisements served by Google. This is off until you turn it on in Profile \u2192 Account \u2192 Personalised ads.',
+      'You may request access to, correction of, or deletion of your personal data subject to legal and operational obligations.',
+    ],
+  },
 ];
 
 export default function TermsScreen() {
@@ -127,6 +138,16 @@ export default function TermsScreen() {
           )}
         </View>
       ))}
+
+      <View style={styles.policyLinks}>
+        <Text style={styles.policyLinksTitle}>Full legal documents</Text>
+        <Text style={styles.policyLink} selectable={true}>Terms: {LEGAL.termsUrl}</Text>
+        <Text style={styles.policyLink} selectable={true}>Privacy Policy: {LEGAL.privacyUrl}</Text>
+        <Text style={styles.policyLink} selectable={true}>Cookie Policy: {LEGAL.cookiesUrl}</Text>
+        <Text style={styles.policyNote}>
+          Data protection contact: {LEGAL.privacyEmail}
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -141,4 +162,8 @@ const styles = StyleSheet.create({
   bulletRow: { flexDirection: 'row', marginBottom: 6 },
   bullet: { color: '#1a1a2e', marginRight: 8, fontSize: 14, lineHeight: 21 },
   body: { flex: 1, fontSize: 14, lineHeight: 21, color: '#4b5563' },
+  policyLinks: { marginTop: 24, padding: 16, backgroundColor: '#eef1f4', borderRadius: 12, marginBottom: 8 },
+  policyLinksTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginBottom: 8 },
+  policyLink: { fontSize: 13, lineHeight: 20, color: '#2563eb', marginBottom: 6 },
+  policyNote: { fontSize: 13, lineHeight: 20, color: '#4b5563', marginTop: 4 },
 });

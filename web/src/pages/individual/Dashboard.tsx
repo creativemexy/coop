@@ -104,7 +104,7 @@ export function IndividualDashboard() {
         <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             {stats?.kycImage && (
-              <img src={stats.kycImage} alt="KYC" className="w-14 h-14 rounded-full object-cover border-2 border-green-300" />
+              <img src={stats.kycImage} alt="KYC identity photo" className="w-14 h-14 rounded-full object-cover border-2 border-green-300" />
             )}
             <div>
               <p className="font-medium text-green-800 dark:text-green-200">KYC verified</p>

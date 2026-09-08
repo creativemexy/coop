@@ -122,4 +122,14 @@ export class DashboardController {
   ) {
     return this.service.getMemberTicketMessages(id, userId);
   }
+
+  @Post('individual/tickets/:id/messages')
+  @Roles(Role.INDIVIDUAL)
+  addMemberTicketMessage(
+    @Param('id') id: string,
+    @Body() dto: { message: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.service.addMemberTicketMessage(id, user.sub, dto.message);
+  }
 }

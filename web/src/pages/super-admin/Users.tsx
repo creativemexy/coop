@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardTitle } from '../../components/ui/card'
 
-type Role = 'super_admin' | 'operational_admin' | 'accountant' | 'business_manager' | 'apex_business_manager' | 'bnpl_manager' | 'loan_manager' | 'investment_manager' | 'supervisor' | 'operations' | 'individual'
+type Role = 'super_admin' | 'operational_admin' | 'customer_care' | 'accountant' | 'business_manager' | 'apex_business_manager' | 'bnpl_manager' | 'loan_manager' | 'investment_manager' | 'supervisor' | 'operations' | 'individual'
 
 interface User {
   id: string
@@ -28,6 +28,7 @@ interface OrgOption { id: string; name: string; code: string }
 const roleColors: Record<string, 'info' | 'success' | 'warning' | 'danger' | 'default'> = {
   super_admin: 'danger',
   operational_admin: 'warning',
+  customer_care: 'info',
   accountant: 'info',
   business_manager: 'success',
   apex_business_manager: 'info',
@@ -41,6 +42,7 @@ const roleColors: Record<string, 'info' | 'success' | 'warning' | 'danger' | 'de
 
 const CREATABLE_ROLES = [
   'operational_admin',
+  'customer_care',
   'accountant',
   'bnpl_manager',
   'loan_manager',
@@ -203,7 +205,7 @@ export function Users() {
                     {selectedUser.kycStatus}
                   </Badge>
                   {selectedUser.kycImage && selectedUser.kycStatus === 'approved' && (
-                    <img src={selectedUser.kycImage} alt="KYC" className="mt-2 w-24 h-24 rounded-lg object-cover border" />
+                    <img src={selectedUser.kycImage} alt="KYC identity document photo" className="mt-2 w-24 h-24 rounded-lg object-cover border" />
                   )}
                 </span>
               </div>

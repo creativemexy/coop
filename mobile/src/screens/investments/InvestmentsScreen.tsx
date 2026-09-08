@@ -1,7 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, Alert, TextInput, Modal,
+  View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet, Alert, TextInput, Modal, Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import client, { getErrorMessage } from '../../api/client';
@@ -20,6 +24,7 @@ export default function InvestmentsScreen() {
   const [pay, setPay] = useState<{ orderId: string; instruction: DepositInstruction } | null>(null);
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const isIOS = Platform.OS === 'ios';
 
   const ngn = (n: number) => `₦${Number(n || 0).toLocaleString()}`;
 
@@ -136,167 +141,296 @@ export default function InvestmentsScreen() {
     } catch { /* ignore */ }
   };
 
-  return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={loadProducts} />
-      }>
-      {loading && products.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.centerText}>Loading investment products…</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.centerText}>{error}</Text>
-          <TouchableOpacity style={styles.investBtn} onPress={loadProducts}>
-            <Text style={styles.investBtnText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-      {portfolio ? (
-        <View style={styles.portfolioCard}>
-          <Text style={styles.portfolioTitle}>Your Portfolio</Text>
-          <View style={styles.portfolioGrid}>
-            <View style={styles.portfolioItem}>
-              <Text style={styles.portfolioStat}>{ngn(portfolio.currentValue)}</Text>
-              <Text style={styles.portfolioLabel}>Portfolio Value</Text>
-              <Text style={styles.portfolioSub}>{portfolio.holdingsCount} holding{portfolio.holdingsCount !== 1 ? 's' : ''}</Text>
-            </View>
-            <View style={styles.portfolioItem}>
-              <Text style={styles.portfolioStat}>{ngn(portfolio.totalInvested)}</Text>
-              <Text style={styles.portfolioLabel}>Total Invested</Text>
-              <Text style={styles.portfolioSub}>Cost basis</Text>
-            </View>
-            <View style={styles.portfolioItem}>
-              <Text style={[styles.portfolioStat, { color: '#22c55e' }]}>{ngn(portfolio.totalEarned)}</Text>
-              <Text style={styles.portfolioLabel}>Dividends Earned</Text>
-            </View>
-            <View style={styles.portfolioItem}>
-              <Text style={[styles.portfolioStat, { color: (portfolio.unrealizedReturn ?? 0) >= 0 ? '#22c55e' : '#ef4444' }]}>
-                {(portfolio.unrealizedReturn ?? 0) >= 0 ? '+' : ''}{ngn(portfolio.unrealizedReturn ?? 0)}
-              </Text>
-              <Text style={styles.portfolioLabel}>Unrealized P&L</Text>
-              <Text style={styles.portfolioSub}>{Number(portfolio.unrealizedReturnPct || 0).toFixed(1)}%</Text>
-            </View>
-          </View>
-        </View>
-      ) : null}
-      {products.length === 0 && !loading && !error ? (
-        <View style={styles.center}>
-          <Text style={styles.centerText}>No investment products available right now.</Text>
-        </View>
-      ) : null}
-      {products.map((p) => (
-        <View key={p.id} style={styles.card}>
-          <Text style={styles.name}>{p.name}</Text>
-          <Text style={styles.roi}>{p.expectedReturnRate ?? 0}% ROI</Text>
-          <Text style={styles.desc} numberOfLines={2}>{p.description}</Text>
-          <View style={styles.meta}>
-            <Text style={styles.metaItem}>Min: ₦{Number(p.minimumInvestment ?? 0).toLocaleString()}</Text>
-            <Text style={styles.metaItem}>Duration: {p.tenorDays ?? '-'} days</Text>
-          </View>
-          <TouchableOpacity style={styles.investBtn} onPress={() => openInvest(p)}>
-            <Text style={styles.investBtnText}>Invest Now</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-
-      <Modal visible={showInvest} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Invest in {selectedProduct?.name}</Text>
-            <Text style={styles.roiLabel}>
-              ROI: {selectedProduct?.expectedReturnRate ?? 0}% | Min: ₦{Number(selectedProduct?.minimumInvestment ?? 0).toLocaleString()}
-              {selectedProduct?.maximumInvestment != null ? ` | Max: ₦${selectedProduct.maximumInvestment.toLocaleString()}` : ''}
-            </Text>
-            <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#999" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-            <Text style={styles.hint}>
-              You'll pay by bank transfer to a dedicated account. Your investment is confirmed once the transfer is verified.
-            </Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowInvest(false)}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.submitBtn} onPress={handleInvest} disabled={submitting}><Text style={styles.submitText}>{submitting ? 'Processing...' : 'Invest'}</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {pay && (
-        <Modal visible transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modal}>
-              <Text style={styles.modalTitle}>Pay via Bank Transfer</Text>
-              <Text style={styles.hint}>
-                Transfer <Text style={styles.bold}>₦{Number(pay.instruction.amount).toLocaleString()}</Text> to the
-                account below using your bank app. Your order will be confirmed once verified.
-              </Text>
-              <View style={styles.vaBox}>
-                <Text style={styles.vaLabel}>{pay.instruction.bankName}</Text>
-                <TouchableOpacity onPress={() => copyNumber(pay.instruction.accountNumber)}>
-                  <Text style={styles.vaNumberBig}>{pay.instruction.accountNumber}</Text>
-                </TouchableOpacity>
-                <Text style={styles.vaName}>{pay.instruction.accountName}</Text>
-                <Text style={styles.vaRef}>Ref: {pay.instruction.reference}</Text>
-              </View>
-              <Text style={styles.payMeta}>
-                Status: {pay.instruction.status} ·{' '}
-                {pay.instruction.status === 'credited' ? 'Credited'
-                  : pay.instruction.status === 'expired' ? 'Expired'
-                    : pay.instruction.expiresAt ? `Transfers expire ${new Date(pay.instruction.expiresAt).toLocaleTimeString()}`
-                      : 'Awaiting transfer'}
-              </Text>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setPay(null)}>
-                  <Text style={styles.cancelText}>Close</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.submitBtn} onPress={() => checkPayment(pay.orderId)} disabled={checking}>
-                  <Text style={styles.submitText}>{checking ? 'Checking...' : "I've transferred · Check"}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+  const modalShell = (children: React.ReactNode) => (
+    <View style={styles.modalOverlay}>
+      {isIOS ? (
+        <BlurView intensity={44} tint="light" style={styles.modalGlass}>
+          {children}
+        </BlurView>
+      ) : (
+        <View style={styles.modalM3}>{children}</View>
       )}
-    </ScrollView>
+    </View>
+  );
+
+  const renderInvestModal = () => (
+    <Modal visible={showInvest} transparent animationType="slide">
+      {modalShell(
+        <>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Invest in {selectedProduct?.name}</Text>
+            <Ionicons name="trending-up" size={22} color="#D97706" />
+          </View>
+          <View style={styles.roiChip}>
+            <Text style={styles.roiChipText}>
+              ROI: {selectedProduct?.expectedReturnRate ?? 0}% · Min: {ngn(Number(selectedProduct?.minimumInvestment ?? 0))}
+              {selectedProduct?.maximumInvestment != null ? ` · Max: ${ngn(selectedProduct.maximumInvestment)}` : ''}
+            </Text>
+          </View>
+          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor={isIOS ? 'rgba(60,60,67,0.45)' : '#9aa3b2'} value={amount} onChangeText={setAmount} keyboardType="numeric" />
+          <Text style={styles.hint}>
+            You'll pay by bank transfer to a dedicated account. Your investment is confirmed once the transfer is verified.
+          </Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowInvest(false)}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleInvest} disabled={submitting}><Text style={styles.submitText}>{submitting ? 'Processing...' : 'Invest'}</Text></TouchableOpacity>
+          </View>
+        </>,
+      )}
+    </Modal>
+  );
+
+  const renderPayModal = () => (
+    <Modal visible transparent animationType="slide">
+      {modalShell(
+        <>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Pay via Bank Transfer</Text>
+            <Ionicons name="swap-horizontal-outline" size={22} color="#D97706" />
+          </View>
+          <Text style={styles.hint}>
+            Transfer <Text style={styles.bold}>{ngn(Number(pay?.instruction.amount))}</Text> to the
+            account below using your bank app. Your order will be confirmed once verified.
+          </Text>
+          <View style={styles.vaBox}>
+            <Text style={styles.vaLabel}>{pay?.instruction.bankName}</Text>
+            <TouchableOpacity onPress={() => pay && copyNumber(pay.instruction.accountNumber)}>
+              <Text style={styles.vaNumberBig}>{pay?.instruction.accountNumber}</Text>
+            </TouchableOpacity>
+            <Text style={styles.vaName}>{pay?.instruction.accountName}</Text>
+            <Text style={styles.vaRef}>Ref: {pay?.instruction.reference}</Text>
+          </View>
+          <Text style={styles.payMeta}>
+            Status: {pay?.instruction.status} ·{' '}
+            {pay?.instruction.status === 'credited' ? 'Credited'
+              : pay?.instruction.status === 'expired' ? 'Expired'
+                : pay?.instruction.expiresAt ? `Transfers expire ${new Date(pay.instruction.expiresAt).toLocaleTimeString()}`
+                  : 'Awaiting transfer'}
+          </Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setPay(null)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkPayment(pay.orderId)} disabled={checking}>
+              <Text style={styles.submitText}>{checking ? 'Checking...' : "I've transferred · Check"}</Text>
+            </TouchableOpacity>
+          </View>
+        </>,
+      )}
+    </Modal>
+  );
+
+  const renderPortfolio = portfolio ? (
+    <View style={[styles.portfolioCard, isIOS && styles.portfolioCardGlass]}>
+      <View style={styles.portfolioHeader}>
+        <Ionicons name="pie-chart-outline" size={18} color={isIOS ? 'rgba(255,255,255,0.8)' : '#E4A42A'} />
+        <Text style={[styles.portfolioTitle, !isIOS && { color: '#173F38' }]}>Your Portfolio</Text>
+      </View>
+      <View style={styles.portfolioGrid}>
+        <View style={styles.portfolioItem}>
+          <Text style={[styles.portfolioStat, !isIOS && { color: '#173F38' }]}>{ngn(portfolio.currentValue)}</Text>
+          <Text style={[styles.portfolioLabel, !isIOS && { color: '#627084' }]}>Portfolio Value</Text>
+          <Text style={[styles.portfolioSub, !isIOS && { color: '#94a3b8' }]}>{portfolio.holdingsCount} holding{portfolio.holdingsCount !== 1 ? 's' : ''}</Text>
+        </View>
+        <View style={styles.portfolioItem}>
+          <Text style={[styles.portfolioStat, !isIOS && { color: '#173F38' }]}>{ngn(portfolio.totalInvested)}</Text>
+          <Text style={[styles.portfolioLabel, !isIOS && { color: '#627084' }]}>Total Invested</Text>
+          <Text style={[styles.portfolioSub, !isIOS && { color: '#94a3b8' }]}>Cost basis</Text>
+        </View>
+        <View style={styles.portfolioItem}>
+          <Text style={[styles.portfolioStat, { color: '#4ADE80' }]}>{ngn(portfolio.totalEarned)}</Text>
+          <Text style={[styles.portfolioLabel, !isIOS && { color: '#627084' }]}>Dividends Earned</Text>
+        </View>
+        <View style={styles.portfolioItem}>
+          <Text style={[styles.portfolioStat, { color: (portfolio.unrealizedReturn ?? 0) >= 0 ? '#4ADE80' : '#F87171' }]}>
+            {(portfolio.unrealizedReturn ?? 0) >= 0 ? '+' : ''}{ngn(portfolio.unrealizedReturn ?? 0)}
+          </Text>
+          <Text style={[styles.portfolioLabel, !isIOS && { color: '#627084' }]}>Unrealized P&L</Text>
+          <Text style={[styles.portfolioSub, !isIOS && { color: '#94a3b8' }]}>{Number(portfolio.unrealizedReturnPct || 0).toFixed(1)}%</Text>
+        </View>
+      </View>
+    </View>
+  ) : null;
+
+  return (
+    <LinearGradient
+      colors={isIOS ? ['#0A1F1C', '#123A34', '#173F38'] : ['#0E342C', '#173F38', '#1D4A3F']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.background}
+    >
+      <View style={[styles.blob, styles.blobGold, { top: -90, right: -70 }]} />
+      <View style={[styles.blob, styles.blobTeal, { top: '34%', left: -80 }]} />
+      <View style={[styles.blob, styles.blobOrange, { bottom: '8%', right: -60 }]} />
+
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProducts} tintColor="#8AB6D6" colors={['#8AB6D6']} />}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Investments</Text>
+          <Text style={styles.headerSub}>Grow your savings with Coop funds</Text>
+        </View>
+
+        {loading && products.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={[styles.centerText, isIOS && styles.centerTextGlass]}>Loading investment products…</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={[styles.centerText, isIOS && styles.centerTextGlass]}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadProducts}>
+              <Ionicons name="refresh" size={16} color="#173F38" />
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {renderPortfolio}
+
+        {products.length === 0 && !loading && !error ? (
+          <View style={styles.center}>
+            <Text style={[styles.centerText, isIOS && styles.centerTextGlass]}>No investment products available right now.</Text>
+          </View>
+        ) : null}
+
+        {products.map((p) => (
+          <View key={p.id} style={[styles.card, isIOS && styles.cardGlass]}>
+            <View style={styles.cardTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.name, !isIOS && { color: '#173F38' }]}>{p.name}</Text>
+                <Text style={[styles.desc, isIOS && styles.descGlass]} numberOfLines={2}>{p.description}</Text>
+              </View>
+              <View style={styles.roiBadge}>
+                <Ionicons name="trending-up" size={14} color="#4ADE80" />
+                <Text style={styles.roi}>{p.expectedReturnRate ?? 0}%</Text>
+              </View>
+            </View>
+            <View style={styles.meta}>
+              <View style={styles.metaItem}>
+                <Ionicons name="cash-outline" size={14} color={isIOS ? 'rgba(255,255,255,0.55)' : '#627084'} />
+                <Text style={[styles.metaText, isIOS && styles.metaTextGlass]}>Min: {ngn(Number(p.minimumInvestment ?? 0))}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={14} color={isIOS ? 'rgba(255,255,255,0.55)' : '#627084'} />
+                <Text style={[styles.metaText, isIOS && styles.metaTextGlass]}>Duration: {p.tenorDays ?? '-'} days</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.investBtn} onPress={() => openInvest(p)} activeOpacity={0.85}>
+              <Ionicons name="add" size={18} color="#173F38" />
+              <Text style={styles.investBtnText}>Invest Now</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {renderInvestModal()}
+        {pay && renderPayModal()}
+      </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  background: { flex: 1 },
+  safeArea: { flex: 1 },
+  container: { flex: 1 },
+  blob: { position: 'absolute', width: 260, height: 260, borderRadius: 130 },
+  blobGold: { backgroundColor: 'rgba(228,164,42,0.16)' },
+  blobTeal: { backgroundColor: 'rgba(56,180,150,0.14)' },
+  blobOrange: { backgroundColor: 'rgba(200,91,35,0.14)' },
+  content: { paddingBottom: 32 },
+  header: { padding: 20, paddingBottom: 8 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#ffffff' },
+  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
   center: { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 24 },
-  centerText: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 16 },
-  portfolioCard: { backgroundColor: '#0B3B60', borderRadius: 16, margin: 16, marginBottom: 8, padding: 16 },
-  portfolioTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  portfolioGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  centerText: { fontSize: 15, color: '#627084', textAlign: 'center', marginBottom: 16 },
+  centerTextGlass: { color: 'rgba(255,255,255,0.65)' },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#F6F3EB', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14,
+  },
+  retryText: { color: '#173F38', fontWeight: '700' },
+  portfolioCard: {
+    backgroundColor: '#F6F3EB', borderRadius: 20, margin: 20, marginBottom: 8, padding: 18,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  portfolioCardGlass: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    overflow: 'hidden',
+  },
+  portfolioHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  portfolioTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  portfolioGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   portfolioItem: { flexBasis: '45%', flexGrow: 1 },
   portfolioStat: { color: '#fff', fontSize: 17, fontWeight: '800' },
   portfolioLabel: { color: '#DCECF7', fontSize: 12, marginTop: 2 },
   portfolioSub: { color: '#95B4CC', fontSize: 11, marginTop: 2 },
-  card: { backgroundColor: '#fff', margin: 16, marginBottom: 8, padding: 16, borderRadius: 12, elevation: 1 },
-  name: { fontSize: 18, fontWeight: 'bold', color: '#1a1a2e' },
-  roi: { fontSize: 24, fontWeight: 'bold', color: '#22c55e', marginVertical: 4 },
-  desc: { fontSize: 13, color: '#666', marginBottom: 8 },
+  card: {
+    backgroundColor: '#F6F3EB', marginHorizontal: 20, marginBottom: 10, padding: 18, borderRadius: 18,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  cardGlass: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    overflow: 'hidden',
+  },
+  cardTop: { flexDirection: 'row', gap: 12, marginBottom: 10 },
+  name: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
+  desc: { fontSize: 13, color: '#627084', marginTop: 3, lineHeight: 18 },
+  descGlass: { color: 'rgba(255,255,255,0.65)' },
+  roiBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(74,222,128,0.16)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+    alignSelf: 'flex-start',
+  },
+  roi: { fontSize: 15, fontWeight: '800', color: '#4ADE80' },
   meta: { flexDirection: 'row', gap: 16, marginBottom: 12 },
-  metaItem: { fontSize: 12, color: '#999' },
-  investBtn: { backgroundColor: '#22c55e', padding: 14, borderRadius: 8, alignItems: 'center' },
-  investBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { fontSize: 12, color: '#627084', fontWeight: '500' },
+  metaTextGlass: { color: 'rgba(255,255,255,0.6)' },
+  investBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#E4A42A', padding: 14, borderRadius: 14,
+  },
+  investBtnText: { color: '#173F38', fontWeight: '700', fontSize: 15 },
   modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 24 },
-  modal: { backgroundColor: '#fff', borderRadius: 16, padding: 24 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#1a1a2e' },
-  roiLabel: { fontSize: 14, color: '#666', marginBottom: 16 },
-  input: { backgroundColor: '#f5f5f5', borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 12 },
-  hint: { fontSize: 13, color: '#666', marginBottom: 16, lineHeight: 18 },
-  bold: { fontWeight: '700', color: '#1a1a2e' },
+  modalGlass: {
+    borderRadius: 24, padding: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)',
+    overflow: 'hidden',
+  },
+  modalM3: {
+    backgroundColor: '#F6F3EB', borderRadius: 24, padding: 24,
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#173F38', flex: 1 },
+  roiChip: {
+    backgroundColor: 'rgba(228,164,42,0.16)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14,
+  },
+  roiChipText: { fontSize: 13, color: '#92400E', fontWeight: '600' },
+  input: {
+    backgroundColor: '#ffffff', borderRadius: 14, padding: 15, fontSize: 16, marginBottom: 12,
+    borderWidth: 1.5, borderColor: '#E2E8F0', color: '#173F38',
+  },
+  hint: { fontSize: 13, color: '#475569', marginBottom: 16, lineHeight: 18 },
+  bold: { fontWeight: '700', color: '#173F38' },
   modalActions: { flexDirection: 'row', gap: 12 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 8, backgroundColor: '#e5e7eb', alignItems: 'center' },
-  cancelText: { color: '#666', fontWeight: '600' },
-  submitBtn: { flex: 1, padding: 14, borderRadius: 8, backgroundColor: '#22c55e', alignItems: 'center' },
-  submitText: { color: '#fff', fontWeight: '600' },
-  vaBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, marginBottom: 12 },
-  vaLabel: { fontSize: 13, color: '#666' },
-  vaNumberBig: { fontSize: 24, fontWeight: 'bold', color: '#1a1a2e', letterSpacing: 1, marginTop: 2 },
-  vaName: { fontSize: 13, color: '#333', marginTop: 2 },
-  vaRef: { fontSize: 12, color: '#999', marginTop: 8 },
-  payMeta: { fontSize: 13, color: '#888', marginBottom: 16, textAlign: 'center' },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: '#E5EDEA', alignItems: 'center' },
+  cancelText: { color: '#475569', fontWeight: '600' },
+  submitBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: '#173F38', alignItems: 'center' },
+  submitText: { color: '#ffffff', fontWeight: '700' },
+  vaBox: { backgroundColor: '#E5EDEA', borderRadius: 16, padding: 16, marginBottom: 12 },
+  vaLabel: { fontSize: 13, color: '#627084', fontWeight: '500' },
+  vaNumberBig: { fontSize: 24, fontWeight: '800', color: '#173F38', letterSpacing: 1.5, marginTop: 4 },
+  vaName: { fontSize: 13, color: '#334155', marginTop: 2 },
+  vaRef: { fontSize: 12, color: '#94a3b8', marginTop: 8 },
+  payMeta: { fontSize: 13, color: '#627084', marginBottom: 16, textAlign: 'center' },
 });

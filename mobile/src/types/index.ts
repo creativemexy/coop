@@ -198,13 +198,16 @@ export interface RepaymentSummary {
 export interface RepaymentItem {
   id: string;
   itemName: string;
-  type: 'BNPL' | 'Loan';
+  type: 'bnpl' | 'loan';
   amount: number;
   lateFee: number;
   dueDate: string;
   status: string;
   paidAt?: string;
-  overdue: boolean;
+  paymentReference?: string;
+  subscriptionId?: string;
+  loanId?: string;
+  isOverdue: boolean;
 }
 
 export interface RepaymentData {
@@ -222,6 +225,9 @@ export interface SupportTicket {
   relatedOrderId?: string;
   relatedPaymentId?: string;
   resolutionNote?: string;
+  senderName?: string;
+  senderEmail?: string;
+  canReply?: boolean;
   createdAt: string;
 }
 

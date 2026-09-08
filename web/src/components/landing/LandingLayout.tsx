@@ -140,7 +140,7 @@ function LandingFooter() {
             <ul className="space-y-2">
               {navLinks.map((l) => (
                 <li key={l.path}>
-                  <Link to={l.path} className="text-sm text-gray-400 hover:text-white">
+                  <Link to={l.path} className="text-sm text-gray-300 hover:text-white">
                     {l.label}
                   </Link>
                 </li>
@@ -150,7 +150,7 @@ function LandingFooter() {
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Services</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
+            <ul className="space-y-2 text-sm text-gray-300">
               {site.services.map((s) => (
                 <li key={s.title}>{s.title}</li>
               ))}
@@ -159,7 +159,7 @@ function LandingFooter() {
 
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Contact</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
+            <ul className="space-y-2 text-sm text-gray-300">
               <li>{site.address}</li>
               <li>
                 <a href={`mailto:${site.email}`} className="hover:text-white">
@@ -185,7 +185,8 @@ function LandingFooter() {
                 <a
                   key={label}
                   href={href}
-                  className="text-gray-500 hover:text-white text-xs uppercase tracking-wide"
+                  aria-label={`${site.name} on ${label}`}
+                  className="text-gray-300 hover:text-white text-xs uppercase tracking-wide"
                 >
                   {label}
                 </a>
@@ -194,13 +195,19 @@ function LandingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-gray-800 text-sm text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="mt-12 pt-6 border-t border-gray-700 text-sm text-gray-300 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
           <div className="flex gap-4">
-            <Link to="/terms" className="hover:text-gray-300">
+            <Link to="/terms" className="hover:text-white">
               Terms &amp; Conditions
             </Link>
-            <Link to="/login" className="hover:text-gray-300">
+            <Link to="/privacy" className="hover:text-white">
+              Privacy Policy
+            </Link>
+            <Link to="/cookies" className="hover:text-white">
+              Cookie Policy
+            </Link>
+            <Link to="/login" className="hover:text-white">
               Member Portal
             </Link>
           </div>
@@ -213,8 +220,11 @@ function LandingFooter() {
 export default function LandingLayout() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <LandingHeader />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
       <LandingFooter />

@@ -11,6 +11,7 @@ import { SavingsModule } from '../savings/savings.module';
 import { LoansModule } from '../loans/loans.module';
 import { InvestmentsModule } from '../investments/investments.module';
 import { User } from '../users/entities/user.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { User } from '../users/entities/user.entity';
     SavingsModule,
     LoansModule,
     forwardRef(() => InvestmentsModule),
+    NotificationsModule,
   ],
   controllers: [VirtualAccountsController, VirtualAccountWebhookController],
   providers: [VirtualAccountsService, FirstCheckoutClient],

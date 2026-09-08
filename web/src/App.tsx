@@ -8,6 +8,9 @@ import { Login } from './pages/auth/Login'
 import { SocialCallback } from './pages/auth/SocialCallback'
 import { Register } from './pages/auth/Register'
 import { Terms } from './pages/auth/Terms'
+import { PrivacyPolicy } from './pages/legal/PrivacyPolicy'
+import { CookiesPolicy } from './pages/legal/CookiesPolicy'
+import { CookieConsentBanner } from './components/layout/CookieConsentBanner'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
 import { Maintenance } from './pages/Maintenance'
@@ -55,6 +58,7 @@ import { Reports } from './pages/bnpl-manager/Reports'
 import { AuditLogs } from './pages/bnpl-manager/AuditLogs'
 import { Approvals } from './pages/bnpl-manager/Approvals'
 import { Support } from './pages/bnpl-manager/Support'
+import { Support as CustomerCareSupport } from './pages/customer-care/Support'
 import { PlanConfigPage } from './pages/bnpl-manager/PlanConfig'
 import { IndividualDashboard } from './pages/individual/Dashboard'
 import { Catalog as IndividualCatalog } from './pages/individual/Catalog'
@@ -126,6 +130,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/cookies" element={<CookiesPolicy />} />
         <Route path="/register/pay-fee" element={<PayRegistrationFee />} />
         <Route path="/register/payment-callback" element={<PaymentCallback />} />
         <Route path="/auth/social-callback" element={<SocialCallback />} />
@@ -193,6 +199,13 @@ export default function App() {
             <Route path="/operational-admin/disputes" element={<AdminDisputes />} />
             <Route path="/operational-admin/member-statements" element={<AdminMemberStatements />} />
             <Route path="/operational-admin/loans" element={<AdminLoanApprovals />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['customer_care']} />}>
+          <Route element={<AppLayout />}>
+            <Route path="/customer-care" element={<CustomerCareSupport />} />
+            <Route path="/customer-care/support" element={<CustomerCareSupport />} />
           </Route>
         </Route>
 
@@ -276,6 +289,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      <CookieConsentBanner />
     </BrowserRouter>
   )
 }

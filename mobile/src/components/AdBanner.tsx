@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { getBannerAdUnitId, isAdsNativeModuleAvailable } from '../utils/ads';
+import { useConsent } from '../store/consentStore';
 
 export default function AdBanner() {
   const [banner, setBanner] = useState<{ AdComponent: any; size: string } | null>(null);
+  const adsEnabled = useConsent((s) => s.adsEnabled);
+  const loadConsent = useConsent((s) => s.load);
   const unitId = getBannerAdUnitId();
 
   useEffect(() => {
+    void loadConsent();
+  }, [loadConsent]);
+
+  useEffect(() => {
     let mounted = true;
-    if (!unitId || !isAdsNativeModuleAvailable()) return;
+    // Privacy-first: never load the ad component without explicit consent.
+    if (!adsEnabled || !unitId || !isAdsNativeModuleAvailable()) return;
 
     (async () => {
       try {
@@ -27,7 +35,7 @@ export default function AdBanner() {
     return () => {
       mounted = false;
     };
-  }, [unitId]);
+  }, [adsEnabled, unitId]);
 
   if (!banner) return null;
 

@@ -29,6 +29,11 @@ export const ENDPOINTS = {
     statementExport: `${API_PREFIX}/dashboard/individual/statement/export`,
     repayments: `${API_PREFIX}/dashboard/individual/repayments`,
     tickets: `${API_PREFIX}/dashboard/individual/tickets`,
+    ticketMessages: (ticketId: string) =>
+      `${API_PREFIX}/dashboard/individual/tickets/${ticketId}/messages`,
+    ticketStream: (ticketId: string) =>
+      `${API_PREFIX}/realtime/individual/tickets/${ticketId}/stream`,
+    ticketListStream: `${API_PREFIX}/realtime/individual/tickets/stream`,
   },
   catalog: `${API_PREFIX}/bnpl/catalog`,
   plans: `${API_PREFIX}/bnpl/plans`,
@@ -91,4 +96,13 @@ export const ENDPOINTS = {
     confirmOrder: (id: string) =>
       `${API_PREFIX}/investments/orders/${id}/confirm`,
   },
+};
+
+export const LEGAL = {
+  website: 'https://coop-bnpl.com',
+  privacyUrl: 'https://coop-bnpl.com/privacy',
+  cookiesUrl: 'https://coop-bnpl.com/cookies',
+  termsUrl: 'https://coop-bnpl.com/terms',
+  privacyEmail: 'privacy@coop-bnpl.com',
+  dpoEmail: 'privacy@coop-bnpl.com',
 };

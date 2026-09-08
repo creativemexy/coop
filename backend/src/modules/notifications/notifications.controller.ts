@@ -1,10 +1,11 @@
-import { Controller, Get, Patch, Delete, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
+import { NotificationType } from './entities/in-app-notification.entity';
 
 @Controller('api/v1/notifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,6 +34,14 @@ export class NotificationsController {
   @Roles(Role.INDIVIDUAL, Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN, Role.BUSINESS_MANAGER)
   markAllRead(@CurrentUser('sub') userId: string) {
     return this.service.markAllAsRead(userId);
+  }
+
+  @Post('broadcast')
+  @Roles(Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN)
+  broadcast(
+    @Body() dto: { title: string; message?: string; type?: NotificationType; link?: string },
+  ) {
+    return this.service.broadcast(dto);
   }
 
   @Delete(':id')

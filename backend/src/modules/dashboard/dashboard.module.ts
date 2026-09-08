@@ -24,6 +24,7 @@ import { JournalEntry } from '../ledger/entities/journal-entry.entity';
 import { FeePot } from '../ledger/entities/fee-pot.entity';
 import { SupportTicket } from '../bnpl/entities/support-ticket.entity';
 import { TicketMessage } from '../support/entities/ticket-message.entity';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TicketMessage } from '../support/entities/ticket-message.entity';
     SavingsModule,
     LoansModule,
     InvestmentsModule,
+    RealtimeModule,
   ],
   controllers: [DashboardController],
   providers: [DashboardService],

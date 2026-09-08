@@ -26,6 +26,7 @@ import { SecurityMonitorService } from '../../common/monitoring/security-monitor
 import { MonitoringService } from '../../common/monitoring/monitoring.service';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { VirtualAccountsService } from '../first-virtual/virtual-accounts.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
@@ -47,6 +48,7 @@ export class AuthService {
     private readonly securityMonitor: SecurityMonitorService,
     private readonly monitoring: MonitoringService,
     private readonly virtualAccountService: VirtualAccountsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async register(dto: {
@@ -397,6 +399,13 @@ export class AuthService {
       meta?.ip,
     );
 
+    await this.notifications.create({
+      userId: user.id,
+      title: 'New sign-in',
+      message: `You signed in successfully${(meta as any)?.deviceInfo?.deviceName ? ` from ${(meta as any).deviceInfo.deviceName}` : ''}.`,
+      type: 'success',
+    });
+
     const deviceInfo = (
       meta as {
         deviceInfo?: {
@@ -505,6 +514,13 @@ export class AuthService {
       entityId: userId,
       performedBy: userId,
     });
+
+    await this.notifications.create({
+      userId,
+      title: 'Password changed',
+      message: 'Your password was changed successfully.',
+      type: 'success',
+    });
   }
 
   async completeFirstLogin(
@@ -552,6 +568,13 @@ export class AuthService {
       entityId: user.id,
       performedBy: user.id,
       metadata: { reason: 'first_login' },
+    });
+
+    await this.notifications.create({
+      userId: user.id,
+      title: 'Password set',
+      message: 'Your password was set successfully. Please sign in with your new password.',
+      type: 'success',
     });
 
     return {

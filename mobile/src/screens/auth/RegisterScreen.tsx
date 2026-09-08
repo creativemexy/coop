@@ -89,7 +89,7 @@ export default function RegisterScreen({ navigation }: { navigation: any }) {
       return;
     }
     if (!termsAccepted) {
-      setError('Please accept the Terms & Conditions');
+      setError('Please accept the Terms & Conditions and Privacy Policy');
       return;
     }
     setError('');
@@ -267,6 +267,13 @@ export default function RegisterScreen({ navigation }: { navigation: any }) {
                   onPress={() => navigation.navigate('Terms')}
                 >
                   Terms &amp; Conditions
+                </Text>{' '}
+                and{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => navigation.navigate('Terms')}
+                >
+                  Privacy Policy
                 </Text>
               </Text>
             </View>

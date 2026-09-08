@@ -209,6 +209,9 @@ const navItems: Record<string, { label: string; path: string }[]> = {
     { label: 'Config & Toggles', path: '/operational-admin/config' },
     { label: 'Monitoring', path: '/operational-admin/monitoring' },
   ],
+  customer_care: [
+    { label: 'Support Tickets', path: '/customer-care' },
+  ],
   accountant: [
     { label: 'Dashboard', path: '/accountant' },
     { label: 'Accounts', path: '/accountant/accounts' },

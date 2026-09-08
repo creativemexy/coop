@@ -4,6 +4,7 @@ import { api } from '../../api/client'
 const ALL_ROLES = [
   'super_admin',
   'operational_admin',
+  'customer_care',
   'accountant',
   'business_manager',
   'apex_business_manager',
@@ -56,6 +57,7 @@ const ALL_MENU_ITEMS = [
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
   operational_admin: 'Operational Admin',
+  customer_care: 'Customer Care',
   accountant: 'Accountant',
   business_manager: 'Business Manager',
   apex_business_manager: 'Apex Business Manager',

@@ -4,7 +4,7 @@ import { Card } from '../../components/ui/card'
 export const termsSections = [
   {
     title: '1. Introduction',
-    body: 'These Terms & Conditions ("Terms") govern your membership and use of the Coop BNPL digital platform and services (the "Platform"), operated by the Cooperative. By creating an account, you agree to be bound by these Terms, our Privacy Policy, and any other policies referenced herein. If you do not agree, do not register or use the Platform.',
+    body: 'These Terms & Conditions ("Terms") govern your membership and use of the Coop BNPL digital platform and services (the "Platform"), operated by the Cooperative. By creating an account, you agree to be bound by these Terms, our Privacy Policy, our Cookie Policy, and any other policies referenced herein. If you do not agree, do not register or use the Platform.',
   },
   {
     title: '2. Membership & Eligibility',
@@ -134,7 +134,11 @@ export function Terms() {
 
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <Link to="/register" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Back to Registration</Link>
-            <Link to="/login" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">Sign In</Link>
+            <div className="flex gap-4 text-sm">
+              <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>
+              <Link to="/cookies" className="text-blue-600 dark:text-blue-400 hover:underline">Cookie Policy</Link>
+              <Link to="/login" className="text-gray-500 dark:text-gray-400 hover:underline">Sign In</Link>
+            </div>
           </div>
         </Card>
       </div>

@@ -219,7 +219,7 @@ function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
     <div className="relative w-full h-40 overflow-hidden rounded-t-lg -mx-6 -mt-6 mb-4 group">
       <img
         src={images[idx]}
-        alt={`${alt} ${idx + 1}`}
+        alt={`${alt} — image ${idx + 1} of ${images.length}`}
         className="w-full h-full object-contain bg-gray-100 dark:bg-gray-800 transition-opacity duration-300"
       />
       {images.length > 1 && (

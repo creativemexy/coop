@@ -14,6 +14,7 @@ import { Repository } from 'typeorm';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { mkdirSync } from 'fs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -120,7 +121,11 @@ export class BrandingController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: join(process.cwd(), 'uploads', 'branding'),
+        destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
+          const destination = join(process.cwd(), 'uploads', 'branding');
+          mkdirSync(destination, { recursive: true });
+          cb(null, destination);
+        },
         filename: (
           _req: any,
           file: any,

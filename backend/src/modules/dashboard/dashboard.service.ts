@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { UsersService } from '../users/users.service';
@@ -28,6 +28,7 @@ import { InvestmentsService } from '../investments/investments.service';
 import { BnplPlanConfig } from '../bnpl/entities/bnpl-plan-config.entity';
 import { SettingsService } from '../settings/settings.service';
 import { UserActivityService } from '../users/user-activity.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class DashboardService {
@@ -72,6 +73,7 @@ export class DashboardService {
     private readonly loanRepo: Repository<Loan>,
     @InjectRepository(TicketMessage)
     private readonly msgRepo: Repository<TicketMessage>,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async getSuperAdminDashboard() {
@@ -354,6 +356,8 @@ export class DashboardService {
       order: { createdAt: 'DESC' },
     });
 
+    const activeLoans = await this.loansService.getActiveLoans(userId);
+
     const nextInstallment = activeSubs
       .flatMap((s) => s.installments || [])
       .filter(
@@ -361,12 +365,26 @@ export class DashboardService {
           i.status === InstallmentStatus.PENDING &&
           new Date(i.dueDate) >= new Date(),
       )
-      .sort(
-        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
-      )[0];
+      .map((i) => ({
+        dueDate: new Date(i.dueDate),
+        amount: Number(i.amount) + Number(i.lateFeeAmount || 0),
+      }));
+
+    const nextLoanRepayment = activeLoans
+      .flatMap((l) => l.repayments || [])
+      .filter(
+        (r) =>
+          r.status === RepaymentStatus.PENDING &&
+          new Date(r.dueDate) >= new Date(),
+      )
+      .map((r) => ({ dueDate: new Date(r.dueDate), amount: Number(r.amount) }));
+
+    const allUpcoming = [...nextInstallment, ...nextLoanRepayment].sort(
+      (a, b) => a.dueDate.getTime() - b.dueDate.getTime(),
+    );
+    const nextPayment = allUpcoming[0];
 
     const savingsAccount = await this.savingsService.getAccount(userId);
-    const activeLoans = await this.loansService.getActiveLoans(userId);
     const totalOutstanding = await this.loansService.getTotalOutstanding(userId);
 
     const portfolio = await this.investmentsService.getPortfolioSummary(userId);
@@ -375,8 +393,8 @@ export class DashboardService {
 
     return {
       activeSubscriptions: activeSubs.length,
-      nextPaymentDate: nextInstallment?.dueDate || null,
-      nextPaymentAmount: Number(nextInstallment?.amount || 0),
+      nextPaymentDate: nextPayment ? nextPayment.dueDate.toISOString() : null,
+      nextPaymentAmount: nextPayment ? Number(nextPayment.amount) : 0,
       kycStatus: user.kycStatus,
       savingsBalance: Number(savingsAccount.balance),
       goalBalance: Number(savingsAccount.goalBalance || 0),
@@ -707,10 +725,15 @@ export class DashboardService {
   }
 
   async getMemberTickets(userId: string) {
-    return this.ticketRepo.find({
+    const tickets = await this.ticketRepo.find({
       where: { createdBy: userId },
       order: { createdAt: 'DESC' },
     });
+    return tickets.map((t) => ({
+      ...t,
+      senderName: 'You',
+      canReply: t.status === TicketStatus.OPEN || t.status === TicketStatus.IN_PROGRESS,
+    }));
   }
 
   async createMemberTicket(dto: {
@@ -741,5 +764,39 @@ export class DashboardService {
       where: { ticketId },
       order: { createdAt: 'ASC' },
     });
+  }
+
+  async addMemberTicketMessage(ticketId: string, userId: string, message: string) {
+    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, createdBy: userId } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    if (ticket.status === TicketStatus.RESOLVED || ticket.status === TicketStatus.CLOSED) {
+      throw new BadRequestException('This ticket is closed and can no longer receive replies.');
+    }
+
+    await this.ticketRepo.save({ ...ticket, status: TicketStatus.IN_PROGRESS });
+
+    const saved = await this.msgRepo.save({
+      ticketId,
+      senderId: userId,
+      senderRole: 'individual',
+      message,
+    } as TicketMessage);
+
+    this.realtime.publish(ticketId, {
+      type: 'message',
+      message: {
+        id: saved.id,
+        message: saved.message,
+        senderId: saved.senderId,
+        senderRole: saved.senderRole,
+        createdAt: saved.createdAt,
+      },
+      senderId: saved.senderId,
+      senderRole: saved.senderRole,
+      createdBy: userId,
+    });
+
+    return saved;
   }
 }

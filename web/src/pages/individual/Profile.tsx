@@ -131,7 +131,7 @@ export function Profile() {
             <div className="flex justify-center mb-2">
               <img
                 src={(user as (typeof user & ProfileUser)).kycImage}
-                alt="Profile"
+                alt="Profile photo"
                 className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500"
               />
             </div>

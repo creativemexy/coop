@@ -11,13 +11,19 @@ export default {
     newArchEnabled: true,
     scheme: 'coopbnpl',
     splash: {
-      image: './assets/logo.png',
-      resizeMode: 'contain',
-      backgroundColor: '#ffffff',
+      image: './assets/splash-ios.png',
+      resizeMode: 'cover',
+      backgroundColor: '#081E1B',
     },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.coop.bnpl',
+      splash: {
+        image: './assets/splash-ios.png',
+        resizeMode: 'cover',
+        backgroundColor: '#081E1B',
+        enableFullScreenImage_legacy: true,
+      },
       infoPlist: {
         NSUserTrackingUsageDescription:
           process.env.EXPO_PUBLIC_ADS_TRACKING_DESC ||
@@ -25,13 +31,41 @@ export default {
       },
     },
     android: {
-      adaptiveIcon: { backgroundColor: '#ffffff' },
+      adaptiveIcon: { backgroundColor: '#173F38' },
       package: 'com.coop.bnpl',
+      splash: {
+        image: './assets/splash-android-foreground.png',
+        resizeMode: 'contain',
+        backgroundColor: '#173F38',
+        imageWidth: 220,
+      },
     },
     plugins: [
       'expo-secure-store',
       'expo-local-authentication',
       'expo-apple-authentication',
+      'expo-system-ui',
+      [
+        'expo-splash-screen',
+        {
+          backgroundColor: '#081E1B',
+          image: './assets/splash-ios.png',
+          resizeMode: 'cover',
+          imageWidth: 220,
+          ios: {
+            image: './assets/splash-ios.png',
+            resizeMode: 'cover',
+            backgroundColor: '#081E1B',
+            enableFullScreenImage_legacy: true,
+          },
+          android: {
+            image: './assets/splash-android-foreground.png',
+            resizeMode: 'contain',
+            backgroundColor: '#173F38',
+            imageWidth: 220,
+          },
+        },
+      ],
       [
         'react-native-google-mobile-ads',
         {

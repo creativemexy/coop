@@ -18,6 +18,7 @@ import { DeviceSessionService } from './device-session.service';
 import { UsersModule } from '../users/users.module';
 import { RetentionModule } from '../../common/retention.module';
 import { FirstVirtualModule } from '../first-virtual/first-virtual.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { FirstVirtualModule } from '../first-virtual/first-virtual.module';
     UsersModule,
     RetentionModule,
     FirstVirtualModule,
+    NotificationsModule,
   ],
   controllers: [AuthController, SocialAuthController, RegistrationsController],
   providers: [AuthService, DeviceSessionService, JwtStrategy, GoogleStrategy],

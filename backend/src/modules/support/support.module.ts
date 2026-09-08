@@ -9,6 +9,9 @@ import { AuditLog } from '../bnpl/entities/audit-log.entity';
 import { BnplSubscription } from '../bnpl/entities/bnpl-subscription.entity';
 import { BnplInstallment } from '../bnpl/entities/bnpl-installment.entity';
 import { Payment } from '../payments/entities/payment.entity';
+import { User } from '../users/entities/user.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -20,7 +23,10 @@ import { Payment } from '../payments/entities/payment.entity';
       BnplSubscription,
       BnplInstallment,
       Payment,
+      User,
     ]),
+    NotificationsModule,
+    RealtimeModule,
   ],
   controllers: [SupportController],
   providers: [SupportService],

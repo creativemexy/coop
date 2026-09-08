@@ -13,6 +13,7 @@ import {
 import { UserActivityService } from '../users/user-activity.service';
 import { SettingsService } from '../settings/settings.service';
 import { RiskService } from '../../common/risk.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class SavingsService {
@@ -24,6 +25,7 @@ export class SavingsService {
     private readonly activityService: UserActivityService,
     private readonly settingsService: SettingsService,
     private readonly riskService: RiskService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async getOrCreateAccount(userId: string): Promise<SavingsAccount> {
@@ -243,11 +245,19 @@ export class SavingsService {
           (isGoal ? 'Goal savings withdrawal' : 'Savings withdrawal'),
       }),
     );
-    await this.activityService.log(
+await this.activityService.log(
       userId,
       isGoal ? 'goal_withdrawal' : 'savings_withdrawal',
       { amount, balanceAfter },
     );
+
+    await this.notifications.create({
+      userId,
+      title: 'Withdrawal processed',
+      message: `₦${Number(amount).toLocaleString()} was withdrawn from your ${isGoal ? 'goal savings' : 'savings'} account.`,
+      type: 'info',
+    });
+
     return tx;
   }
 

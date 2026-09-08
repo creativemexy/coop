@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { site } from './site.config'
 
 export default function Contact() {
@@ -60,32 +61,56 @@ export default function Contact() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Send us a message</h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Your name</label>
+                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Your name</label>
                 <input
+                  id="contact-name"
+                  name="contact-name"
                   type="text"
+                  autoComplete="name"
+                  required
                   className="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary,#2563eb)]"
                   placeholder="Jane Doe"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
                 <input
+                  id="contact-email"
+                  name="contact-email"
                   type="email"
+                  autoComplete="email"
+                  required
                   className="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary,#2563eb)]"
                   placeholder="jane@example.com"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
+                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
                 <textarea
+                  id="contact-message"
+                  name="contact-message"
                   rows={5}
+                  required
                   className="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary,#2563eb)]"
                   placeholder="How can we help?"
                 />
               </div>
+              <div className="flex items-start gap-2">
+                <input
+                  id="contact-consent"
+                  type="checkbox"
+                  required
+                  className="mt-1 rounded border-gray-300 dark:border-gray-700 text-[var(--brand-primary,#2563eb)] focus:ring-[var(--brand-primary,#2563eb)]"
+                />
+                <label htmlFor="contact-consent" className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  I consent to {site.name} using my name, email and message solely to respond to this enquiry.
+                  We only keep what is needed to answer you and delete it when no longer required.{' '}
+                  <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>.
+                </label>
+              </div>
               <button
                 type="submit"
-                className="w-full rounded-xl py-4 text-base font-semibold text-white"
+                className="w-full rounded-xl py-4 text-base font-semibold text-white focus-visible:outline-2"
                 style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
               >
                 Send Message

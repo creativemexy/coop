@@ -15,12 +15,30 @@ export function NotificationTemplates() {
   const [editing, setEditing] = useState<Template | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ key: '', type: 'sms' as 'sms' | 'email', subject: '', body: '', variables: '' })
+  const [broadcast, setBroadcast] = useState({ title: '', message: '', type: 'info' })
+  const [sending, setSending] = useState(false)
+  const [sentResult, setSentResult] = useState<string | null>(null)
 
   useEffect(() => {
     api.get('/admin/super/templates').then(r => setTemplates(r.data))
   }, [])
 
   const load = () => api.get('/admin/super/templates').then(r => setTemplates(r.data))
+
+  const sendBroadcast = async () => {
+    if (!broadcast.title.trim()) return
+    setSending(true)
+    setSentResult(null)
+    try {
+      const { data } = await api.post('/notifications/broadcast', broadcast)
+      setSentResult(`Sent to ${data.sent} member${data.sent === 1 ? '' : 's'}`)
+      setBroadcast({ title: '', message: '', type: 'info' })
+    } catch (e: any) {
+      setSentResult(`Failed: ${e?.response?.data?.message || e?.message || 'Unknown error'}`)
+    } finally {
+      setSending(false)
+    }
+  }
 
   const save = async () => {
     const payload = { ...form, variables: form.variables ? form.variables.split(',').map(v => v.trim()) : [] }
@@ -45,6 +63,33 @@ export function NotificationTemplates() {
 
   return (
     <div className="p-6 space-y-6">
+      <div className="rounded-xl border bg-white p-4 dark:bg-gray-800 dark:border-gray-700">
+        <h2 className="font-semibold mb-1">Broadcast to App Users</h2>
+        <p className="text-xs text-gray-500 mb-3">Send an in-app notification to every app user (individual members).</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Title</label>
+            <input className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={broadcast.title} onChange={e => setBroadcast(b => ({ ...b, title: e.target.value }))} placeholder="e.g. New investment opportunity" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Message</label>
+            <textarea className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" rows={3} value={broadcast.message} onChange={e => setBroadcast(b => ({ ...b, message: e.target.value }))} placeholder="Optional message body" />
+          </div>
+          <div className="flex items-center gap-3">
+            <select className="border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={broadcast.type} onChange={e => setBroadcast(b => ({ ...b, type: e.target.value }))}>
+              <option value="info">Info</option>
+              <option value="success">Success</option>
+              <option value="warning">Warning</option>
+              <option value="error">Error</option>
+            </select>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm" onClick={sendBroadcast} disabled={sending || !broadcast.title.trim()}>
+              {sending ? 'Sending…' : 'Send Broadcast'}
+            </button>
+          </div>
+          {sentResult && <p className="text-xs text-gray-600 dark:text-gray-400">{sentResult}</p>}
+        </div>
+      </div>
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Notification Templates</h1>
         <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm" onClick={() => { setEditing(null); setCreating(true); setForm({ key: '', type: 'sms', subject: '', body: '', variables: '' }) }}>+ New Template</button>

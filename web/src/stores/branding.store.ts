@@ -36,6 +36,9 @@ export const useBranding = create<BrandingState>((set) => ({
     try {
       const { data } = await api.get('/branding')
       const b = { organizationName: data.organizationName, logoUrl: data.logoUrl, primaryColor: data.primaryColor || DEFAULTS.primaryColor, accentColor: data.accentColor || DEFAULTS.accentColor }
+      if (b.logoUrl) {
+        b.logoUrl = `${b.logoUrl}${b.logoUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
+      }
       applyColors(b.primaryColor, b.accentColor)
       set({ branding: b, loaded: true })
     } catch {
@@ -49,11 +52,10 @@ export const useBranding = create<BrandingState>((set) => ({
   uploadLogo: async (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    const { data } = await api.post('/branding/logo', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    set((s) => ({ branding: { ...s.branding, logoUrl: data.logoUrl } }))
-    return data.logoUrl
+    const { data } = await api.post('/branding/logo', form)
+    const logoUrl = `${data.logoUrl}?v=${Date.now()}`
+    set((s) => ({ branding: { ...s.branding, logoUrl } }))
+    return logoUrl
   },
   setColors: async (primary: string, accent: string) => {
     await api.put('/branding/colors', { primaryColor: primary, accentColor: accent })

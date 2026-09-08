@@ -1,5 +1,6 @@
 import { Platform, TurboModuleRegistry } from 'react-native';
 import { config } from '../config';
+import { areAdsConsented } from '../store/consentStore';
 
 export function isAdsNativeModuleAvailable(): boolean {
   try {
@@ -21,6 +22,8 @@ export const adsConfigured =
   Boolean(config.admob.androidAppId) || Boolean(config.admob.iosAppId);
 
 export async function initializeAds(): Promise<void> {
+  // Privacy-first: the Google Ads SDK only initialises after explicit consent.
+  if (!await areAdsConsented()) return;
   if (!isAdsNativeModuleAvailable()) return;
   try {
     const mod = await import('react-native-google-mobile-ads');

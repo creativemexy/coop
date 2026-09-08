@@ -187,14 +187,26 @@ export function Register() {
                   onChange={(e) => setTermsAccepted(e.target.checked)}
                   className="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                   required
+                  aria-describedby="consent-hint"
                 />
                 <span className="text-gray-600 dark:text-gray-400">
                   I accept the{' '}
                   <button type="button" onClick={() => setShowTerms(true)} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
                     Terms &amp; Conditions
                   </button>
+                  ,{' '}
+                  <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">
+                    Privacy Policy
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/cookies" className="text-blue-600 dark:text-blue-400 hover:underline">
+                    Cookie Policy
+                  </Link>
                 </span>
               </label>
+              <p id="consent-hint" className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                We only collect what we need to operate your account. See our policies for details.
+              </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={() => goTo(2)} className="flex-1">Back</Button>
@@ -209,11 +221,11 @@ export function Register() {
         </p>
 
         {showTerms && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div role="dialog" aria-modal="true" aria-label="Terms & Conditions" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="w-full max-w-2xl max-h-[85vh] flex flex-col rounded-xl bg-white dark:bg-gray-900 shadow-xl overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-lg font-bold dark:text-gray-100">Terms &amp; Conditions</h2>
-                <button type="button" onClick={() => setShowTerms(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer text-2xl leading-none">×</button>
+                <button type="button" aria-label="Close terms" onClick={() => setShowTerms(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer text-2xl leading-none">×</button>
               </div>
               <div className="px-6 py-4 overflow-y-auto space-y-5">
                 {termsSections.map((s) => (

@@ -19,6 +19,7 @@ import { InvestmentsService } from '../investments/investments.service';
 import { RiskService } from '../../common/risk.service';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const DEPOSIT_TTL_MS = 30 * 60 * 1000;
 
@@ -40,6 +41,7 @@ export class VirtualAccountsService {
     private readonly investmentsService: InvestmentsService,
     private readonly configService: ConfigService,
     private readonly riskService: RiskService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async getForUser(userId: string): Promise<VirtualAccount | null> {
@@ -247,6 +249,12 @@ export class VirtualAccountsService {
       this.logger.log(
         `Confirmed loan repayment ₦${expected} (${pending.reference}, ${reference}) for user ${pending.userId}`,
       );
+      await this.notifications.create({
+        userId: pending.userId,
+        title: 'Loan repayment received',
+        message: `Your loan repayment of ₦${Number(expected).toLocaleString()} was received and confirmed.`,
+        type: 'success',
+      });
       return { status: 'processed', creditedAmount: expected };
     }
 
@@ -275,6 +283,12 @@ export class VirtualAccountsService {
       this.logger.log(
         `Confirmed investment order ${pending.investmentOrderId} for ₦${expected} (${pending.reference}, ${reference}) for user ${pending.userId}`,
       );
+      await this.notifications.create({
+        userId: pending.userId,
+        title: 'Investment confirmed',
+        message: `Your investment of ₦${Number(expected).toLocaleString()} was confirmed and allocated.`,
+        type: 'success',
+      });
       return { status: 'processed', creditedAmount: expected };
     }
 
@@ -297,6 +311,12 @@ export class VirtualAccountsService {
     this.logger.log(
       `Credited ₦${amount} to ${pending.type} savings for user ${pending.userId} from pending deposit ${pending.reference} (${reference})`,
     );
+    await this.notifications.create({
+      userId: pending.userId,
+      title: 'Deposit credited',
+      message: `₦${Number(amount).toLocaleString()} was credited to your ${pending.type === 'goal' ? 'goal savings' : 'savings'} account.`,
+      type: 'success',
+    });
     return { status: 'processed', creditedAmount: amount };
   }
 
@@ -456,6 +476,12 @@ export class VirtualAccountsService {
     this.logger.log(
       `Verified + credited ₦${amount} to ${deposit.type} savings for user ${deposit.userId} (${deposit.reference})`,
     );
+    await this.notifications.create({
+      userId: deposit.userId,
+      title: 'Deposit credited',
+      message: `₦${Number(amount).toLocaleString()} was credited to your ${deposit.type === 'goal' ? 'goal savings' : 'savings'} account.`,
+      type: 'success',
+    });
 
     return this.pendingRepo.findOne({
       where: { id: deposit.id },

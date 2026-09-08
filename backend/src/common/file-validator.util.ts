@@ -29,7 +29,8 @@ export function validateImageFile(filePath: string): void {
     }
 
     const allowedTypes = Object.values(MAGIC_BYTES);
-    const isValid = allowedTypes.some((magic) => bytesMatch(buffer, magic));
+    const svgText = buffer.toString('utf8').trimStart();
+    const isValid = allowedTypes.some((magic) => bytesMatch(buffer, magic)) || svgText.startsWith('<svg');
 
     if (!isValid) {
       fs.unlinkSync(filePath);

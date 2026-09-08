@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { WebhookLog } from '../payments/entities/webhook-log.entity';
 import { SupportTicket, TicketStatus, TicketCategory } from '../bnpl/entities/support-ticket.entity';
 import { TicketMessage } from './entities/ticket-message.entity';
@@ -9,6 +9,10 @@ import { BnplSubscription } from '../bnpl/entities/bnpl-subscription.entity';
 import { BnplInstallment } from '../bnpl/entities/bnpl-installment.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { PaymentStatus } from '../../common/enums/status.enum';
+import { User } from '../users/entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { maskEmail } from '../../common/mask.util';
 
 @Injectable()
 export class SupportService {
@@ -27,6 +31,10 @@ export class SupportService {
     private readonly instRepo: Repository<BnplInstallment>,
     @InjectRepository(Payment)
     private readonly paymentRepo: Repository<Payment>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /* ── Orders (read-only) ── */
@@ -178,7 +186,32 @@ export class SupportService {
     const where: any = {};
     if (filters?.status) where.status = filters.status;
     if (filters?.category) where.category = filters.category;
-    return this.ticketRepo.find({ where, order: { createdAt: 'DESC' } });
+    const tickets = await this.ticketRepo.find({ where, order: { createdAt: 'DESC' } });
+
+    const creatorIds = [...new Set(tickets.map((t) => t.createdBy))];
+    const users = creatorIds.length
+      ? await this.userRepo.find({ where: { id: In(creatorIds) } })
+      : [];
+    const userById = new Map(users.map((u) => [u.id, u]));
+
+    return tickets.map((t) => {
+      const u = userById.get(t.createdBy);
+      return {
+        ...t,
+        sender: u
+          ? {
+              id: u.id,
+              firstName: u.firstName,
+              lastName: u.lastName,
+              email: u.email,
+              phone: u.phone,
+              role: u.role,
+            }
+          : null,
+        senderName: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Member' : 'Unknown',
+        senderEmail: u ? maskEmail(u.email) : null,
+      };
+    });
   }
 
   async updateTicketStatus(id: string, status: TicketStatus, note?: string) {
@@ -190,7 +223,14 @@ export class SupportService {
     if (status === TicketStatus.RESOLVED || status === TicketStatus.CLOSED) {
       ticket.resolvedAt = new Date();
     }
-    return this.ticketRepo.save(ticket);
+    const saved = await this.ticketRepo.save(ticket);
+
+    this.realtime.publish(id, {
+      type: 'status',
+      status: saved.status,
+      createdBy: ticket.createdBy,
+    });
+    return saved;
   }
 
   /* ── Messages ── */
@@ -199,23 +239,92 @@ export class SupportService {
     const ticket = await this.ticketRepo.findOne({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    return this.msgRepo.find({
+    const messages = await this.msgRepo.find({
       where: { ticketId },
       order: { createdAt: 'ASC' },
     });
+
+    const senderIds = [...new Set(messages.map((m) => m.senderId))];
+    const users = senderIds.length
+      ? await this.userRepo.find({ where: { id: In(senderIds) } })
+      : [];
+    const userById = new Map(users.map((u) => [u.id, u]));
+
+    const creator = await this.userRepo.findOne({ where: { id: ticket.createdBy } });
+
+    return {
+      ticket: {
+        id: ticket.id,
+        subject: ticket.subject,
+        description: ticket.description,
+        category: ticket.category,
+        status: ticket.status,
+        resolutionNote: ticket.resolutionNote,
+        createdAt: ticket.createdAt,
+        senderName: creator
+          ? [creator.firstName, creator.lastName].filter(Boolean).join(' ') || 'Member'
+          : 'Unknown',
+        senderEmail: creator ? maskEmail(creator.email) : null,
+      },
+      messages: messages.map((m) => {
+        const u = userById.get(m.senderId);
+        return {
+          ...m,
+          senderName: u
+            ? [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Support'
+            : m.senderRole === 'super_admin' || m.senderRole === 'customer_care'
+              ? 'Support'
+              : 'Member',
+        };
+      }),
+    };
   }
 
   async addTicketMessage(ticketId: string, senderId: string, senderRole: string, message: string) {
     const ticket = await this.ticketRepo.findOne({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
+    if (ticket.status === TicketStatus.RESOLVED || ticket.status === TicketStatus.CLOSED) {
+      throw new BadRequestException('This ticket is closed and can no longer receive replies.');
+    }
+
     await this.ticketRepo.save({ ...ticket, status: TicketStatus.IN_PROGRESS });
 
-    return this.msgRepo.save({
+    const saved = await this.msgRepo.save({
       ticketId,
       senderId,
       senderRole,
       message,
     } as TicketMessage);
+
+    this.realtime.publish(ticketId, {
+      type: 'message',
+      message: {
+        id: saved.id,
+        message: saved.message,
+        senderId: saved.senderId,
+        senderRole: saved.senderRole,
+        createdAt: saved.createdAt,
+      },
+      senderId: saved.senderId,
+      senderRole: saved.senderRole,
+      createdBy: ticket.createdBy,
+    });
+
+    // Notify the user who opened the ticket when support replies.
+    if (
+      (senderRole === 'super_admin' || senderRole === 'customer_care') &&
+      ticket.createdBy !== senderId
+    ) {
+      await this.notifications.create({
+        userId: ticket.createdBy,
+        title: 'Support reply',
+        message: `A support agent replied to your ticket "${ticket.subject}".`,
+        type: 'info',
+        link: '/individual/support',
+      });
+    }
+
+    return saved;
   }
 }

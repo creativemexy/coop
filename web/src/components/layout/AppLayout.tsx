@@ -12,10 +12,13 @@ export function AppLayout() {
   useEffect(() => { if (!permsLoaded) loadPerms() }, [permsLoaded, loadPerms])
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-3 lg:p-6">
+        <main id="main-content" className="flex-1 overflow-y-auto p-3 lg:p-6">
           <Outlet />
         </main>
       </div>

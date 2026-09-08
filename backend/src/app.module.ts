@@ -62,6 +62,7 @@ import { EmailModule } from './modules/email/email.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 import { FirstVirtualModule } from './modules/first-virtual/first-virtual.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 // Entities
 import { ApexOrganization } from './modules/apex-organizations/entities/apex-organization.entity';
@@ -260,6 +261,7 @@ const entities = [
     NotificationsModule,
     PaymentMethodsModule,
     FirstVirtualModule,
+    RealtimeModule,
     RetentionModule,
     RiskModule,
     MonitoringModule,

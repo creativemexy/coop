@@ -13,6 +13,32 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Accessibility: visible keyboard focus everywhere (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skip-to-content link (WCAG 2.4.1): visually hidden until focused */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 5;
+}
+
+.skip-link:focus {
+  left: 0;
+  top: 0;
+  padding: 0.75rem 1rem;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 0 0 0.5rem 0;
+  font-weight: 600;
+  outline: none;
+}
+
 @keyframes float-slow {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-18px); }

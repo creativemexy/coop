@@ -105,7 +105,7 @@ export class AdminService {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    if (role === Role.SUPER_ADMIN || role === Role.OPERATIONAL_ADMIN) {
+    if (role === Role.SUPER_ADMIN || role === Role.OPERATIONAL_ADMIN || role === Role.CUSTOMER_CARE) {
       if (callerRole !== Role.SUPER_ADMIN) {
         throw new BadRequestException('Only super admin can assign system-wide roles');
       }

@@ -28,19 +28,40 @@ export default function App() {
           await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
           const { sound } = await Audio.Sound.createAsync(require('./assets/coin.mp3'));
           await sound.playAsync();
-          
-          // Wait for sound to finish playing
+
+          const status = await sound.getStatusAsync();
+          const audioDurationMs =
+            status && status.isLoaded && typeof status.durationMillis === 'number'
+              ? status.durationMillis + 250
+              : 4000;
+
+          const minSplashDurationMs = Math.max(4000, audioDurationMs);
+
           await new Promise<void>((resolve) => {
-            sound.setOnPlaybackStatusUpdate((status) => {
-              if ('didJustFinish' in status && status.didJustFinish) {
-                resolve();
+            let settled = false;
+
+            const finish = () => {
+              if (settled) return;
+              settled = true;
+              sound.setOnPlaybackStatusUpdate(null);
+              resolve();
+            };
+
+            const timer = setTimeout(finish, minSplashDurationMs);
+
+            sound.setOnPlaybackStatusUpdate((playbackStatus) => {
+              if (!playbackStatus || !('didJustFinish' in playbackStatus)) return;
+
+              if (playbackStatus.didJustFinish) {
+                clearTimeout(timer);
+                finish();
               }
             });
           });
         } catch (error) {
           console.warn('Error playing splash sound:', error);
           // Still show splash for at least 4 seconds
-          await new Promise(resolve => setTimeout(resolve, 4000));
+          await new Promise((resolve) => setTimeout(resolve, 4000));
         }
       } catch (error) {
         console.warn('App initialization error:', error);

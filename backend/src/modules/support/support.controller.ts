@@ -88,6 +88,7 @@ export class SupportController {
     return this.service.createTicket({ ...dto, createdBy: userId });
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CUSTOMER_CARE)
   @Get('tickets')
   async listTickets(
     @Query('status') status?: string,
@@ -96,6 +97,7 @@ export class SupportController {
     return this.service.listTickets({ status, category });
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CUSTOMER_CARE)
   @Patch('tickets/:id/status')
   async updateTicketStatus(
     @Param('id') id: string,
@@ -104,17 +106,19 @@ export class SupportController {
     return this.service.updateTicketStatus(id, dto.status, dto.note);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CUSTOMER_CARE)
   @Get('tickets/:id/messages')
   async getTicketMessages(@Param('id') id: string) {
     return this.service.getTicketMessages(id);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CUSTOMER_CARE)
   @Post('tickets/:id/messages')
   async addTicketMessage(
     @Param('id') id: string,
     @Body() dto: { message: string },
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.service.addTicketMessage(id, userId, 'super_admin', dto.message);
+    return this.service.addTicketMessage(id, user.sub, user.role, dto.message);
   }
 }

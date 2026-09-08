@@ -119,7 +119,8 @@ client.interceptors.response.use(
     };
 
     if (error.response?.status === 403 &&
-        (error.response?.data as any)?.message === 'CSRF token missing' &&
+        ((error.response?.data as any)?.message === 'CSRF token missing' ||
+         (error.response?.data as any)?.message === 'Invalid CSRF token') &&
         !(originalRequest as any)?._csrfRetry) {
       (originalRequest as any)._csrfRetry = true;
       const token = await fetchCsrfToken();
@@ -198,6 +199,26 @@ export async function getStoredTokens(): Promise<{
 } | null> {
   const json = await SecureStore.getItemAsync(TOKEN_KEY);
   return json ? JSON.parse(json) : null;
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  try {
+    const tokens = await getStoredTokens();
+    if (!tokens) return null;
+    const { data } = await axios.post(
+      `${API_BASE_URL}/${ENDPOINTS.auth.refresh}`,
+      { refreshToken: tokens.refreshToken },
+      { withCredentials: true },
+    );
+    const next = {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken ?? tokens.refreshToken,
+    };
+    await SecureStore.setItemAsync(TOKEN_KEY, JSON.stringify(next));
+    return data.accessToken as string;
+  } catch {
+    return null;
+  }
 }
 
 export { fetchCsrfToken };

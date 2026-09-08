@@ -5,6 +5,7 @@ export type Role =
   | 'super_admin'
   | 'admin'
   | 'operational_admin'
+  | 'customer_care'
   | 'accountant'
   | 'business_manager'
   | 'apex_business_manager'
