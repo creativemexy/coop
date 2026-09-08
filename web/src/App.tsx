@@ -129,7 +129,8 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
       .finally(() => setLoaded(true))
   }, [])
 
-  if (loaded && maintenance && isAuthenticated && user?.role !== 'super_admin' && location.pathname !== '/maintenance') {
+  const maintenanceExempt = location.pathname === '/login' || location.pathname === '/maintenance'
+  if (loaded && maintenance && isAuthenticated && user?.role !== 'super_admin' && !maintenanceExempt) {
     return <Navigate to="/maintenance" replace />
   }
 
