@@ -50,60 +50,49 @@ export default function Home() {
 
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
-      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]">
-        <div className="afro-pattern absolute inset-0 opacity-35" aria-hidden="true" />
-        <div className="absolute -right-24 top-10 h-72 w-72 rounded-full border-[32px] border-[#E4A42A]/20" aria-hidden="true" />
-        <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pb-24 lg:px-8 lg:pb-28 lg:pt-24">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.06fr_.94fr]">
-            <div className="max-w-2xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-[#E4A42A]/45 bg-white/10 px-4 py-2 text-xs font-bold tracking-[0.16em] text-[#F8CE68] uppercase">
-                <Sparkles size={14} /> Rooted in community
-              </p>
-              <h1 className="mt-7 font-serif text-5xl font-bold leading-[0.98] tracking-tight sm:text-6xl xl:text-7xl">
-                Prosperity is better when <span className="text-[#F7B733]">shared.</span>
-              </h1>
-              <p className="mt-7 max-w-xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">
-                {site.description} Build your savings, access what you need, and move forward with a cooperative that grows with you.
-              </p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-7 py-4 font-bold text-[#26170F] transition hover:-translate-y-0.5 hover:bg-[#F7B733]">
-                  Join the cooperative <ArrowRight size={18} />
-                </Link>
-                <Link to="/about" className="inline-flex items-center justify-center rounded-full border border-white/45 px-7 py-4 font-semibold transition hover:bg-white/10">
-                  Discover our story
-                </Link>
-              </div>
-              <div className="mt-11 flex flex-wrap gap-x-8 gap-y-4 text-sm text-[#FFF3D8]">
-                <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Member-owned</span>
-                <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Built for Nigeria</span>
-                <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Clear, fair terms</span>
-              </div>
+      <section className="relative isolate flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-[#25140D] text-[#FFF9EF]">
+        <div className="absolute inset-0 bg-[#25140D]" aria-hidden="true">
+          {heroSlides.map((item, index) => <img key={item.label} src={item.image} alt={index === activeSlide ? item.alt : ''} aria-hidden={index !== activeSlide} className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ${index === activeSlide ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`} />)}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1D100B]/90 via-[#25140D]/55 to-[#25140D]/15" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1D100B]/75 via-transparent to-[#1D100B]/20" />
+        </div>
+        <div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" />
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+          <div className="max-w-3xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#E4A42A]/45 bg-black/15 px-4 py-2 text-xs font-bold tracking-[0.16em] text-[#F8CE68] uppercase backdrop-blur-sm">
+              <Sparkles size={14} /> {slide.label} · Rooted in community
+            </p>
+            <h1 className="mt-7 max-w-3xl font-serif text-5xl font-bold leading-[0.98] tracking-tight sm:text-6xl xl:text-8xl">
+              {slide.title}
+            </h1>
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-[#FFF3D8]/90 sm:text-xl">
+              {site.description} Build your savings, access what you need, and move forward with a cooperative that grows with you.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-7 py-4 font-bold text-[#26170F] transition hover:-translate-y-0.5 hover:bg-[#F7B733]">
+                Join the cooperative <ArrowRight size={18} />
+              </Link>
+              <Link to="/about" className="inline-flex items-center justify-center rounded-full border border-white/45 px-7 py-4 font-semibold transition hover:bg-white/10">
+                Discover our story
+              </Link>
             </div>
-
-            <div className="relative mx-auto w-full max-w-lg lg:mx-0">
-              <div className="afro-arch relative overflow-hidden rounded-t-[12rem] border-[10px] border-[#F4D586] bg-[#D78135] p-3 shadow-2xl sm:p-5">
-                <div className="relative aspect-[.92] overflow-hidden rounded-t-[9rem] bg-[#2B1A10]">
-                  {heroSlides.map((item, index) => <img key={item.label} src={item.image} alt={index === activeSlide ? item.alt : ''} aria-hidden={index !== activeSlide} className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ${index === activeSlide ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`} />)}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#25140D]/90 via-[#25140D]/10 to-transparent" aria-hidden="true" />
-                  <div className="absolute inset-x-0 bottom-0 p-7 text-white sm:p-9"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#F7D674]">{slide.label}</p><p className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl">{slide.title}</p></div>
-                  <button type="button" onClick={() => setActiveSlide((activeSlide + heroSlides.length - 1) % heroSlides.length)} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white transition hover:bg-black/60" aria-label="Show previous image"><ChevronLeft size={19} /></button>
-                  <button type="button" onClick={() => setActiveSlide((activeSlide + 1) % heroSlides.length)} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white transition hover:bg-black/60" aria-label="Show next image"><ChevronRight size={19} /></button>
-                  <div className="absolute bottom-4 right-5 flex gap-1.5">{heroSlides.map((item, index) => <button type="button" key={item.label} onClick={() => setActiveSlide(index)} aria-label={`Show ${item.label} image`} aria-current={index === activeSlide} className={`h-2 rounded-full transition-all ${index === activeSlide ? 'w-6 bg-[#F7D674]' : 'w-2 bg-white/70 hover:bg-white'}`} />)}</div>
-                </div>
-                <div className="afro-mini-pattern absolute inset-x-0 bottom-0 h-24 opacity-30" aria-hidden="true" />
-                <div className="relative grid grid-cols-2 gap-3 bg-[#F4D586] p-4 text-[#301B10] sm:p-5">
-                  {stats.slice(0, 4).map((stat, index) => (
-                      <div key={stat.label} className={index === 0 ? 'col-span-2 rounded-2xl bg-[#176B5B] p-5 text-white' : 'rounded-2xl bg-white/65 p-4'}>
-                        <p className={index === 0 ? 'font-serif text-3xl font-bold' : 'font-serif text-2xl font-bold text-[#8F4C22]'}>{stat.value}</p>
-                        <p className={index === 0 ? 'mt-1 text-sm text-white/80' : 'mt-1 text-xs font-semibold text-[#6B4A36]'}>{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="absolute -bottom-5 -left-5 rounded-full bg-[#176B5B] p-5 text-[#F7D674] shadow-lg"><span className="text-3xl">✦</span></div>
-              </div>
+            <div className="mt-11 flex flex-wrap gap-x-8 gap-y-4 text-sm text-[#FFF3D8]">
+              <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Member-owned</span>
+              <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Built for Nigeria</span>
+              <span className="flex items-center gap-2"><Check size={17} className="text-[#F7B733]" /> Clear, fair terms</span>
             </div>
           </div>
+          <div className="mt-14 flex flex-wrap items-end justify-between gap-8">
+            <div className="flex flex-wrap gap-3">
+              {stats.slice(0, 4).map((stat) => <div key={stat.label} className="rounded-xl border border-white/20 bg-black/20 px-4 py-3 backdrop-blur-sm"><p className="font-serif text-xl font-bold text-[#F7D674]">{stat.value}</p><p className="text-xs text-white/75">{stat.label}</p></div>)}
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setActiveSlide((activeSlide + heroSlides.length - 1) % heroSlides.length)} className="rounded-full bg-black/35 p-3 text-white transition hover:bg-black/60" aria-label="Show previous image"><ChevronLeft size={19} /></button>
+              <div className="flex gap-1.5">{heroSlides.map((item, index) => <button type="button" key={item.label} onClick={() => setActiveSlide(index)} aria-label={`Show ${item.label} image`} aria-current={index === activeSlide} className={`h-2 rounded-full transition-all ${index === activeSlide ? 'w-6 bg-[#F7D674]' : 'w-2 bg-white/70 hover:bg-white'}`} />)}</div>
+              <button type="button" onClick={() => setActiveSlide((activeSlide + 1) % heroSlides.length)} className="rounded-full bg-black/35 p-3 text-white transition hover:bg-black/60" aria-label="Show next image"><ChevronRight size={19} /></button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="relative -mt-1 bg-[#FFF9EF] py-18 sm:py-24">
