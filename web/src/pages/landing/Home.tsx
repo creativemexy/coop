@@ -56,7 +56,6 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#1D100B]/90 via-[#25140D]/55 to-[#25140D]/15" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1D100B]/75 via-transparent to-[#1D100B]/20" />
         </div>
-        <div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" />
         <div className="relative mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
           <div className="max-w-3xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-[#E4A42A]/45 bg-black/15 px-4 py-2 text-xs font-bold tracking-[0.16em] text-[#F8CE68] uppercase backdrop-blur-sm">
