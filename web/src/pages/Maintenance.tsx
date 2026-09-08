@@ -20,6 +20,12 @@ export function Maintenance() {
           The super-admin dashboard remains available while other platform services are being updated.
         </p>
         <div className="mt-8 flex justify-center gap-4">
+          <Link
+            to="/login"
+            className="px-6 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            Return to Login
+          </Link>
           {user?.role === 'super_admin' && <Link
             to="/super-admin"
             className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
