@@ -52,7 +52,9 @@ export const useBranding = create<BrandingState>((set) => ({
   uploadLogo: async (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    const { data } = await api.post('/branding/logo', form)
+    const { data } = await api.post('/branding/logo', form, {
+      headers: { 'Content-Type': undefined },
+    })
     const logoUrl = `${data.logoUrl}?v=${Date.now()}`
     set((s) => ({ branding: { ...s.branding, logoUrl } }))
     return logoUrl
