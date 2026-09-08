@@ -1,109 +1,40 @@
+import { ArrowRight, Building2, Landmark, LineChart, ShieldCheck, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { site } from './site.config'
-import { useBranding } from '../../stores/branding.store'
 
 const details: Record<string, string[]> = {
   Savings: [
-    'Flexible and fixed-term savings plans',
-    'Target-based saving goals for your dreams',
-    'Competitive, transparent interest',
-    'Withdraw when you need, with clear terms',
+    'Digital savings services for member organizations',
+    'Clear records and transparent account access',
+    'Structures that support collective wealth building',
+    'Practical tools for stronger member communities',
   ],
   'Buy Now, Pay Later': [
-    'Shop essentials and pay in installments',
+    'Flexible access to approved financial services',
     'Simple, understandable repayment schedules',
-    'No hidden fees — the total cost is clear upfront',
-    'Quick approval based on your savings history',
+    'Transparent terms from application to completion',
+    'Designed around the needs of organized members',
   ],
   'Investment Opportunities': [
-    'Cooperative-backed investment products',
-    'Steady, member-first returns',
-    'Diversified options for every risk appetite',
-    'Full transparency on fees and timelines',
+    'Cooperative-backed investment opportunities',
+    'Member-first structures and clear timelines',
+    'Responsible options for associations and communities',
+    'Full transparency on fees, risks, and returns',
   ],
   'Low-Interest Loans': [
-    'Member-friendly rates well below market',
+    'Accessible financing for eligible members',
     'Transparent terms and repayment plans',
-    'Fast processing for active members',
-    'Backed by your own cooperative',
+    'Support for productive community activity',
+    'Backed by cooperative values and accountability',
   ],
 }
 
 export default function Services() {
-  const { branding } = useBranding()
   return (
-    <div>
-      <section className="bg-gray-50 dark:bg-gray-900/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Our Services</h1>
-          <p className="mt-3 max-w-2xl text-gray-600 dark:text-gray-400 text-lg">
-            Every {branding.organizationName} service is designed around one goal: helping members save more, spend
-            smarter, and grow together.
-          </p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="space-y-10">
-          {site.services.map((s) => (
-            <div
-              key={s.title}
-              className="grid gap-8 lg:grid-cols-2 items-center rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm"
-            >
-              <div>
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl text-white"
-                  style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-                >
-                  {s.icon}
-                </div>
-                <h2 className="mt-5 text-2xl font-bold text-gray-900 dark:text-gray-100">{s.title}</h2>
-                <p className="mt-3 text-gray-600 dark:text-gray-400 leading-relaxed">{s.description}</p>
-              </div>
-              <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-6">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-4">
-                  What's included
-                </h3>
-                <ul className="space-y-3">
-                  {(details[s.title] ?? []).map((d) => (
-                    <li key={d} className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                      <span
-                        className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-white text-xs"
-                        style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-                      >
-                        ✓
-                      </span>
-                      {d}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Not sure where to start?</h2>
-        <p className="mt-3 text-gray-600 dark:text-gray-400">
-          Our membership team is happy to guide you.
-        </p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/register"
-            className="rounded-xl px-8 py-4 text-base font-semibold text-white"
-            style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-          >
-            Become a Member
-          </Link>
-          <Link
-            to="/contact"
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-8 py-4 text-base font-semibold text-gray-800 dark:text-gray-200"
-          >
-            Contact Us
-          </Link>
-        </div>
-      </section>
+    <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
+      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]"><div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" /><div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><p className="afro-kicker text-[#F7D674]">Our services</p><h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[0.98] sm:text-6xl lg:text-8xl">Finance that makes <span className="text-[#F7B733]">cooperation stronger.</span></h1><p className="mt-7 max-w-2xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">Digital financial services built for associations, clubs, NGOs, and the communities they serve.</p></div></section>
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><div className="grid gap-5 md:grid-cols-2">{site.services.map((service, index) => { const icons = [Landmark, ShieldCheck, LineChart, Building2]; const Icon = icons[index] || UsersRound; return <article key={service.title} className="group relative overflow-hidden rounded-[1.8rem] bg-white p-8 shadow-[0_16px_40px_rgba(79,43,17,0.08)] transition duration-300 hover:-translate-y-1 sm:p-10"><div className="absolute inset-x-0 top-0 h-2" style={{ backgroundColor: ['#C85B23', '#176B5B', '#D49728', '#7F3F2A'][index] }} /><div className="flex items-start justify-between gap-6"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E8F0E5] text-[#176B5B]"><Icon size={28} /></span><span className="font-serif text-5xl font-bold text-[#D8C9A9]/60">0{index + 1}</span></div><h2 className="mt-8 font-serif text-3xl font-bold text-[#2C1B13]">{service.title}</h2><p className="mt-4 leading-relaxed text-[#6B5245]">{service.description}</p><ul className="mt-7 space-y-3 border-t border-[#E8DDC4] pt-6">{(details[service.title] ?? []).map((detail) => <li key={detail} className="flex items-start gap-3 text-sm text-[#6B5245]"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#C85B23]" />{detail}</li>)}</ul></article> })}</div></section>
+      <section className="bg-[#176B5B] px-4 py-20 text-center text-[#FFF9EF] sm:px-6 lg:px-8 lg:py-24"><p className="text-sm font-bold uppercase tracking-[0.16em] text-[#F7D674]">Built for the movement</p><h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl font-bold sm:text-6xl">The right service starts with the right conversation.</h2><Link to="/contact" className="mt-9 inline-flex items-center gap-2 rounded-full bg-[#F7B733] px-8 py-4 font-bold text-[#28170E]">Talk to FENAC <ArrowRight size={18} /></Link></section>
     </div>
   )
 }

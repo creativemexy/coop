@@ -18,10 +18,10 @@ export const site = {
   heroImageAlt: 'Members of the cooperative working together',
 
   // Contact details — replace with real values
-  email: 'hello@coop-bnpl.com',
+  email: 'hello@fenacoop.org',
   phone: '+234 800 000 0000',
   whatsapp: '+234 800 000 0000',
-  address: '12 Unity Avenue, Ikeja, Lagos, Nigeria',
+  address: 'Plot 7, Nyala Close, Wuse, Zone 6, Abuja, Nigeria',
   hours: 'Mon – Fri, 8:00am – 5:00pm WAT',
   social: {
     facebook: '#',

@@ -1,124 +1,12 @@
+import { Clock3, Mail, MapPin, MessageCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { site } from './site.config'
 
 export default function Contact() {
   return (
-    <div>
-      <section className="bg-gray-50 dark:bg-gray-900/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Contact Us</h1>
-          <p className="mt-3 max-w-2xl text-gray-600 dark:text-gray-400 text-lg">
-            We would love to hear from you. Reach out with questions, partnership ideas, or feedback
-            about your membership.
-          </p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid gap-10 lg:grid-cols-2">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Get in Touch</h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <span className="mt-1 text-xl">📧</span>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Email</div>
-                  <a href={`mailto:${site.email}`} className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
-                    {site.email}
-                  </a>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="mt-1 text-xl">📞</span>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Phone</div>
-                  <a href={`tel:${site.phone.replace(/[^+\d]/g, '')}`} className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
-                    {site.phone}
-                  </a>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="mt-1 text-xl">📍</span>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Address</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{site.address}</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <span className="mt-1 text-xl">🕘</span>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Hours</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{site.hours}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Send us a message</h2>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Your name</label>
-                <input
-                  id="contact-name"
-                  name="contact-name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  className="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary,#2563eb)]"
-                  placeholder="Jane Doe"
-                />
-              </div>
-              <div>
-                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input
-                  id="contact-email"
-                  name="contact-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary,#2563eb)]"
-                  placeholder="jane@example.com"
-                />
-              </div>
-              <div>
-                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
-                <textarea
-                  id="contact-message"
-                  name="contact-message"
-                  rows={5}
-                  required
-                  className="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary,#2563eb)]"
-                  placeholder="How can we help?"
-                />
-              </div>
-              <div className="flex items-start gap-2">
-                <input
-                  id="contact-consent"
-                  type="checkbox"
-                  required
-                  className="mt-1 rounded border-gray-300 dark:border-gray-700 text-[var(--brand-primary,#2563eb)] focus:ring-[var(--brand-primary,#2563eb)]"
-                />
-                <label htmlFor="contact-consent" className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  I consent to {site.name} using my name, email and message solely to respond to this enquiry.
-                  We only keep what is needed to answer you and delete it when no longer required.{' '}
-                  <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>.
-                </label>
-              </div>
-              <button
-                type="submit"
-                className="w-full rounded-xl py-4 text-base font-semibold text-white focus-visible:outline-2"
-                style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-              >
-                Send Message
-              </button>
-            </div>
-          </form>
-        </div>
-      </section>
+    <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
+      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]"><div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" /><div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><p className="afro-kicker text-[#F7D674]">Let&apos;s talk</p><h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[0.98] sm:text-6xl lg:text-8xl">Bring your organization&apos;s <span className="text-[#F7B733]">next chapter.</span></h1><p className="mt-7 max-w-2xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">Whether you are exploring membership, partnership, or a digital financial service, the FENAC team is ready to listen.</p></div></section>
+      <section className="mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[.8fr_1.2fr] lg:px-8 lg:py-28"><div><p className="afro-kicker">Contact FENAC</p><h2 className="mt-4 font-serif text-4xl font-bold text-[#2C1B13] sm:text-5xl">A real conversation starts here.</h2><div className="mt-10 space-y-6"><div className="flex gap-4"><Mail className="mt-1 text-[#C85B23]" /><div><p className="font-bold text-[#2C1B13]">Email</p><a href={`mailto:${site.email}`} className="text-[#6B5245] hover:text-[#176B5B]">{site.email}</a></div></div><div className="flex gap-4"><MapPin className="mt-1 text-[#C85B23]" /><div><p className="font-bold text-[#2C1B13]">Office</p><p className="text-[#6B5245]">{site.address}</p></div></div><div className="flex gap-4"><Clock3 className="mt-1 text-[#C85B23]" /><div><p className="font-bold text-[#2C1B13]">Office hours</p><p className="text-[#6B5245]">{site.hours}</p></div></div></div><div className="mt-10 border-l-2 border-[#176B5B] pl-5 text-sm leading-relaxed text-[#6B5245]">We welcome member organizations, development partners, and communities looking for a stronger cooperative future.</div></div><form onSubmit={(e) => e.preventDefault()} className="rounded-[1.8rem] bg-white p-8 shadow-[0_16px_40px_rgba(79,43,17,0.1)] sm:p-10"><div className="flex items-center gap-3"><MessageCircle className="text-[#176B5B]" /><h2 className="font-serif text-2xl font-bold text-[#2C1B13]">Send us a message</h2></div><div className="mt-7 space-y-4"><label className="block text-sm font-medium text-[#2C1B13]">Your name<input name="contact-name" type="text" autoComplete="name" required className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]" placeholder="Your name" /></label><label className="block text-sm font-medium text-[#2C1B13]">Email<input name="contact-email" type="email" autoComplete="email" required className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]" placeholder="you@example.com" /></label><label className="block text-sm font-medium text-[#2C1B13]">Message<textarea name="contact-message" rows={5} required className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]" placeholder="How can we help?" /></label><div className="flex items-start gap-2"><input id="contact-consent" type="checkbox" required className="mt-1 rounded border-[#D8C9A9] text-[#176B5B] focus:ring-[#176B5B]" /><label htmlFor="contact-consent" className="text-sm leading-relaxed text-[#6B5245]">I consent to {site.name} using my details solely to respond to this enquiry. <Link to="/privacy" className="text-[#176B5B] hover:underline">Privacy Policy</Link>.</label></div><button type="submit" className="w-full rounded-full bg-[#176B5B] py-4 text-base font-semibold text-white hover:bg-[#0F594B]">Send Message</button></div></form></section>
     </div>
   )
 }

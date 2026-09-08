@@ -1,82 +1,29 @@
+import { ArrowRight, BadgeCheck, FileCheck2, Handshake, Landmark, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useBranding } from '../../stores/branding.store'
 
 const benefits = [
-  { title: 'Shared Ownership', description: 'Your membership gives you a voice and a stake in the cooperative.' },
-  { title: 'Access to BNPL', description: 'Shop now and pay in installments, backed by your savings record.' },
-  { title: 'Competitive Savings', description: 'Grow your savings with fair, transparent interest.' },
-  { title: 'Member Loans', description: 'Borrow at member-friendly rates when you need a hand.' },
-  { title: 'Investment Access', description: 'Invest in curated cooperative-backed opportunities.' },
-  { title: 'Community Support', description: 'Join a community that reinvests in its own members.' },
+  { title: 'Shared representation', description: 'Bring your association’s voice into a federation built for collective influence.', icon: UsersRound },
+  { title: 'Digital financial access', description: 'Use practical tools and services designed around organized members.', icon: Landmark },
+  { title: 'Capacity building', description: 'Strengthen institutional and technical capability for lasting impact.', icon: BadgeCheck },
+  { title: 'Collective opportunity', description: 'Access savings, investment, and financing pathways with clear terms.', icon: Handshake },
+  { title: 'A stronger network', description: 'Connect with like-minded associations, clubs, and NGOs.', icon: UsersRound },
+  { title: 'Member-first advocacy', description: 'Support a cooperative movement that works for its members.', icon: FileCheck2 },
 ]
 
 const steps = [
-  { step: '1', title: 'Create Your Account', description: 'Sign up in minutes with an email or phone number.' },
-  { step: '2', title: 'Pay the Registration Fee', description: 'A one-time fee activates your membership.' },
-  { step: '3', title: 'Complete KYC', description: 'Verify your identity quickly and securely.' },
-  { step: '4', title: 'Start Saving & Enjoying', description: 'Save, shop on credit, invest, and borrow.' },
+  { step: '1', title: 'Start a conversation', description: 'Tell us about your association, club, or NGO and its goals.' },
+  { step: '2', title: 'Submit your details', description: 'Share the organization information needed for federation review.' },
+  { step: '3', title: 'Complete verification', description: 'Confirm your organization and authorized representatives securely.' },
+  { step: '4', title: 'Grow with FENAC', description: 'Access shared services, representation, and capacity-building support.' },
 ]
 
 export default function Membership() {
-  const { branding } = useBranding()
   return (
-    <div>
-      <section className="bg-gray-50 dark:bg-gray-900/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Membership</h1>
-          <p className="mt-3 max-w-2xl text-gray-600 dark:text-gray-400 text-lg">
-            Joining {branding.organizationName} is simple. Membership is open to individuals 18 and older who share
-            our values of mutual support and responsible finance.
-          </p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center mb-10">Member Benefits</h2>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {benefits.map((b) => (
-            <div key={b.title} className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{b.title}</h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{b.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="bg-gray-50 dark:bg-gray-900/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center mb-10">How to Join</h2>
-          <div className="grid gap-6 md:grid-cols-4">
-            {steps.map((s) => (
-              <div key={s.step} className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-white text-lg font-bold"
-                  style={{ backgroundColor: 'var(--brand-primary, #2563eb)' }}
-                >
-                  {s.step}
-                </div>
-                <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">{s.title}</h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{s.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="rounded-3xl p-10 md:p-14 text-white text-center" style={{ background: 'linear-gradient(135deg, var(--brand-primary, #2563eb) 0%, var(--brand-accent, #7c3aed) 100%)' }}>
-          <h2 className="text-3xl font-bold">Membership is open now</h2>
-          <p className="mt-3 max-w-xl mx-auto text-white/85">
-            Start your journey with {branding.organizationName} today and unlock savings, credit, and community.
-          </p>
-          <Link
-            to="/register"
-            className="mt-8 inline-block rounded-xl bg-white px-10 py-4 text-base font-semibold text-gray-900 hover:bg-gray-50"
-          >
-            Become a Member
-          </Link>
-        </div>
-      </section>
+    <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
+      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]"><div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" /><div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><p className="afro-kicker text-[#F7D674]">Membership</p><h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[0.98] sm:text-6xl lg:text-8xl">Grow with a federation that <span className="text-[#F7B733]">moves together.</span></h1><p className="mt-7 max-w-2xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">FENAC membership is for associations, clubs, and NGOs ready to build institutional strength and lasting wealth together.</p></div></section>
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{benefits.map(({ title, description, icon: Icon }) => <article key={title} className="rounded-[1.6rem] border border-[#D8C9A9] bg-white/70 p-7"><Icon className="text-[#176B5B]" size={28} /><h2 className="mt-6 font-serif text-2xl font-bold text-[#2C1B13]">{title}</h2><p className="mt-3 text-sm leading-relaxed text-[#6B5245]">{description}</p></article>)}</div></section>
+      <section className="bg-[#F0DDAD] px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><div className="mx-auto max-w-7xl"><p className="afro-kicker">The path to membership</p><h2 className="mt-4 max-w-xl font-serif text-4xl font-bold text-[#2C1B13] sm:text-5xl">A clear beginning for collective progress.</h2><div className="mt-12 grid gap-5 md:grid-cols-4">{steps.map((step) => <article key={step.step} className="border-t-2 border-[#176B5B] pt-5"><span className="font-serif text-5xl font-bold text-[#C85B23]">{step.step}</span><h3 className="mt-5 font-bold text-[#2C1B13]">{step.title}</h3><p className="mt-3 text-sm leading-relaxed text-[#6B5245]">{step.description}</p></article>)}</div></div></section>
+      <section className="bg-[#176B5B] px-4 py-20 text-center text-[#FFF9EF] sm:px-6 lg:px-8 lg:py-24"><p className="text-sm font-bold uppercase tracking-[0.16em] text-[#F7D674]">Become a member organization</p><h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl font-bold sm:text-6xl">Your community belongs in the conversation.</h2><Link to="/contact" className="mt-9 inline-flex items-center gap-2 rounded-full bg-[#F7B733] px-8 py-4 font-bold text-[#28170E]">Start a conversation <ArrowRight size={18} /></Link></section>
     </div>
   )
 }
