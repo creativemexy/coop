@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { getErrorMessage } from '../../api/client';
 import { useBranding } from '../../hooks/useBranding';
+import { API_BASE_URL } from '../../constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -106,6 +107,10 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
   const login = useAuthStore((s) => s.login);
   const socialLogin = useAuthStore((s) => s.socialLogin);
   const branding = useBranding();
+  // The uploaded brand logo is served as a relative /uploads path from the API.
+  const logoUri = branding?.logoUrl
+    ? `${API_BASE_URL.replace(/\/$/, '')}${branding.logoUrl}`
+    : null;
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -217,11 +222,20 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
               isIOS ? styles.heroLogoGlass : styles.heroLogoM3,
               compact && styles.heroLogoCompact,
             ]}>
-              <Image
-                source={require('../../../assets/logo-circle.png')}
-                style={[styles.logo, compact && styles.logoCompact]}
-                resizeMode="contain"
-              />
+              {logoUri ? (
+                <Image
+                  source={{ uri: logoUri }}
+                  style={[styles.logo, compact && styles.logoCompact]}
+                  resizeMode="contain"
+                  accessibilityLabel={branding?.organizationName || 'Coop BNPL logo'}
+                />
+              ) : (
+                <View style={[styles.logo, styles.logoFallback, compact && styles.logoCompact]}>
+                  <Text style={[styles.logoFallbackText, compact && styles.logoFallbackTextCompact]}>
+                    {(branding?.organizationName || 'C').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text style={[styles.heroTitle, compact && styles.heroTitleCompact]}>
               {branding?.organizationName || 'Coop BNPL'}
@@ -395,6 +409,9 @@ const styles = StyleSheet.create({
   heroCompact: { marginBottom: 14 },
   logo: { width: 96, height: 96, borderRadius: 48 },
   logoCompact: { width: 72, height: 72, borderRadius: 36 },
+  logoFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#173F38' },
+  logoFallbackText: { color: '#FFF9EF', fontSize: 44, fontWeight: '800' },
+  logoFallbackTextCompact: { fontSize: 32 },
   heroLogoGlass: {
     width: 128,
     height: 128,

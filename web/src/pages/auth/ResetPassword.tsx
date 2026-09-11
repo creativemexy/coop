@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 import { api } from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -37,7 +38,7 @@ export function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+    <div className="relative flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
       <Card className="w-full max-w-sm">
         <h1 className="mb-6 text-2xl font-bold text-center dark:text-gray-100">Reset password</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,6 +57,9 @@ export function ResetPassword() {
           <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Back to sign in</Link>
         </p>
       </Card>
+      <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+        <DesignCredit />
+      </div>
     </div>
   )
 }

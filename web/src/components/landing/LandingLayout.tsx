@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { site, navLinks } from '../../pages/landing/site.config'
 import { useBranding } from '../../stores/branding.store'
+import { DesignCredit } from '../layout/DesignCredit'
 import { cn } from '../../lib/utils'
 
 function LandingHeader() {
@@ -17,13 +18,17 @@ function LandingHeader() {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+          <Link to="/" className="flex items-center" onClick={() => setOpen(false)} aria-label={`${site.name} — home`}>
             {branding.logoUrl ? (
-              <img src={branding.logoUrl} alt={site.name} className="h-9 w-9 rounded-lg object-cover" />
+              <img src={branding.logoUrl} alt={site.name} className="h-10 w-10 rounded-lg object-cover" />
             ) : (
-              <img src={site.logoPath} alt={site.name} className="h-9 w-9 rounded-lg object-cover" />
+              <span
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-lg font-bold text-[#FFF9EF]"
+                style={{ backgroundColor: '#176B5B' }}
+              >
+                {(site.name || 'C').charAt(0).toUpperCase()}
+              </span>
             )}
-            <span className="text-lg font-bold text-white">{site.name}</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -118,7 +123,12 @@ function LandingFooter() {
               {branding.logoUrl ? (
                 <img src={branding.logoUrl} alt={branding.organizationName} className="h-9 w-9 rounded-lg object-cover" />
               ) : (
-                <img src={site.logoPath} alt={branding.organizationName} className="h-9 w-9 rounded-lg object-cover" />
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-base font-bold text-[#FFF9EF]"
+                  style={{ backgroundColor: '#176B5B' }}
+                >
+                  {(branding.organizationName || 'C').charAt(0).toUpperCase()}
+                </span>
               )}
             <span className="text-lg font-bold text-white">{branding.organizationName}</span>
             </div>
@@ -185,8 +195,9 @@ function LandingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-gray-700 text-sm text-gray-300 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="mt-9 pt-6 border-t border-gray-700 text-sm text-gray-300 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
+          <DesignCredit onDark />
           <div className="flex gap-4">
             <Link to="/terms" className="hover:text-white">
               Terms &amp; Conditions

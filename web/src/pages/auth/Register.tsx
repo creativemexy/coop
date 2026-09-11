@@ -5,6 +5,7 @@ import { useAuth } from '../../stores/auth.store'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 import { termsSections } from './Terms'
 
 interface ApexOrg { id: string; name: string }
@@ -250,6 +251,9 @@ export function Register() {
           </div>
         )}
       </Card>
+      <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+        <DesignCredit onDark />
+      </div>
       <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }`}</style>
     </div>
   )

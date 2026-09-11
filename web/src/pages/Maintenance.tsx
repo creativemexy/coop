@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../stores/auth.store'
+import { DesignCredit } from '../components/layout/DesignCredit'
 
 export function Maintenance() {
   const { user } = useAuth()
@@ -17,7 +18,7 @@ export function Maintenance() {
           The platform is currently undergoing scheduled maintenance.
         </p>
         <p className="text-gray-500 dark:text-gray-400">
-          The super-admin dashboard remains available while other platform services are being updated.
+          Your savings and investments remain secure and protected. We are working to restore full access as soon as possible.
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <Link
@@ -33,6 +34,7 @@ export function Maintenance() {
             Go to Super Admin Dashboard
           </Link>}
         </div>
+        <DesignCredit className="mt-10 text-center" />
       </div>
     </div>
   )

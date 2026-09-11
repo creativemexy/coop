@@ -14,7 +14,7 @@ export default function About() {
           </div>
           <div className="border-l border-[#F7D674]/40 pl-6 lg:mb-2 lg:pl-8">
             <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#F8CE68]">Our identity</p>
-            <p className="mt-4 font-serif text-2xl leading-tight text-white">Forward Ever Apex Cooperative Society Ltd.</p>
+            <p className="mt-4 font-serif text-2xl leading-tight text-white">FENAC</p>
             <p className="mt-4 text-sm leading-relaxed text-[#FFF3D8]/75">An apex and umbrella cooperative serving member organizations across West Africa.</p>
           </div>
         </div>

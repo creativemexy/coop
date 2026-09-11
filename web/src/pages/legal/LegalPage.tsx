@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 
 /**
  * Shared accessible layout for legal documents (Privacy Policy, Cookie Policy).
@@ -74,6 +75,7 @@ export function LegalPage(opts: {
             <Link to="/" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">Back to Home</Link>
           </div>
         </article>
+        <DesignCredit className="mt-4 text-center" />
       </div>
     </div>
   )

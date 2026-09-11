@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Card, CardTitle } from '../../components/ui/card'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 
 export function PayRegistrationFee() {
   const location = useLocation()
@@ -38,7 +39,7 @@ export function PayRegistrationFee() {
 
   if (paid) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="relative flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <Card className="w-full max-w-sm text-center">
           <CardTitle className="text-green-600">Fee Paid</CardTitle>
           <p className="mt-4 text-gray-500">Your registration fee has been paid. You can now log in.</p>
@@ -46,12 +47,15 @@ export function PayRegistrationFee() {
             Go to Login
           </Button>
         </Card>
+        <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+          <DesignCredit />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+    <div className="relative flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
       <Card className="w-full max-w-sm">
         <h1 className="mb-2 text-2xl font-bold text-center dark:text-gray-100">Registration Fee</h1>
         <p className="text-center text-sm text-gray-500 mb-6">
@@ -73,6 +77,9 @@ export function PayRegistrationFee() {
           </Button>
         </div>
       </Card>
+      <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+        <DesignCredit />
+      </div>
     </div>
   )
 }

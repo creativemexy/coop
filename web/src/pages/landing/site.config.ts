@@ -11,7 +11,6 @@ export const site = {
   description:
     'A Digital Smart Cooperative Financial Institution strengthening associations and communities through shared ownership, smart technology, and collective strength.',
   logoEmoji: '🤝',
-  logoPath: '/logo.jpg',
 
   // Hero image — replace with your own photo/illustration (absolute path or URL)
   heroImage: '/hero-placeholder.svg',

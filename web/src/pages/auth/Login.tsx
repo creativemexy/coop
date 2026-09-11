@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../../stores/auth.store'
-import { useBranding, DEFAULT_LOGO } from '../../stores/branding.store'
+import { useBranding } from '../../stores/branding.store'
 import { api } from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 
 const ROLE_ROUTES: Record<string, string> = {
   apex_business_manager: '/apex-bm',
@@ -98,7 +99,12 @@ export function Login() {
           {branding.logoUrl ? (
             <img src={branding.logoUrl} alt={branding.organizationName} className="h-12 w-12 rounded-lg object-contain mb-2" />
           ) : (
-            <img src={DEFAULT_LOGO} alt={branding.organizationName} className="h-12 w-12 rounded-lg object-contain mb-2" />
+            <div
+              className="mb-2 flex h-12 w-12 items-center justify-center rounded-full text-xl font-bold text-white"
+              style={{ backgroundColor: branding.primaryColor }}
+            >
+              {(branding.organizationName || 'C').charAt(0).toUpperCase()}
+            </div>
           )}
           <h1 className="text-xl font-bold" style={{ color: branding.primaryColor }}>{branding.organizationName}</h1>
         </div>
@@ -184,6 +190,9 @@ export function Login() {
           <Link to="/cookies" className="hover:underline">Cookies</Link>
         </div>
       </Card>
+      <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+        <DesignCredit onDark />
+      </div>
     </div>
   )
 }

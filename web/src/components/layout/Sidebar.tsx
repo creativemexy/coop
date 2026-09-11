@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../stores/auth.store'
 import { useSidebar } from '../../stores/sidebar.store'
-import { useBranding, DEFAULT_LOGO } from '../../stores/branding.store'
+import { useBranding } from '../../stores/branding.store'
 import { useRolePermissions } from '../../stores/role-permissions.store'
 import { cn } from '../../lib/utils'
 
@@ -303,7 +303,12 @@ export function Sidebar() {
               {branding.logoUrl ? (
                 <img src={branding.logoUrl} alt={branding.organizationName} className="h-8 w-8 rounded object-contain" />
               ) : (
-                <img src={DEFAULT_LOGO} alt={branding.organizationName} className="h-8 w-8 rounded object-contain" />
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-white"
+                  style={{ backgroundColor: branding.primaryColor }}
+                >
+                  {(branding.organizationName || 'C').charAt(0).toUpperCase()}
+                </span>
               )}
               <span className="font-bold text-lg truncate" style={{ color: branding.primaryColor }}>{branding.organizationName}</span>
             </div>

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/ui/card'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 
 export const termsSections = [
   {
@@ -150,6 +151,7 @@ export function Terms() {
             </div>
           </div>
         </Card>
+        <DesignCredit className="mt-4 text-center" />
       </div>
     </div>
   )
