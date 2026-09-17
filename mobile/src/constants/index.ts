@@ -12,6 +12,8 @@ export const ENDPOINTS = {
     logout: `${API_PREFIX}/auth/logout`,
     me: `${API_PREFIX}/users/me`,
     socialExchange: `${API_PREFIX}/auth/social/exchange`,
+    forgotPassword: `${API_PREFIX}/auth/forgot-password`,
+    resetPassword: `${API_PREFIX}/auth/reset-password`,
   },
   users: {
     me: `${API_PREFIX}/users/me`,

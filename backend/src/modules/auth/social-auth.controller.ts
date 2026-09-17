@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Req, Res, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -21,7 +31,13 @@ export class SocialAuthController {
   @HttpCode(HttpStatus.OK)
   async socialExchange(
     @Req() req: Request,
-    @Body() dto: { provider: 'google' | 'apple'; idToken: string; firstName?: string; lastName?: string },
+    @Body()
+    dto: {
+      provider: 'google' | 'apple';
+      idToken: string;
+      firstName?: string;
+      lastName?: string;
+    },
   ) {
     const ip = req.ip || req.socket?.remoteAddress;
     const userAgent = req.headers['user-agent'] || '';
@@ -80,14 +96,17 @@ export class SocialAuthController {
     firstName: string;
     lastName: string;
   }) {
-    let user = await this.usersService.findBySocial(profile.provider, profile.socialId);
+    let user = await this.usersService.findBySocial(
+      profile.provider,
+      profile.socialId,
+    );
     if (!user && profile.email) {
       user = await this.usersService.findByEmail(profile.email);
       if (user) {
         await this.usersService.updateUser(user.id, {
           socialProvider: profile.provider,
           socialId: profile.socialId,
-        } as any);
+        });
       }
     }
     if (!user) {

@@ -27,6 +27,16 @@ import { MonitoringService } from '../../common/monitoring/monitoring.service';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { VirtualAccountsService } from '../first-virtual/virtual-accounts.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
+import { SmsService } from '../sms/sms.service';
+
+interface LoginDeviceInfo {
+  deviceFingerprint?: string;
+  deviceName?: string;
+  deviceType?: string;
+  os?: string;
+  browser?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -49,6 +59,8 @@ export class AuthService {
     private readonly monitoring: MonitoringService,
     private readonly virtualAccountService: VirtualAccountsService,
     private readonly notifications: NotificationsService,
+    private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
   ) {}
 
   async register(dto: {
@@ -250,11 +262,11 @@ export class AuthService {
   async login(
     emailOrPhone: string,
     password: string,
-    meta?: { ip?: string; userAgent?: string; deviceInfo?: any },
+    meta?: { ip?: string; userAgent?: string; deviceInfo?: LoginDeviceInfo },
   ): Promise<{
     user: Partial<User>;
-    accessToken: string;
-    refreshToken: string;
+    accessToken?: string;
+    refreshToken?: string;
     isNewDevice?: boolean;
     passwordChangeRequired?: boolean;
   }> {
@@ -371,7 +383,7 @@ export class AuthService {
           organizationId: user.organizationId,
         },
         passwordChangeRequired: true,
-      } as any;
+      };
     }
 
     const tokens = await this.generateTokens(user);
@@ -402,21 +414,11 @@ export class AuthService {
     await this.notifications.create({
       userId: user.id,
       title: 'New sign-in',
-      message: `You signed in successfully${(meta as any)?.deviceInfo?.deviceName ? ` from ${(meta as any).deviceInfo.deviceName}` : ''}.`,
+      message: `You signed in successfully${meta?.deviceInfo?.deviceName ? ` from ${meta.deviceInfo.deviceName}` : ''}.`,
       type: 'success',
     });
 
-    const deviceInfo = (
-      meta as {
-        deviceInfo?: {
-          deviceFingerprint?: string;
-          deviceName?: string;
-          deviceType?: string;
-          os?: string;
-          browser?: string;
-        };
-      }
-    )?.deviceInfo;
+    const deviceInfo = meta?.deviceInfo;
     let isNewDevice = false;
     if (deviceInfo?.deviceFingerprint) {
       const deviceResult = await this.deviceSessionService.checkDevice(
@@ -573,7 +575,8 @@ export class AuthService {
     await this.notifications.create({
       userId: user.id,
       title: 'Password set',
-      message: 'Your password was set successfully. Please sign in with your new password.',
+      message:
+        'Your password was set successfully. Please sign in with your new password.',
       type: 'success',
     });
 
@@ -612,18 +615,11 @@ export class AuthService {
   }
 
   async forgotPassword(
-    email: string,
+    emailOrPhone: string,
   ): Promise<{ message: string; token?: string }> {
-    let user = await this.userRepository.findOne({
-      where: { emailHash: hashForLookup(email) },
-    });
+    const user = await this.findUserByIdentifier(emailOrPhone);
     if (!user) {
-      const all = await this.userRepository.find();
-      user =
-        all.find((u) => u.email?.toLowerCase() === email.toLowerCase()) ?? null;
-    }
-    if (!user) {
-      return { message: 'If that email exists, a reset code has been sent' };
+      return { message: 'If that account exists, a reset code has been sent' };
     }
 
     const token = crypto.randomBytes(3).toString('hex').toUpperCase();
@@ -634,25 +630,104 @@ export class AuthService {
       resetTokenExpiry: expiry,
     });
 
+    await this.deliverResetCode(user, token);
+
+    // Development convenience only — never return the code over the API in production.
     return {
-      message: 'If that email exists, a reset code has been sent',
-      token,
+      message: 'If that account exists, a reset code has been sent',
+      ...(process.env.NODE_ENV === 'production' ? {} : { token }),
     };
   }
 
+  /**
+   * Locate an account by the identifier members actually sign in with —
+   * either email or phone (some members register with only a phone number).
+   */
+  private async findUserByIdentifier(
+    emailOrPhone: string,
+  ): Promise<User | null> {
+    const raw = (emailOrPhone || '').trim();
+    if (!raw) return null;
+
+    const email = raw.includes('@') ? raw.toLowerCase() : null;
+    const phone = email ? null : normalizePhoneForSms(raw);
+
+    if (email) {
+      const byHash = await this.userRepository.findOne({
+        where: { emailHash: hashForLookup(email) },
+      });
+      if (byHash) return byHash;
+    }
+    if (phone) {
+      const byHash = await this.userRepository.findOne({
+        where: { phoneHash: hashForLookup(phone) },
+      });
+      if (byHash) return byHash;
+    }
+
+    // Fallback for accounts created before encrypted hashes were backfilled.
+    const all = await this.userRepository.find();
+    if (email) {
+      return all.find((u) => u.email?.toLowerCase() === email) ?? null;
+    }
+    if (phone) {
+      const normalized = normalizePhoneForSms(phone);
+      return (
+        all.find(
+          (u) => u.phone && normalizePhoneForSms(u.phone) === normalized,
+        ) ?? null
+      );
+    }
+    return null;
+  }
+
+  /**
+   * Send the reset code to the member's registered email and/or phone.
+   * Uses the platform's email/SMS providers, which fall back to stub logging
+   * when credentials are not configured (see EmailService / SmsService).
+   */
+  private async deliverResetCode(user: User, token: string): Promise<void> {
+    // Members who registered with only a phone get a synthetic @coop.local
+    // email — never deliver the code to that placeholder address.
+    const hasRealEmail =
+      Boolean(user.email) &&
+      user.email.includes('@') &&
+      !user.email.endsWith('@coop.local');
+    const hasPhone = Boolean(user.phone);
+    if (!hasRealEmail && !hasPhone) return;
+
+    const appName = 'Coop BNPL';
+    const text =
+      `Your ${appName} password reset code is ${token}. ` +
+      'It expires in 15 minutes. If you did not request this, please ignore this message.';
+
+    try {
+      if (hasRealEmail && user.email) {
+        await this.emailService.send({
+          to: user.email,
+          subject: 'Your password reset code',
+          text,
+        });
+      }
+    } catch (e) {
+      this.logger.error('Failed to send password reset email', e as Error);
+    }
+
+    try {
+      if (hasPhone && user.phone) {
+        await this.smsService.send(user.phone, text, 'password_reset');
+      }
+    } catch (e) {
+      this.logger.error('Failed to send password reset SMS', e as Error);
+    }
+  }
+
   async resetPassword(
-    email: string,
+    emailOrPhone: string,
     token: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    let user = await this.userRepository.findOne({
-      where: { emailHash: hashForLookup(email) },
-    });
-    if (!user) {
-      const all = await this.userRepository.find();
-      user =
-        all.find((u) => u.email?.toLowerCase() === email.toLowerCase()) ?? null;
-    }
+    const user = await this.findUserByIdentifier(emailOrPhone);
     if (
       !user ||
       !user.resetToken ||
@@ -758,11 +833,9 @@ export class AuthService {
       metadata: { provider },
     });
 
-    if (typeof (this.activityService as any).log === 'function') {
-      await this.activityService
-        .log(user.id, `social_login_${provider}`, { provider }, meta?.ip)
-        .catch(() => {});
-    }
+    await this.activityService
+      .log(user.id, `social_login_${provider}`, { provider }, meta?.ip)
+      .catch(() => {});
 
     return {
       user: {

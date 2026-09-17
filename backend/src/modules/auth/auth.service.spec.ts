@@ -124,9 +124,9 @@ describe('AuthService', () => {
   describe('login', () => {
     it('should throw if credentials are invalid', async () => {
       userRepo.findOne.mockResolvedValue(null);
-      await expect(
-        service.login('test@test.com', 'wrong'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.login('test@test.com', 'wrong')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should login with phone number', async () => {

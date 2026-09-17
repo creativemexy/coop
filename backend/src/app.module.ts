@@ -1,6 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import { DbThrottleStorage } from './common/throttler/db-throttle-storage';
@@ -63,6 +64,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 import { FirstVirtualModule } from './modules/first-virtual/first-virtual.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { ContactModule } from './modules/contact/contact.module';
 
 // Entities
 import { ApexOrganization } from './modules/apex-organizations/entities/apex-organization.entity';
@@ -262,6 +264,7 @@ const entities = [
     PaymentMethodsModule,
     FirstVirtualModule,
     RealtimeModule,
+    ContactModule,
     RetentionModule,
     RiskModule,
     MonitoringModule,

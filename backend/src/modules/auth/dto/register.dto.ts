@@ -5,32 +5,38 @@ import {
   Matches,
   IsOptional,
   ValidateIf,
-} from 'class-validator'
+} from 'class-validator';
 
 export class RegisterDto {
   @ValidateIf(() => true)
   @IsOptional()
   @IsEmail({}, { message: 'Email must be a valid email address' })
-  email?: string
+  email?: string;
 
   @IsString()
   @MinLength(8)
-  @Matches(/(?=.*[A-Z])/, { message: 'Password must contain at least one uppercase letter' })
-  @Matches(/(?=.*[0-9])/, { message: 'Password must contain at least one number' })
-  @Matches(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, { message: 'Password must contain at least one special character' })
-  password: string
+  @Matches(/(?=.*[A-Z])/, {
+    message: 'Password must contain at least one uppercase letter',
+  })
+  @Matches(/(?=.*[0-9])/, {
+    message: 'Password must contain at least one number',
+  })
+  @Matches(/(?=.*[!@#$%^&*()_+\-=\x5b\]{};':"\\|,.<>\x2f?`~])/, {
+    message: 'Password must contain at least one special character',
+  })
+  password: string;
 
   @IsString()
-  firstName: string
+  firstName: string;
 
   @IsString()
-  lastName: string
+  lastName: string;
 
   @IsOptional()
   @IsString()
-  phone?: string
+  phone?: string;
 
   @IsOptional()
   @IsString()
-  organizationCode?: string
+  organizationCode?: string;
 }

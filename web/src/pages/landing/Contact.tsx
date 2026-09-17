@@ -1,12 +1,173 @@
+import { useState } from 'react'
 import { Clock3, Mail, MapPin, MessageCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { api } from '../../api/client'
 import { site } from './site.config'
 
 export default function Contact() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!consent) {
+      setStatus('error')
+      setError('Please tick the consent box so we can reply to your message.')
+      return
+    }
+    setStatus('sending')
+    setError('')
+    try {
+      await api.post('/contact', { name, email, message, consent })
+      setStatus('sent')
+    } catch (err: unknown) {
+      setStatus('error')
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+      setError(
+        Array.isArray(msg)
+          ? msg.join(' ')
+          : msg || 'Sorry, your message could not be sent. Please try again.',
+      )
+    }
+  }
+
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
-      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]"><div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" /><div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><p className="afro-kicker text-[#F7D674]">Let&apos;s talk</p><h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[0.98] sm:text-6xl lg:text-8xl">Bring your organization&apos;s <span className="text-[#F7B733]">next chapter.</span></h1><p className="mt-7 max-w-2xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">Whether you are exploring membership, partnership, or a digital financial service, the FENAC team is ready to listen.</p></div></section>
-      <section className="mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[.8fr_1.2fr] lg:px-8 lg:py-28"><div><p className="afro-kicker">Contact FENAC</p><h2 className="mt-4 font-serif text-4xl font-bold text-[#2C1B13] sm:text-5xl">A real conversation starts here.</h2><div className="mt-10 space-y-6"><div className="flex gap-4"><Mail className="mt-1 text-[#C85B23]" /><div><p className="font-bold text-[#2C1B13]">Email</p><a href={`mailto:${site.email}`} className="text-[#6B5245] hover:text-[#176B5B]">{site.email}</a></div></div><div className="flex gap-4"><MapPin className="mt-1 text-[#C85B23]" /><div><p className="font-bold text-[#2C1B13]">Office</p><p className="text-[#6B5245]">{site.address}</p></div></div><div className="flex gap-4"><Clock3 className="mt-1 text-[#C85B23]" /><div><p className="font-bold text-[#2C1B13]">Office hours</p><p className="text-[#6B5245]">{site.hours}</p></div></div></div><div className="mt-10 border-l-2 border-[#176B5B] pl-5 text-sm leading-relaxed text-[#6B5245]">We welcome member organizations, development partners, and communities looking for a stronger cooperative future.</div></div><form onSubmit={(e) => e.preventDefault()} className="rounded-[1.8rem] bg-white p-8 shadow-[0_16px_40px_rgba(79,43,17,0.1)] sm:p-10"><div className="flex items-center gap-3"><MessageCircle className="text-[#176B5B]" /><h2 className="font-serif text-2xl font-bold text-[#2C1B13]">Send us a message</h2></div><div className="mt-7 space-y-4"><label className="block text-sm font-medium text-[#2C1B13]">Your name<input name="contact-name" type="text" autoComplete="name" required className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]" placeholder="Your name" /></label><label className="block text-sm font-medium text-[#2C1B13]">Email<input name="contact-email" type="email" autoComplete="email" required className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]" placeholder="you@example.com" /></label><label className="block text-sm font-medium text-[#2C1B13]">Message<textarea name="contact-message" rows={5} required className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]" placeholder="How can we help?" /></label><div className="flex items-start gap-2"><input id="contact-consent" type="checkbox" required className="mt-1 rounded border-[#D8C9A9] text-[#176B5B] focus:ring-[#176B5B]" /><label htmlFor="contact-consent" className="text-sm leading-relaxed text-[#6B5245]">I consent to {site.name} using my details solely to respond to this enquiry. <Link to="/privacy" className="text-[#176B5B] hover:underline">Privacy Policy</Link>.</label></div><button type="submit" className="w-full rounded-full bg-[#176B5B] py-4 text-base font-semibold text-white hover:bg-[#0F594B]">Send Message</button></div></form></section>
+      <section className="afro-hero relative isolate overflow-hidden text-[#FFF9EF]">
+        <div className="afro-pattern absolute inset-0 opacity-20" aria-hidden="true" />
+        <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+          <p className="afro-kicker text-[#F7D674]">Let&apos;s talk</p>
+          <h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[0.98] sm:text-6xl lg:text-8xl">
+            Bring your organization&apos;s <span className="text-[#F7B733]">next chapter.</span>
+          </h1>
+          <p className="mt-7 max-w-2xl text-lg leading-relaxed text-[#FFF3D8]/85 sm:text-xl">
+            Whether you are exploring membership, partnership, or a digital financial service,
+            the FENAC team is ready to listen.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[.8fr_1.2fr] lg:px-8 lg:py-28">
+        <div>
+          <p className="afro-kicker">Contact FENAC</p>
+          <h2 className="mt-4 font-serif text-4xl font-bold text-[#2C1B13] sm:text-5xl">A real conversation starts here.</h2>
+
+          <div className="mt-10 space-y-6">
+            <div className="flex gap-4">
+              <Mail className="mt-1 text-[#C85B23]" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-[#2C1B13]">Email</p>
+                <a href={`mailto:${site.email}`} className="text-[#6B5245] hover:text-[#176B5B]">{site.email}</a>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <MapPin className="mt-1 text-[#C85B23]" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-[#2C1B13]">Office</p>
+                <p className="text-[#6B5245]">{site.address}</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Clock3 className="mt-1 text-[#C85B23]" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-[#2C1B13]">Office hours</p>
+                <p className="text-[#6B5245]">{site.hours}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 border-l-2 border-[#176B5B] pl-5 text-sm leading-relaxed text-[#6B5245]">
+            We welcome member organizations, development partners, and communities looking for a stronger cooperative future.
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="rounded-[1.8rem] bg-white p-8 shadow-[0_16px_40px_rgba(79,43,17,0.1)] sm:p-10">
+          <div className="flex items-center gap-3">
+            <MessageCircle className="text-[#176B5B]" aria-hidden="true" />
+            <h2 className="font-serif text-2xl font-bold text-[#2C1B13]">Send us a message</h2>
+          </div>
+
+          {status === 'sent' ? (
+            <div role="status" className="mt-7 rounded-xl border border-[#176B5B]/25 bg-[#E8F3EA] p-6">
+              <p className="font-bold text-[#176B5B]">Thank you — your message is on its way.</p>
+              <p className="mt-2 text-sm text-[#2C1B13]">
+                We aim to reply to enquiries within one working day. A copy of your message has
+                been delivered to {site.email}.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-7 space-y-4">
+              <label className="block text-sm font-medium text-[#2C1B13]">
+                Your name
+                <input
+                  name="contact-name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]"
+                  placeholder="Your name"
+                />
+              </label>
+              <label className="block text-sm font-medium text-[#2C1B13]">
+                Email
+                <input
+                  name="contact-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]"
+                  placeholder="you@example.com"
+                />
+              </label>
+              <label className="block text-sm font-medium text-[#2C1B13]">
+                Message
+                <textarea
+                  name="contact-message"
+                  rows={5}
+                  required
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#176B5B]"
+                  placeholder="How can we help?"
+                />
+              </label>
+              <div className="flex items-start gap-2">
+                <input
+                  id="contact-consent"
+                  type="checkbox"
+                  required
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-1 rounded border border-[#D8C9A9] text-[#176B5B] focus:ring-[#176B5B]"
+                />
+                <label htmlFor="contact-consent" className="text-sm leading-relaxed text-[#6B5245]">
+                  I consent to {site.name} using my details solely to respond to this enquiry.{' '}
+                  <Link to="/privacy" className="text-[#176B5B] hover:underline">Privacy Policy</Link>.
+                </label>
+              </div>
+
+              {status === 'error' && error && (
+                <p role="alert" className="text-sm text-[#B42318]">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={status === 'sending'}
+                className="w-full rounded-full bg-[#176B5B] py-4 text-base font-semibold text-white hover:bg-[#0F594B] disabled:opacity-70 disabled:pointer-events-none"
+              >
+                {status === 'sending' ? 'Sending...' : 'Send Message'}
+              </button>
+            </div>
+          )}
+        </form>
+      </section>
     </div>
   )
 }

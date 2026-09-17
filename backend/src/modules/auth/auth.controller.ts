@@ -88,7 +88,7 @@ export class AuthController {
   @SkipCsrf()
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(dto.email);
+    return this.authService.forgotPassword(dto.emailOrPhone);
   }
 
   @Post('reset-password')
@@ -96,7 +96,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(
-      dto.email,
+      dto.emailOrPhone,
       dto.token,
       dto.newPassword,
     );

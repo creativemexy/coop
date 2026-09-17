@@ -1,6 +1,10 @@
-import { IsEmail } from 'class-validator'
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class ForgotPasswordDto {
-  @IsEmail()
-  email: string
+  /**
+   * Email or phone number — members may register with either identifier.
+   */
+  @IsString()
+  @IsNotEmpty({ message: 'Email or phone number is required' })
+  emailOrPhone: string;
 }

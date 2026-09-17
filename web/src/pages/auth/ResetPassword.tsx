@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
 
 export function ResetPassword() {
-  const [email, setEmail] = useState('')
+  const [emailOrPhone, setEmailOrPhone] = useState('')
   const [token, setToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -18,7 +18,7 @@ export function ResetPassword() {
     e.preventDefault()
     setError('')
     try {
-      await api.post('/auth/reset-password', { email, token, newPassword })
+      await api.post('/auth/reset-password', { emailOrPhone, token, newPassword })
       setDone(true)
     } catch {
       setError('Invalid or expired reset code')
@@ -42,7 +42,7 @@ export function ResetPassword() {
       <Card className="w-full max-w-sm">
         <h1 className="mb-6 text-2xl font-bold text-center dark:text-gray-100">Reset password</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input id="emailOrPhone" label="Email or phone" type="text" value={emailOrPhone} onChange={(e) => setEmailOrPhone(e.target.value)} autoComplete="email" required />
           <Input id="token" label="Reset code" value={token} onChange={(e) => setToken(e.target.value)} required placeholder="e.g. A1B2C3" />
           <div className="relative">
             <Input id="newPassword" label="New password" type={showPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />

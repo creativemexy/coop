@@ -2,7 +2,6 @@
   "compilerOptions": {
     "allowJs": true,
     "esModuleInterop": true,
-    "ignoreDeprecations": "5.0",
     "jsx": "react-native",
     "lib": [
       "DOM",
@@ -15,10 +14,9 @@
     "skipLibCheck": true,
     "target": "ESNext",
     "strict": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     }
   },

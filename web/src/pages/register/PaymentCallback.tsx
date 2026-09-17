@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { Card, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 
 export function PaymentCallback() {
   const [searchParams] = useSearchParams()
@@ -31,7 +32,7 @@ export function PaymentCallback() {
   }, [searchParams])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+    <div className="relative flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
       <Card className="w-full max-w-sm text-center">
         {status === 'verifying' && (
           <>
@@ -58,6 +59,9 @@ export function PaymentCallback() {
           </>
         )}
       </Card>
+      <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+        <DesignCredit />
+      </div>
     </div>
   )
 }

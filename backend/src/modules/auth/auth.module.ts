@@ -19,6 +19,7 @@ import { UsersModule } from '../users/users.module';
 import { RetentionModule } from '../../common/retention.module';
 import { FirstVirtualModule } from '../first-virtual/first-virtual.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SmsModule } from '../sms/sms.module';
 
 @Module({
   imports: [
@@ -35,7 +36,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
         secret:
-          configService.get<string>('jwt.accessSecret') || 'default-access-secret',
+          configService.get<string>('jwt.accessSecret') ||
+          'default-access-secret',
         signOptions: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           expiresIn: (configService.get<string>('jwt.accessExpiry') ||
@@ -47,6 +49,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     RetentionModule,
     FirstVirtualModule,
     NotificationsModule,
+    SmsModule,
   ],
   controllers: [AuthController, SocialAuthController, RegistrationsController],
   providers: [AuthService, DeviceSessionService, JwtStrategy, GoogleStrategy],

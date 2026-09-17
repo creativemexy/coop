@@ -11,6 +11,7 @@ import { ENDPOINTS } from '../../constants';
 import { useAuthStore } from '../../store/authStore';
 import { useConsent } from '../../store/consentStore';
 import { colors, layout } from '../../ui/theme';
+import DesignCredit from '../../ui/DesignCredit';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type MenuLink = { label: string; description: string; screen: string; icon: IconName };
@@ -184,6 +185,10 @@ export default function ProfileScreen() {
           <Text style={[styles.logoutText, isIOS && styles.logoutTextGlass]}>Log out</Text>
         </TouchableOpacity>
 
+        <View style={styles.creditWrap}>
+          <DesignCredit light />
+        </View>
+
         <Modal visible={showPassword} transparent animationType="slide" onRequestClose={() => setShowPassword(false)}>
           {modalShell(
             <>
@@ -310,6 +315,7 @@ const styles = StyleSheet.create({
   logoutButtonGlass: { backgroundColor: 'rgba(248,113,113,0.14)', borderColor: 'rgba(248,113,113,0.35)' },
   logoutText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
   logoutTextGlass: { color: '#FCA5A5' },
+  creditWrap: { alignItems: 'center', marginTop: 18, marginBottom: 8, paddingHorizontal: layout.pagePadding },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(2, 20, 35, 0.55)' },
   modalGlass: {
     borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40,

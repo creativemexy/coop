@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../stores/auth.store'
+import { DesignCredit } from '../../components/layout/DesignCredit'
 
 const ROLE_ROUTES: Record<string, string> = {
   apex_business_manager: '/apex-bm',
@@ -29,8 +30,11 @@ export function SocialCallback() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
-      <p className="text-gray-500">Completing sign in...</p>
+    <div className="relative flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div>
+        <p className="text-gray-500">Completing sign in...</p>
+        <DesignCredit className="mt-6 text-center" />
+      </div>
     </div>
   )
 }

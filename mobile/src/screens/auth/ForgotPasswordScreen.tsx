@@ -9,28 +9,60 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
-import client from '../../api/client';
+import client, { getErrorMessage } from '../../api/client';
 import { ENDPOINTS } from '../../constants';
+import DesignCredit from '../../ui/DesignCredit';
 
 export default function ForgotPasswordScreen({ navigation }: { navigation: any }) {
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleReset = async () => {
-    if (!email) {
-      Alert.alert('Error', 'Please enter your email');
+  const sendCode = async () => {
+    if (!emailOrPhone.trim()) {
+      setError('Enter your email or phone number.');
       return;
     }
+    setError('');
     setLoading(true);
     try {
-      // Stub: In production, call backend forgot-password endpoint
-      await new Promise((r) => setTimeout(r, 1000));
-      setSent(true);
-      Alert.alert('Success', 'Password reset link sent to your email');
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to send reset email');
+      await client.post(ENDPOINTS.auth.forgotPassword, {
+        emailOrPhone: emailOrPhone.trim(),
+      });
+      setStep(2);
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Could not send the reset code. Try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!token.trim()) {
+      setError('Enter the reset code you received.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await client.post(ENDPOINTS.auth.resetPassword, {
+        emailOrPhone: emailOrPhone.trim(),
+        token: token.trim(),
+        newPassword,
+      });
+      setStep(3);
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Invalid or expired reset code.'));
     } finally {
       setLoading(false);
     }
@@ -41,43 +73,81 @@ export default function ForgotPasswordScreen({ navigation }: { navigation: any }
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Reset Password</Text>
         <Text style={styles.subtitle}>
-          {sent
-            ? 'Check your email for the reset link'
-            : 'Enter your email and we\'ll send you a reset link'}
+          {step === 1 && 'Enter the email or phone number on your account and we\'ll send you a reset code.'}
+          {step === 2 && `Enter the reset code sent to ${emailOrPhone}.`}
+          {step === 3 && 'Your password has been reset.'}
         </Text>
 
-        {!sent && (
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        {step === 1 && (
           <>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Email or phone"
               placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              value={emailOrPhone}
+              onChangeText={setEmailOrPhone}
               autoCapitalize="none"
+              autoComplete="email"
             />
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleReset}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Send Reset Link</Text>
-              )}
+            <TouchableOpacity style={styles.button} onPress={sendCode} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send Reset Code</Text>}
             </TouchableOpacity>
           </>
         )}
 
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>Back to Login</Text>
-        </TouchableOpacity>
-      </View>
+        {step === 2 && (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Reset code"
+              placeholderTextColor="#999"
+              value={token}
+              onChangeText={setToken}
+              autoCapitalize="characters"
+            />
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={[styles.input, { marginBottom: 0, paddingRight: 64 }]}
+                placeholder="New password (8+ characters)"
+                placeholderTextColor="#999"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                style={styles.showBtn}
+                onPress={() => setShowPassword((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <Text style={styles.showBtnText}>{showPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.button} onPress={resetPassword} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Reset Password</Text>}
+            </TouchableOpacity>
+          </>
+        )}
+
+        {step === 3 && (
+          <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
+            <Text style={styles.buttonText}>Back to Login</Text>
+          </TouchableOpacity>
+        )}
+
+        {step !== 3 && (
+          <TouchableOpacity onPress={() => { setStep(1); setError(''); }}>
+            <Text style={styles.link}>Back to Login</Text>
+          </TouchableOpacity>
+        )}
+
+        <DesignCredit />
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -85,9 +155,10 @@ export default function ForgotPasswordScreen({ navigation }: { navigation: any }
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 48,
   },
   title: {
     fontSize: 28,
@@ -103,6 +174,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     lineHeight: 22,
   },
+  error: { color: '#dc2626', fontSize: 14, marginBottom: 12 },
   input: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -112,6 +184,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
+  passwordWrap: { position: 'relative', marginBottom: 16 },
+  showBtn: { position: 'absolute', right: 16, top: 14 },
+  showBtnText: { color: '#1a1a2e', fontSize: 14, fontWeight: '600' },
   button: {
     backgroundColor: '#1a1a2e',
     borderRadius: 12,

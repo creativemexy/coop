@@ -25,6 +25,7 @@ import { useAuthStore } from '../../store/authStore';
 import { getErrorMessage } from '../../api/client';
 import { useBranding } from '../../hooks/useBranding';
 import { API_BASE_URL } from '../../constants';
+import DesignCredit from '../../ui/DesignCredit';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -384,6 +385,8 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
             <Text style={styles.taglineText}>Transparent</Text>
           </View>
         </View>
+
+        <DesignCredit />
       </>
     );
   }
