@@ -3,14 +3,24 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Georgia", "Times New Roman", serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   font-family: var(--font-sans);
+  background: #fff9ef;
+  color: #23150f;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.04em;
 }
 
 /* Accessibility: visible keyboard focus everywhere (WCAG 2.4.7) */
