@@ -7,7 +7,7 @@ import {
   Percent, AlertTriangle, Coins, SlidersHorizontal, Scale, BellRing, Monitor,
   ScrollText, BadgeCheck, ArrowLeftRight, ReceiptText, UserCircle, Send,
   NotepadText, CalendarClock, Palette, KeyRound, Library, Layers, DownloadCloud,
-  Rocket, type LucideIcon,
+  Rocket, X, Menu, type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../../stores/auth.store'
 import { useSidebar } from '../../stores/sidebar.store'
@@ -91,80 +91,6 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 const fallbackIcon: LucideIcon = CircleCheck
-
-const iconColors: Record<string, string> = {
-  'System Overview': '#6366f1',
-  'Dashboard': '#6366f1',
-  'Apex Dashboard': '#0ea5e9',
-  'Apex Orgs': '#0ea5e9',
-  'Tenants': '#8b5cf6',
-  'Users': '#22c55e',
-  'Users & Roles': '#22c55e',
-  'User Management': '#22c55e',
-  'Catalog': '#f97316',
-  'Plans': '#ef4444',
-  'Plan Config': '#f59e0b',
-  'Investment Governance': '#10b981',
-  'Security & Policies': '#64748b',
-  'Releases': '#a855f7',
-  'Incidents': '#dc2626',
-  'Monitoring': '#0ea5e9',
-  'Audit Logs': '#f43f5e',
-  'Activity Log': '#14b8a6',
-  'Financial Reports': '#3b82f6',
-  'Fee Pots': '#eab308',
-  'KYC Compliance': '#10b981',
-  'KYC Review': '#10b981',
-  'KYC': '#10b981',
-  'Payment Transactions': '#06b6d4',
-  'Notification Templates': '#ec4899',
-  'Risk Config': '#f97316',
-  'Risk Console': '#dc2626',
-  'Financial Config': '#84cc16',
-  'Disputes': '#f43f5e',
-  'System Config': '#64748b',
-  'Branding': '#e879f9',
-  'Role Permissions': '#6366f1',
-  'Support': '#3b82f6',
-  'Settings': '#64748b',
-  'Accounts': '#0ea5e9',
-  'Journal Entries': '#14b8a6',
-  'BNPL Financials': '#eab308',
-  'Reconciliation': '#8b5cf6',
-  'Transaction Register': '#06b6d4',
-  'Reports': '#3b82f6',
-  'Approvals': '#10b981',
-  'Orders': '#f97316',
-  'Collections': '#eab308',
-  'Subscriptions': '#a855f7',
-  'Installments': '#0ea5e9',
-  'Withdraw Share': '#f59e0e',
-  'Member Statements': '#14b8a6',
-  'Savings': '#22c55e',
-  'Loans': '#0ea5e9',
-  'Profile': '#8b5cf6',
-  'Investments': '#10b981',
-  'Portfolio': '#3b82f6',
-  'Distributions': '#06b6d4',
-  'Redemptions': '#f43f5e',
-  'Investment Statements': '#14b8a6',
-  'Repayments': '#f59e0e',
-  'Statements': '#14b8a6',
-  'Notifications': '#ec4899',
-  'Payment Methods': '#eab308',
-  'My Subscriptions': '#a855f7',
-  'Config & Toggles': '#f97316',
-  'User Activities': '#14b8a6',
-  'KYC Compliance Center': '#10b981',
-  'Risk & Exceptions Console': '#dc2626',
-  'Accounts & Balances': '#0ea5e9',
-  'Ledger': '#14b8a6',
-  'Charts of Accounts': '#8b5cf6',
-  'Loan Approvals': '#10b981',
-  'Loan Disbursements': '#06b6d4',
-  'System': '#64748b',
-  'App Settings': '#64748b',
-}
 
 const navItems: Record<string, { label: string; path: string }[]> = {
   super_admin: [
@@ -292,44 +218,40 @@ export function Sidebar() {
   return (
     <>
       <aside className={cn(
-        'flex flex-col border-r bg-white dark:bg-gray-900 dark:border-gray-700 transition-all duration-200 z-30',
+        'flex flex-col border-r bg-[#FFF9EF] transition-all duration-300 z-30',
         'fixed inset-y-0 left-0 lg:relative lg:inset-auto',
-        collapsed ? 'lg:w-16' : 'lg:w-64',
-        mobileOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full lg:translate-x-0',
+        collapsed ? 'lg:w-20' : 'lg:w-72',
+        mobileOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full lg:translate-x-0',
       )}>
-        <div className="flex h-16 items-center justify-between px-4 border-b dark:border-gray-700 shrink-0">
+        <div className="flex h-16 items-center justify-between px-4 border-b border-[#EDE2D3] shrink-0">
           {!collapsed && (
-            <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex items-center gap-3 overflow-hidden">
               {branding.logoUrl ? (
-                <img src={branding.logoUrl} alt={branding.organizationName} className="h-8 w-8 rounded object-contain" />
+                <img src={branding.logoUrl} alt={branding.organizationName} className="h-9 w-9 rounded-xl object-contain" />
               ) : (
-                <span
-                  className="flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-white"
-                  style={{ backgroundColor: branding.primaryColor }}
-                >
-                  {(branding.organizationName || 'C').charAt(0).toUpperCase()}
-                </span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl text-lg font-bold text-[#FFF9EF]" style={{ backgroundColor: branding.primaryColor }}>
+                  {(branding.organizationName || 'F').charAt(0).toUpperCase()}
+                </div>
               )}
-              <span className="font-bold text-lg truncate" style={{ color: branding.primaryColor }}>{branding.organizationName}</span>
+              <span className="font-bold text-base truncate text-[#2C1B13]">{branding.organizationName}</span>
             </div>
           )}
           <button
             onClick={() => { toggle(); setMobileOpen(false) }}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer hidden lg:block"
+            className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] cursor-pointer hidden lg:block transition-colors"
           >
-            {collapsed ? '☰' : '✕'}
+            {collapsed ? <Menu size={20} /> : <X size={20} />}
           </button>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer lg:hidden"
+            className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] cursor-pointer lg:hidden transition-colors"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto space-y-1 p-2">
+        <nav className="flex-1 overflow-y-auto space-y-1 p-3">
           {visibleItems.map((item) => {
             const Icon = iconMap[item.label] ?? fallbackIcon
-            const iconColor = iconColors[item.label]
             return (
               <NavLink
                 key={item.path}
@@ -337,17 +259,15 @@ export function Sidebar() {
                 end
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    collapsed && 'lg:justify-center lg:px-2',
+                    'flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
+                    collapsed && 'lg:justify-center lg:px-3',
                     isActive
-                      ? 'text-white dark:text-white'
-                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
+                      ? 'bg-[#176B5B] text-[#FFF9EF] shadow-sm'
+                      : 'text-[#6B5245] hover:bg-white hover:shadow-sm',
                   )
                 }
-                style={({ isActive }) => isActive ? { backgroundColor: branding.primaryColor } : undefined}
               >
-                <Icon size={18} className={cn('shrink-0', collapsed ? 'lg:mx-0' : 'lg:mr-3', 'mr-3 lg:mr-0', !collapsed && 'lg:mr-3')}
-                  style={iconColor ? { color: iconColor } : undefined} />
+                <Icon size={18} className={cn('shrink-0', collapsed ? 'lg:mx-0' : 'lg:mr-3', 'mr-3 lg:mr-0', !collapsed && 'lg:mr-3')} />
                 <span className={cn(collapsed ? 'lg:hidden' : '', 'block')}>{item.label}</span>
               </NavLink>
             )
@@ -356,7 +276,7 @@ export function Sidebar() {
       </aside>
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          className="fixed inset-0 bg-[#23150F]/50 z-20 lg:hidden backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}
         />
       )}

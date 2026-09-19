@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
 import {
   BadgeDollarSign,
   CreditCard,
@@ -14,6 +10,7 @@ import {
   ReceiptText,
   Settings2,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react'
 
 interface SettingRow {
@@ -44,11 +41,10 @@ const loanFields: SettingRow[] = [
 ]
 
 const splitColors = [
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-violet-500',
-  'bg-rose-500',
+  'bg-[#176B5B]',
+  'bg-[#E4A42A]',
+  'bg-[#C85B23]',
+  'bg-[#9D4824]',
 ]
 
 export function Settings() {
@@ -146,119 +142,135 @@ export function Settings() {
 
   const renderField = (s: SettingRow) => (
     <div key={s.key} className="flex items-center gap-3">
-      <Input
-        id={s.key}
-        label={s.label}
-        type="number"
-        value={s.value}
-        onChange={(e) => update(s.key, e.target.value)}
-        min="0"
-      />
-      <span className="shrink-0 -mt-4 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-300">
-        {s.suffix}
-      </span>
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-[#2C1B13] mb-1.5">{s.label}</label>
+        <div className="relative">
+          <input
+            id={s.key}
+            type="number"
+            value={s.value}
+            onChange={(e) => update(s.key, e.target.value)}
+            min="0"
+            className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-2.5 text-sm text-[#23150F] placeholder-[#6B5245]/50 focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#6B5245]">
+            {s.suffix}
+          </span>
+        </div>
+      </div>
     </div>
   )
 
   const SaveButton = ({ onClick, section }: { onClick: () => void; section: string }) => (
-    <Button onClick={onClick} disabled={saving}>
+    <button
+      onClick={onClick}
+      disabled={saving}
+      className="inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] transition duration-200 hover:bg-[#1a7d6a] disabled:opacity-70 disabled:pointer-events-none"
+    >
       {saving ? (
         'Saving...'
       ) : savedKey === section ? (
-        <span className="inline-flex items-center gap-1.5">
+        <>
           <CheckCircle2 size={16} /> Saved
-        </span>
+        </>
       ) : (
-        <span className="inline-flex items-center gap-1.5">
+        <>
           <Save size={16} /> Save
-        </span>
+        </>
       )}
-    </Button>
+    </button>
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold dark:text-gray-100">Settings</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Settings</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#6B5245]">
             Platform-wide configuration for fees, credit limits, loan eligibility, and withdrawals.
           </p>
         </div>
-        <span className="hidden sm:flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+        <span className="hidden sm:flex items-center gap-2 rounded-full border border-[#D8C9A9] bg-[#FFF9EF] px-4 py-2 text-xs font-semibold text-[#2C1B13]">
           <Settings2 size={14} /> Global Configuration
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card>
-          <CardTitle className="text-xs text-gray-500 dark:text-gray-400">Registration Fee</CardTitle>
-          <p className="mt-1 text-2xl font-bold dark:text-gray-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl border border-[#D8C9A9] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Registration Fee</p>
+          <p className="mt-2 text-2xl font-black text-[#2C1B13]">
             {feeSettings[0]?.value || '—'}
-            <span className="ml-1 text-sm font-medium text-gray-400">NGN</span>
+            <span className="ml-1 text-sm font-medium text-[#6B5245]">NGN</span>
           </p>
-        </Card>
-        <Card>
-          <CardTitle className="text-xs text-gray-500 dark:text-gray-400">Fee Split Total</CardTitle>
-          <div className="mt-1 flex items-center gap-2">
-            <p className={`text-2xl font-bold ${splitOk ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        </div>
+        <div className="rounded-2xl border border-[#D8C9A9] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Fee Split Total</p>
+          <div className="mt-2 flex items-center gap-2">
+            <p className={`text-2xl font-black ${splitOk ? 'text-[#176B5B]' : 'text-[#C85B23]'}`}>
               {total}%
             </p>
-            <Badge variant={splitOk ? 'success' : 'danger'}>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+              splitOk ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#C85B23]/10 text-[#C85B23]'
+            }`}>
               {splitOk ? 'Balanced' : 'Check split'}
-            </Badge>
+            </span>
           </div>
-        </Card>
-        <Card>
-          <CardTitle className="text-xs text-gray-500 dark:text-gray-400">Max BNPL Credit</CardTitle>
-          <p className="mt-1 text-2xl font-bold dark:text-gray-100">
+        </div>
+        <div className="rounded-2xl border border-[#D8C9A9] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Max BNPL Credit</p>
+          <p className="mt-2 text-2xl font-black text-[#2C1B13]">
             {creditSettings[2]?.value ? `₦${Number(creditSettings[2].value).toLocaleString()}` : '—'}
           </p>
-        </Card>
-        <Card>
-          <CardTitle className="text-xs text-gray-500 dark:text-gray-400">Withdrawals</CardTitle>
-          <div className="mt-1 flex items-center gap-2">
-            <p className={`text-2xl font-bold ${withdrawalsEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+        </div>
+        <div className="rounded-2xl border border-[#D8C9A9] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Withdrawals</p>
+          <div className="mt-2 flex items-center gap-2">
+            <p className={`text-2xl font-black ${withdrawalsEnabled ? 'text-[#176B5B]' : 'text-[#6B5245]'}`}>
               {withdrawalsEnabled ? 'On' : 'Off'}
             </p>
-            <Badge variant={withdrawalsEnabled ? 'success' : 'warning'}>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+              withdrawalsEnabled ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#6B5245]/10 text-[#6B5245]'
+            }`}>
               {withdrawalsEnabled ? 'Enabled' : 'Disabled'}
-            </Badge>
+            </span>
           </div>
-        </Card>
+        </div>
       </div>
 
-      <Card>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/40">
-            <ReceiptText size={20} className="text-blue-600 dark:text-blue-400" />
+      <div className="rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#176B5B]/10">
+            <ReceiptText size={22} className="text-[#176B5B]" />
           </div>
           <div>
-            <CardTitle>Registration Fee</CardTitle>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="text-lg font-bold text-[#2C1B13]">Registration Fee</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
               One-time fee charged when a new user registers. Fee split percentages must total 100%.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {feeSettings.map(renderField)}
         </div>
 
         {!splitOk && total > 0 && (
-          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600 dark:bg-red-900/30 dark:text-red-300">
-            Fee split currently totals {total}% — it must equal exactly 100% before saving.
+          <div className="mt-4 rounded-xl bg-[#C85B23]/10 border border-[#C85B23]/30 px-4 py-3 flex items-start gap-3">
+            <AlertCircle size={18} className="text-[#C85B23] shrink-0 mt-0.5" />
+            <p className="text-sm font-medium text-[#C85B23]">
+              Fee split currently totals {total}% — it must equal exactly 100% before saving.
+            </p>
           </div>
         )}
 
-        <div className="mt-5 border-t border-gray-100 pt-4 dark:border-gray-700">
-          <div className="mb-2 flex items-center justify-between text-xs font-medium">
-            <span className="text-gray-500 dark:text-gray-400">Split distribution</span>
-            <span className={splitOk ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+        <div className="mt-6 border-t border-[#EDE2D3] pt-6">
+          <div className="mb-3 flex items-center justify-between text-sm font-medium">
+            <span className="text-[#6B5245]">Split distribution</span>
+            <span className={splitOk ? 'text-[#176B5B]' : 'text-[#C85B23]'}>
               {total}%
             </span>
           </div>
-          <div className="flex h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+          <div className="flex h-2.5 overflow-hidden rounded-full bg-[#EDE2D3]">
             {feeSettings
               .filter((s) => s.key.startsWith('fee_') && s.key.endsWith('_percent'))
               .map((s, i) => {
@@ -276,72 +288,74 @@ export function Settings() {
             <SaveButton onClick={handleSaveFee} section="fee" />
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/40">
-            <CreditCard size={20} className="text-emerald-600 dark:text-emerald-400" />
+      <div className="rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E4A42A]/10">
+            <CreditCard size={22} className="text-[#E4A42A]" />
           </div>
           <div>
-            <CardTitle>BNPL Credit Limit</CardTitle>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="text-lg font-bold text-[#2C1B13]">BNPL Credit Limit</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
               Members must save for the vesting period (consecutive months) to qualify. Credit limit = savings × multiplier,
               capped at the max limit. Multiplier is 5× when no active loan, 2× with an active loan.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {creditSettings.map(renderField)}
         </div>
 
-        <div className="mt-5 border-t border-gray-100 pt-4 flex justify-end dark:border-gray-700">
+        <div className="mt-6 border-t border-[#EDE2D3] pt-6 flex justify-end">
           <SaveButton onClick={handleSaveCredit} section="credit" />
         </div>
-      </Card>
+      </div>
 
-      <Card>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/40">
-            <HandCoins size={20} className="text-amber-600 dark:text-amber-400" />
+      <div className="rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#C85B23]/10">
+            <HandCoins size={22} className="text-[#C85B23]" />
           </div>
           <div>
-            <CardTitle>Loan Eligibility</CardTitle>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="text-lg font-bold text-[#2C1B13]">Loan Eligibility</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
               Members must save for the vesting period (consecutive months) to qualify for loans. Max loan amount = savings × multiplier.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {loanSettings.map(renderField)}
         </div>
 
-        <div className="mt-5 border-t border-gray-100 pt-4 flex justify-end dark:border-gray-700">
+        <div className="mt-6 border-t border-[#EDE2D3] pt-6 flex justify-end">
           <SaveButton onClick={handleSaveLoan} section="loan" />
         </div>
-      </Card>
+      </div>
 
-      <Card>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-900/40">
-            <PiggyBank size={20} className="text-violet-600 dark:text-violet-400" />
+      <div className="rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#9D4824]/10">
+            <PiggyBank size={22} className="text-[#9D4824]" />
           </div>
           <div>
-            <CardTitle>Withdrawals</CardTitle>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="text-lg font-bold text-[#2C1B13]">Withdrawals</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
               Enable or disable savings withdrawals for individual members. Withdrawal policy will be configured later.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
+        <div className="mt-6 flex items-center justify-between rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-5">
           <div className="flex items-center gap-3">
-            <BadgeDollarSign size={20} className="text-gray-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E4A42A]/10">
+              <BadgeDollarSign size={20} className="text-[#E4A42A]" />
+            </div>
             <div>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Allow members to withdraw savings</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-sm font-semibold text-[#2C1B13]">Allow members to withdraw savings</p>
+              <p className="text-xs text-[#6B5245]">
                 When disabled, members cannot request savings withdrawals.
               </p>
             </div>
@@ -350,7 +364,7 @@ export function Settings() {
             onClick={() => setWithdrawalsEnabled(!withdrawalsEnabled)}
             aria-label="Toggle savings withdrawals"
             className={`relative h-7 w-12 shrink-0 rounded-full transition-colors cursor-pointer ${
-              withdrawalsEnabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+              withdrawalsEnabled ? 'bg-[#176B5B]' : 'bg-[#D8C9A9]'
             }`}
           >
             <span
@@ -364,12 +378,12 @@ export function Settings() {
         <div className="mt-4 flex justify-end">
           <SaveButton onClick={handleSaveWithdrawals} section="withdrawals" />
         </div>
-      </Card>
+      </div>
 
-      <p className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-        <ShieldCheck size={14} className="text-green-500" />
+      <div className="flex items-center gap-2 text-xs text-[#6B5245]">
+        <ShieldCheck size={14} className="text-[#176B5B]" />
         Changes take effect immediately and are recorded in the audit log.
-      </p>
+      </div>
     </div>
   )
 }

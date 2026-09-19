@@ -94,6 +94,7 @@ export function PrivacyPolicy() {
       description="Learn how FENAC COOP collects, uses, protects, shares, and retains personal data and how to exercise your privacy rights."
       effectiveDate="September 8, 2026"
       sections={sections}
+      type="privacy"
     />
   )
 }

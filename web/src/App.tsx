@@ -9,7 +9,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { Login } from './pages/auth/Login'
 import { SocialCallback } from './pages/auth/SocialCallback'
 import { Register } from './pages/auth/Register'
-import { Terms } from './pages/auth/Terms'
+import Terms from './pages/landing/Terms'
 import { PrivacyPolicy } from './pages/legal/PrivacyPolicy'
 import { CookiesPolicy } from './pages/legal/CookiesPolicy'
 import { CookieConsentBanner } from './components/layout/CookieConsentBanner'
@@ -154,9 +154,6 @@ export default function App() {
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/cookies" element={<CookiesPolicy />} />
         <Route path="/register/pay-fee" element={<PayRegistrationFee />} />
         <Route path="/register/payment-callback" element={<PaymentCallback />} />
         <Route path="/auth/social-callback" element={<SocialCallback />} />
@@ -171,6 +168,9 @@ export default function App() {
           <Route path="/membership" element={<LandingMembership />} />
           <Route path="/faq" element={<LandingFaq />} />
           <Route path="/contact" element={<LandingContact />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/cookies" element={<CookiesPolicy />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>

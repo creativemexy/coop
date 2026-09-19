@@ -47,6 +47,7 @@ export function CookiesPolicy() {
       description="See which cookies and browser storage FENAC COOP uses, why they are needed, and how to control optional tracking."
       effectiveDate="September 8, 2026"
       sections={sections}
+      type="cookies"
     />
   )
 }

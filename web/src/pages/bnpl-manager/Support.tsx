@@ -1,19 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
-import { Input } from '../../components/ui/input'
-import { Modal } from '../../components/ui/modal'
-import { useTicketStream } from '../../hooks/useTicketStream'
-import type { TicketStreamEvent } from '../../hooks/useTicketStream'
+import {
+  ShoppingCart, RefreshCw, Activity, MessageSquare, X, Eye, Send, Lock,
+  Clock, CheckCircle2, AlertCircle, Search, Plus
+} from 'lucide-react'
 
 type Tab = 'orders' | 'repayments' | 'webhooks' | 'tickets'
 
-const statusColors: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
-  open: 'warning', in_progress: 'info', resolved: 'success', closed: 'info',
-  processed: 'success', failed: 'danger',
+const statusConfig: Record<string, { color: string; bg: string; icon: any }> = {
+  open: { color: 'text-[#C85B23]', bg: 'bg-[#C85B23]/10', icon: Clock },
+  in_progress: { color: 'text-[#176B5B]', bg: 'bg-[#176B5B]/10', icon: Activity },
+  resolved: { color: 'text-[#176B5B]', bg: 'bg-[#176B5B]/10', icon: CheckCircle2 },
+  closed: { color: 'text-[#6B5245]', bg: 'bg-[#6B5245]/10', icon: Lock },
+  processed: { color: 'text-[#176B5B]', bg: 'bg-[#176B5B]/10', icon: CheckCircle2 },
+  failed: { color: 'text-[#C85B23]', bg: 'bg-[#C85B23]/10', icon: AlertCircle },
+  settled: { color: 'text-[#176B5B]', bg: 'bg-[#176B5B]/10', icon: CheckCircle2 },
+  defaulted: { color: 'text-[#C85B23]', bg: 'bg-[#C85B23]/10', icon: AlertCircle },
+  pending: { color: 'text-[#C85B23]', bg: 'bg-[#C85B23]/10', icon: Clock },
+  paid: { color: 'text-[#176B5B]', bg: 'bg-[#176B5B]/10', icon: CheckCircle2 },
 }
 
 export function Support() {
@@ -87,33 +91,6 @@ export function Support() {
 
   useEffect(() => { if (tab === 'tickets') loadTickets() }, [tab, loadTickets])
 
-  useTicketStream(
-    'support/tickets/stream',
-    useCallback(() => { if (tab === 'tickets') loadTickets() }, [tab, loadTickets]),
-  )
-
-  const loadTicketDetail = useCallback(async (ticket: any) => {
-    try {
-      const { data } = await api.get(`/support/tickets/${ticket.id}/messages`)
-      setTicketMeta(data.ticket ?? null)
-      setTicketMessages(Array.isArray(data) ? data : data.messages ?? [])
-    } catch { /* keep last known */ }
-  }, [])
-
-  useTicketStream(
-    selTicket ? `support/tickets/${selTicket.id}/stream` : null,
-    useCallback((ev: TicketStreamEvent) => {
-      if (!selTicket) return
-      if (ev.type === 'status') {
-        setTickets((prev) => prev.map((t) => (t.id === selTicket.id ? { ...t, status: ev.status || t.status } : t)))
-        setTicketMeta((prev: any) => (prev ? { ...prev, status: ev.status || prev.status } : prev))
-        return
-      }
-      void loadTicketDetail(selTicket)
-    }, [selTicket, loadTicketDetail]),
-  )
-
-  /* ── Ticket Detail / Reply ── */
   const openTicketDetail = useCallback(async (ticket: any) => {
     setSelTicket(ticket)
     setReplyText('')
@@ -177,73 +154,168 @@ export function Support() {
     } catch (e: any) { alert(e.response?.data?.message || 'Failed') }
   }
 
+  const tabs: { key: Tab; label: string; icon: any }[] = [
+    { key: 'orders', label: 'Orders', icon: ShoppingCart },
+    { key: 'repayments', label: 'Repayments', icon: RefreshCw },
+    { key: 'webhooks', label: 'Webhook Logs', icon: Activity },
+    { key: 'tickets', label: 'Tickets', icon: MessageSquare },
+  ]
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Operational Support</h2>
+    <div className="space-y-8">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Operational Support</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#6B5245]">
+            Monitor orders, repayments, webhook logs, and manage support tickets.
+          </p>
+        </div>
+      </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b dark:border-gray-700 pb-2">
-        {([['orders', 'Orders'], ['repayments', 'Repayments'], ['webhooks', 'Webhook Logs'], ['tickets', 'Tickets']] as [Tab, string][]).map(([k, v]) => (
-          <Button key={k} variant={tab === k ? 'primary' : 'ghost'} size="sm" onClick={() => setTab(k)}>{v}</Button>
+      <div className="flex gap-2 border-b border-[#EDE2D3] pb-2">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full transition-colors ${
+              tab === key
+                ? 'bg-[#176B5B] text-[#FFF9EF]'
+                : 'text-[#6B5245] hover:bg-[#EDE2D3]'
+            }`}
+          >
+            <Icon size={16} /> {label}
+          </button>
         ))}
       </div>
 
       {/* ─── Orders (read-only) ─── */}
       {tab === 'orders' && (
         <div className="space-y-4">
-          <Table>
-            <THead><THeadRow>
-              <THeadCell>ID</THeadCell>
-              <THeadCell>Item</THeadCell>
-              <THeadCell>Total</THeadCell>
-              <THeadCell>Paid</THeadCell>
-              <THeadCell>Status</THeadCell>
-              <THeadCell>Created</THeadCell>
-              <THeadCell />
-            </THeadRow></THead>
-            <TBody>
-              {orders.map((o) => (
-                <TBodyRow key={o.id}>
-                  <TBodyCell className="text-xs font-mono">{o.id.slice(0, 8)}…</TBodyCell>
-                  <TBodyCell>{o.plan?.catalogItem?.name || '—'}</TBodyCell>
-                  <TBodyCell>₦{Number(o.totalAmount).toLocaleString()}</TBodyCell>
-                  <TBodyCell>₦{Number(o.amountPaid).toLocaleString()}</TBodyCell>
-                  <TBodyCell><Badge variant={o.status === 'settled' ? 'success' : o.status === 'defaulted' ? 'danger' : 'warning'}>{o.status}</Badge></TBodyCell>
-                  <TBodyCell className="text-xs">{new Date(o.createdAt).toLocaleDateString()}</TBodyCell>
-                  <TBodyCell><Button variant="ghost" size="sm" onClick={() => setSelOrder(o)}>View</Button></TBodyCell>
-                </TBodyRow>
-              ))}
-              {orders.length === 0 && <TBodyRow><TBodyCell colSpan={7} className="text-center py-4 text-gray-400">No orders</TBodyCell></TBodyRow>}
-            </TBody>
-          </Table>
+          <div className="rounded-2xl border border-[#D8C9A9] bg-white overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-[#FFF9EF]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Item</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Paid</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Created</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EDE2D3]">
+                {orders.map((o) => {
+                  const statusConf = statusConfig[o.status] || statusConfig.pending
+                  const StatusIcon = statusConf.icon
+                  return (
+                    <tr key={o.id} className="hover:bg-[#FFF9EF]/50 transition-colors">
+                      <td className="px-4 py-3 text-xs font-mono text-[#6B5245]">{o.id.slice(0, 8)}…</td>
+                      <td className="px-4 py-3 text-sm text-[#2C1B13]">{o.plan?.catalogItem?.name || '—'}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-[#2C1B13]">₦{Number(o.totalAmount).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm text-[#6B5245]">₦{Number(o.amountPaid).toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusConf.color} ${statusConf.bg}`}>
+                          <StatusIcon size={12} /> {o.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[#6B5245]">{new Date(o.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setSelOrder(o)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#176B5B] hover:text-[#1a7d6a] transition-colors"
+                        >
+                          <Eye size={14} /> View
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-[#6B5245]">No orders</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Order detail modal */}
           {selOrder && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelOrder(null)}>
-              <Card className="w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <CardTitle className="text-lg font-bold mb-4 dark:text-gray-100">Order — {selOrder.id.slice(0, 8)}…</CardTitle>
-                <div className="space-y-2 text-sm">
-                  <p><span className="text-gray-500">Item:</span> {selOrder.plan?.catalogItem?.name || '—'}</p>
-                  <p><span className="text-gray-500">Total:</span> ₦{Number(selOrder.totalAmount).toLocaleString()}</p>
-                  <p><span className="text-gray-500">Paid:</span> ₦{Number(selOrder.amountPaid).toLocaleString()}</p>
-                  <p><span className="text-gray-500">Status:</span> <Badge variant={selOrder.status === 'settled' ? 'success' : 'warning'}>{selOrder.status}</Badge></p>
-                  <p><span className="text-gray-500">User ID:</span> <span className="font-mono text-xs">{selOrder.userId}</span></p>
-                  <p><span className="text-gray-500">Plan:</span> {selOrder.plan?.name || selOrder.planId?.slice(0, 8)}</p>
-                  <p><span className="text-gray-500">Created:</span> {new Date(selOrder.createdAt).toLocaleString()}</p>
-                  {selOrder.disbursementReference && <p><span className="text-gray-500">Disbursement Ref:</span> {selOrder.disbursementReference}</p>}
-                  {selOrder.settledAt && <p><span className="text-gray-500">Settled:</span> {new Date(selOrder.settledAt).toLocaleString()}</p>}
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#23150F]/50 backdrop-blur-sm p-4">
+              <div className="w-full max-w-lg rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-xl max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-bold text-[#2C1B13]">Order — {selOrder.id.slice(0, 8)}…</h2>
+                  <button onClick={() => setSelOrder(null)} className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                      <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Item</span>
+                      <p className="mt-1 font-semibold text-[#2C1B13]">{selOrder.plan?.catalogItem?.name || '—'}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                      <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Total</span>
+                      <p className="mt-1 font-semibold text-[#2C1B13]">₦{Number(selOrder.totalAmount).toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                      <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Paid</span>
+                      <p className="mt-1 font-semibold text-[#6B5245]">₦{Number(selOrder.amountPaid).toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                      <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</span>
+                      <p className="mt-1 font-semibold text-[#2C1B13]">{selOrder.status}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                    <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">User ID</span>
+                    <p className="mt-1 font-mono text-xs text-[#2C1B13]">{selOrder.userId}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                    <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Plan</span>
+                    <p className="mt-1 text-[#2C1B13]">{selOrder.plan?.name || selOrder.planId?.slice(0, 8)}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                    <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Created</span>
+                    <p className="mt-1 text-[#2C1B13]">{new Date(selOrder.createdAt).toLocaleString()}</p>
+                  </div>
+                  {selOrder.disbursementReference && (
+                    <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                      <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Disbursement Ref</span>
+                      <p className="mt-1 text-[#2C1B13]">{selOrder.disbursementReference}</p>
+                    </div>
+                  )}
+                  {selOrder.settledAt && (
+                    <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                      <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Settled</span>
+                      <p className="mt-1 text-[#2C1B13]">{new Date(selOrder.settledAt).toLocaleString()}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4">
-                  <h4 className="text-sm font-semibold mb-2 dark:text-gray-200">Installments</h4>
-                  {(selOrder.installments || []).map((inst: any) => (
-                    <div key={inst.id} className="flex justify-between text-xs border-b dark:border-gray-700 py-1">
-                      <span>₦{Number(inst.amount).toLocaleString()} due {new Date(inst.dueDate).toLocaleDateString()}</span>
-                      <Badge variant={inst.status === 'paid' ? 'success' : 'warning'}>{inst.status}</Badge>
-                    </div>
-                  ))}
+                  <h4 className="text-sm font-bold text-[#2C1B13] mb-3">Installments</h4>
+                  <div className="space-y-2">
+                    {(selOrder.installments || []).map((inst: any) => {
+                      const instStatusConf = statusConfig[inst.status] || statusConfig.pending
+                      const InstStatusIcon = instStatusConf.icon
+                      return (
+                        <div key={inst.id} className="flex justify-between items-center rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] px-4 py-2">
+                          <span className="text-sm text-[#2C1B13]">₦{Number(inst.amount).toLocaleString()} due {new Date(inst.dueDate).toLocaleDateString()}</span>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${instStatusConf.color} ${instStatusConf.bg}`}>
+                            <InstStatusIcon size={12} /> {inst.status}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-                <Button variant="ghost" className="w-full mt-4" onClick={() => setSelOrder(null)}>Close</Button>
-              </Card>
+                <button onClick={() => setSelOrder(null)} className="mt-4 w-full rounded-full border border-[#D8C9A9] bg-white px-4 py-2.5 text-sm font-semibold text-[#6B5245] hover:bg-[#EDE2D3] transition-colors">
+                  Close
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -252,42 +324,84 @@ export function Support() {
       {/* ─── Repayments (read-only) ─── */}
       {tab === 'repayments' && (
         <div className="space-y-4">
-          <div className="flex gap-2 items-end">
-            <Input id="ro-search" label="Order ID" value={repaymentOrderId} onChange={(e) => setRepaymentOrderId(e.target.value)} />
-            <Button onClick={loadSchedule} disabled={!repaymentOrderId || schedLoading}>View Schedule</Button>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-[#2C1B13] mb-1.5">Order ID</label>
+              <input
+                type="text"
+                value={repaymentOrderId}
+                onChange={(e) => setRepaymentOrderId(e.target.value)}
+                placeholder="Enter order ID"
+                className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-2.5 text-sm text-[#2C1B13] placeholder-[#6B5245]/50 focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={loadSchedule}
+              disabled={!repaymentOrderId || schedLoading}
+              className="inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] transition duration-200 hover:bg-[#1a7d6a] disabled:opacity-70 disabled:pointer-events-none"
+            >
+              <Search size={16} /> View Schedule
+            </button>
           </div>
 
           {schedule && (
-            <Card>
-              <CardTitle className="text-sm">Repayment Schedule</CardTitle>
-              <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
-                <div><span className="text-gray-500">Total</span><p className="font-semibold">₦{schedule.totalAmount.toLocaleString()}</p></div>
-                <div><span className="text-gray-500">Paid</span><p className="font-semibold text-green-600">₦{schedule.amountPaid.toLocaleString()}</p></div>
-                <div><span className="text-gray-500">Outstanding</span><p className="font-semibold text-red-600">₦{schedule.outstanding.toLocaleString()}</p></div>
-                <div><span className="text-gray-500">Status</span><Badge>{schedule.status}</Badge></div>
+            <div className="rounded-2xl border border-[#D8C9A9] bg-white p-6">
+              <h3 className="text-sm font-bold text-[#2C1B13] mb-4">Repayment Schedule</h3>
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                  <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Total</span>
+                  <p className="mt-1 font-semibold text-[#2C1B13]">₦{schedule.totalAmount.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                  <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Paid</span>
+                  <p className="mt-1 font-semibold text-[#176B5B]">₦{schedule.amountPaid.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                  <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Outstanding</span>
+                  <p className="mt-1 font-semibold text-[#C85B23]">₦{schedule.outstanding.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-3">
+                  <span className="text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</span>
+                  <p className="mt-1 font-semibold text-[#2C1B13]">{schedule.status}</p>
+                </div>
               </div>
 
-              <Table>
-                <THead><THeadRow>
-                  <THeadCell>Due Date</THeadCell>
-                  <THeadCell>Amount</THeadCell>
-                  <THeadCell>Status</THeadCell>
-                  <THeadCell>Paid At</THeadCell>
-                  <THeadCell>Reference</THeadCell>
-                </THeadRow></THead>
-                <TBody>
-                  {schedule.installments.map((inst: any) => (
-                    <TBodyRow key={inst.id}>
-                      <TBodyCell>{new Date(inst.dueDate).toLocaleDateString()}</TBodyCell>
-                      <TBodyCell>₦{inst.amount.toLocaleString()}{inst.lateFee > 0 && <span className="text-red-500 text-xs ml-1">+₦{inst.lateFee}</span>}</TBodyCell>
-                      <TBodyCell><Badge variant={inst.isOverdue ? 'danger' : inst.status === 'paid' ? 'success' : 'warning'}>{inst.isOverdue ? 'late' : inst.status}</Badge></TBodyCell>
-                      <TBodyCell className="text-xs">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString() : '—'}</TBodyCell>
-                      <TBodyCell className="text-xs font-mono">{inst.paymentReference || '—'}</TBodyCell>
-                    </TBodyRow>
-                  ))}
-                </TBody>
-              </Table>
-            </Card>
+              <div className="rounded-xl border border-[#D8C9A9] overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-[#FFF9EF]">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Due Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Paid At</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EDE2D3]">
+                    {schedule.installments.map((inst: any) => {
+                      const instStatusConf = statusConfig[inst.isOverdue ? 'failed' : inst.status] || statusConfig.pending
+                      const InstStatusIcon = instStatusConf.icon
+                      return (
+                        <tr key={inst.id} className="hover:bg-[#FFF9EF]/50 transition-colors">
+                          <td className="px-4 py-3 text-sm text-[#2C1B13]">{new Date(inst.dueDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-sm text-[#2C1B13]">
+                            ₦{inst.amount.toLocaleString()}
+                            {inst.lateFee > 0 && <span className="text-[#C85B23] text-xs ml-1">+₦{inst.lateFee}</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${instStatusConf.color} ${instStatusConf.bg}`}>
+                              <InstStatusIcon size={12} /> {inst.isOverdue ? 'late' : inst.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[#6B5245]">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString() : '—'}</td>
+                          <td className="px-4 py-3 text-xs font-mono text-[#6B5245]">{inst.paymentReference || '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -298,51 +412,98 @@ export function Support() {
           <div className="flex justify-between items-center">
             <div className="flex gap-2">
               {['', 'processed', 'failed'].map((s) => (
-                <Button key={s} variant={whFilter === s ? 'primary' : 'ghost'} size="sm" onClick={() => setWhFilter(s)}>
+                <button
+                  key={s}
+                  onClick={() => setWhFilter(s)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full transition-colors ${
+                    whFilter === s
+                      ? 'bg-[#176B5B] text-[#FFF9EF]'
+                      : 'text-[#6B5245] hover:bg-[#EDE2D3]'
+                  }`}
+                >
                   {s || 'All'}
-                </Button>
+                </button>
               ))}
             </div>
-            <Button variant="secondary" size="sm" onClick={handleReconcile}>Trigger Reconciliation</Button>
+            <button
+              onClick={handleReconcile}
+              className="inline-flex items-center gap-2 rounded-full border border-[#176B5B] bg-[#176B5B]/10 px-4 py-2 text-sm font-semibold text-[#176B5B] hover:bg-[#176B5B]/20 transition-colors"
+            >
+              <RefreshCw size={16} /> Trigger Reconciliation
+            </button>
           </div>
 
-          <Table>
-            <THead><THeadRow>
-              <THeadCell>Date</THeadCell>
-              <THeadCell>Event</THeadCell>
-              <THeadCell>Status</THeadCell>
-              <THeadCell>Payment ID</THeadCell>
-              <THeadCell>Retries</THeadCell>
-              <THeadCell />
-            </THeadRow></THead>
-            <TBody>
-              {webhookLogs.map((wl) => (
-                <TBodyRow key={wl.id}>
-                  <TBodyCell className="text-xs">{new Date(wl.createdAt).toLocaleString()}</TBodyCell>
-                  <TBodyCell><code className="text-xs">{wl.eventType}</code></TBodyCell>
-                  <TBodyCell><Badge variant={statusColors[wl.status] || 'warning'}>{wl.status}</Badge></TBodyCell>
-                  <TBodyCell className="text-xs font-mono">{wl.paymentId?.slice(0, 12) || '—'}…</TBodyCell>
-                  <TBodyCell>{wl.retryCount}</TBodyCell>
-                  <TBodyCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setSelWh(wl)}>Payload</Button>
-                      {wl.paymentId && wl.status === 'failed' && (
-                        <Button variant="ghost" size="sm" onClick={() => handleResubmit(wl.paymentId)}>Resubmit</Button>
-                      )}
-                    </div>
-                  </TBodyCell>
-                </TBodyRow>
-              ))}
-              {webhookLogs.length === 0 && <TBodyRow><TBodyCell colSpan={6} className="text-center py-4 text-gray-400">No webhook logs</TBodyCell></TBodyRow>}
-            </TBody>
-          </Table>
+          <div className="rounded-2xl border border-[#D8C9A9] bg-white overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-[#FFF9EF]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Event</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Payment ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Retries</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EDE2D3]">
+                {webhookLogs.map((wl) => {
+                  const statusConf = statusConfig[wl.status] || statusConfig.pending
+                  const StatusIcon = statusConf.icon
+                  return (
+                    <tr key={wl.id} className="hover:bg-[#FFF9EF]/50 transition-colors">
+                      <td className="px-4 py-3 text-xs text-[#6B5245]">{new Date(wl.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3"><code className="text-xs text-[#2C1B13]">{wl.eventType}</code></td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusConf.color} ${statusConf.bg}`}>
+                          <StatusIcon size={12} /> {wl.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono text-[#6B5245]">{wl.paymentId?.slice(0, 12) || '—'}…</td>
+                      <td className="px-4 py-3 text-sm text-[#2C1B13]">{wl.retryCount}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setSelWh(wl)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#176B5B] hover:text-[#1a7d6a] transition-colors"
+                          >
+                            <Eye size={14} /> Payload
+                          </button>
+                          {wl.paymentId && wl.status === 'failed' && (
+                            <button
+                              onClick={() => handleResubmit(wl.paymentId)}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C85B23] hover:text-[#D66A2D] transition-colors"
+                            >
+                              <RefreshCw size={14} /> Resubmit
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {webhookLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-[#6B5245]">No webhook logs</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {selWh && (
-            <Modal open={!!selWh} onClose={() => setSelWh(null)} title="Webhook Payload">
-              <pre className="text-xs bg-gray-50 dark:bg-gray-800 rounded p-3 max-h-96 overflow-y-auto whitespace-pre-wrap">
-                {JSON.stringify(selWh.payload, null, 2)}
-              </pre>
-            </Modal>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#23150F]/50 backdrop-blur-sm p-4">
+              <div className="w-full max-w-2xl rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-xl max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#2C1B13]">Webhook Payload</h2>
+                  <button onClick={() => setSelWh(null)} className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+                <pre className="text-xs bg-[#FFF9EF] rounded-xl p-4 max-h-96 overflow-y-auto whitespace-pre-wrap text-[#2C1B13]">
+                  {JSON.stringify(selWh.payload, null, 2)}
+                </pre>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -353,170 +514,268 @@ export function Support() {
           <div className="flex justify-between items-center">
             <div className="flex gap-2">
               {['', 'open', 'in_progress', 'resolved', 'closed'].map((s) => (
-                <Button key={s} variant={ticketFilter === s ? 'primary' : 'ghost'} size="sm" onClick={() => setTicketFilter(s)}>
+                <button
+                  key={s}
+                  onClick={() => setTicketFilter(s)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full transition-colors ${
+                    ticketFilter === s
+                      ? 'bg-[#176B5B] text-[#FFF9EF]'
+                      : 'text-[#6B5245] hover:bg-[#EDE2D3]'
+                  }`}
+                >
                   {s === 'in_progress' ? 'In Progress' : s || 'All'}
-                </Button>
+                </button>
               ))}
             </div>
-            <Button onClick={() => setNewTicketModal(true)}>New Ticket</Button>
+            <button
+              onClick={() => setNewTicketModal(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-4 py-2 text-sm font-semibold text-[#FFF9EF] transition duration-200 hover:bg-[#1a7d6a]"
+            >
+              <Plus size={16} /> New Ticket
+            </button>
           </div>
 
-          <Table>
-            <THead><THeadRow>
-              <THeadCell>Subject</THeadCell>
-              <THeadCell>Sent By</THeadCell>
-              <THeadCell>Category</THeadCell>
-              <THeadCell>Status</THeadCell>
-              <THeadCell>Order</THeadCell>
-              <THeadCell>Created</THeadCell>
-              <THeadCell>Status</THeadCell>
-              <THeadCell />
-            </THeadRow></THead>
-            <TBody>
-              {tickets.map((t) => (
-                <TBodyRow key={t.id}>
-                  <TBodyCell className="font-medium max-w-[200px] truncate">{t.subject}</TBodyCell>
-                  <TBodyCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-teal-800 dark:text-teal-200">{t.senderName || 'Unknown'}</span>
-                      {t.senderEmail && <span className="text-xs text-gray-400">{t.senderEmail}</span>}
-                    </div>
-                  </TBodyCell>
-                  <TBodyCell><Badge variant="info">{t.category}</Badge></TBodyCell>
-                  <TBodyCell><Badge variant={statusColors[t.status] || 'warning'}>{t.status}</Badge></TBodyCell>
-                  <TBodyCell className="text-xs font-mono">{t.relatedOrderId?.slice(0, 8) || '—'}…</TBodyCell>
-                  <TBodyCell className="text-xs">{new Date(t.createdAt).toLocaleDateString()}</TBodyCell>
-                  <TBodyCell>
-                    <select
-                      value={t.status}
-                      onChange={(e) => handleTicketStatus(t.id, e.target.value)}
-                      className="text-xs rounded border dark:border-gray-700 dark:bg-gray-800 px-1 py-0.5"
-                    >
-                      <option value="open">Open</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </TBodyCell>
-                  <TBodyCell>
-                    <Button variant="ghost" size="sm" onClick={() => openTicketDetail(t)}>View</Button>
-                  </TBodyCell>
-                </TBodyRow>
-              ))}
-              {tickets.length === 0 && <TBodyRow><TBodyCell colSpan={8} className="text-center py-4 text-gray-400">No tickets</TBodyCell></TBodyRow>}
-            </TBody>
-          </Table>
+          <div className="rounded-2xl border border-[#D8C9A9] bg-white overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-[#FFF9EF]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Subject</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Sent By</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Order</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Created</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5245] uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EDE2D3]">
+                {tickets.map((t) => {
+                  const statusConf = statusConfig[t.status] || statusConfig.pending
+                  const StatusIcon = statusConf.icon
+                  return (
+                    <tr key={t.id} className="hover:bg-[#FFF9EF]/50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-[#2C1B13] max-w-[200px] truncate">{t.subject}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-[#2C1B13]">{t.senderName || 'Unknown'}</span>
+                          {t.senderEmail && <span className="text-xs text-[#6B5245]">{t.senderEmail}</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-[#176B5B] bg-[#176B5B]/10">
+                          {t.category}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusConf.color} ${statusConf.bg}`}>
+                          <StatusIcon size={12} /> {t.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono text-[#6B5245]">{t.relatedOrderId?.slice(0, 8) || '—'}…</td>
+                      <td className="px-4 py-3 text-xs text-[#6B5245]">{new Date(t.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={t.status}
+                          onChange={(e) => handleTicketStatus(t.id, e.target.value)}
+                          className="text-xs rounded-xl border border-[#D8C9A9] bg-white px-3 py-1.5 text-[#2C1B13] focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+                        >
+                          <option value="open">Open</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => openTicketDetail(t)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#176B5B] hover:text-[#1a7d6a] transition-colors"
+                        >
+                          <Eye size={14} /> View
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {tickets.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-8 text-center text-[#6B5245]">No tickets</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Ticket Detail Modal */}
-      <Modal open={!!selTicket} onClose={() => setSelTicket(null)} title={selTicket?.subject || 'Ticket'}>
-        {selTicket && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Badge variant={statusColors[ticketMeta?.status || selTicket.status] || 'warning'}>{ticketMeta?.status || selTicket.status}</Badge>
-              <Badge variant="info">{selTicket.category}</Badge>
-              <span className="text-xs text-gray-400">{new Date(selTicket.createdAt).toLocaleString()}</span>
+      {selTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#23150F]/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-[#2C1B13]">{selTicket.subject || 'Ticket'}</h2>
+              <button onClick={() => setSelTicket(null)} className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] transition-colors">
+                <X size={20} />
+              </button>
             </div>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusConfig[ticketMeta?.status || selTicket.status]?.color} ${statusConfig[ticketMeta?.status || selTicket.status]?.bg}`}>
+                  {ticketMeta?.status || selTicket.status}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-[#176B5B] bg-[#176B5B]/10">
+                  {selTicket.category}
+                </span>
+                <span className="text-xs text-[#6B5245]">{new Date(selTicket.createdAt).toLocaleString()}</span>
+              </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/60">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white">
-                {(selTicket.senderName || 'U').charAt(0).toUpperCase()}
+              <div className="flex items-center gap-3 rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] px-4 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#176B5B] text-sm font-bold text-[#FFF9EF]">
+                  {(selTicket.senderName || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-[#2C1B13]">{selTicket.senderName || 'Unknown'}</span>
+                  <span className="text-xs text-[#6B5245]">{selTicket.senderEmail || 'No email'}</span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold dark:text-gray-100">{selTicket.senderName || 'Unknown'}</span>
-                <span className="text-xs text-gray-400">{selTicket.senderEmail || 'No email'}</span>
-              </div>
-            </div>
 
-            {(ticketMeta?.description ?? selTicket.description) && (
-              <div className="bg-gray-50 dark:bg-gray-800 rounded p-3 text-sm">
-                <p className="text-xs text-gray-500 mb-1">Initial description:</p>
-                <p className="text-gray-700 dark:text-gray-200">{ticketMeta?.description ?? selTicket.description}</p>
-              </div>
-            )}
-            {(ticketMeta?.resolutionNote ?? selTicket.resolutionNote) && (
-              <div className="bg-green-50 dark:bg-green-900/20 rounded p-3 text-sm">
-                <p className="text-xs text-green-600 mb-1">Resolution note:</p>
-                <p className="text-green-700 dark:text-green-300">{ticketMeta?.resolutionNote ?? selTicket.resolutionNote}</p>
-              </div>
-            )}
+              {(ticketMeta?.description ?? selTicket.description) && (
+                <div className="rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] p-4 text-sm">
+                  <p className="text-xs font-semibold text-[#6B5245] mb-1">Initial description:</p>
+                  <p className="text-[#2C1B13]">{ticketMeta?.description ?? selTicket.description}</p>
+                </div>
+              )}
+              {(ticketMeta?.resolutionNote ?? selTicket.resolutionNote) && (
+                <div className="rounded-xl border border-[#176B5B]/30 bg-[#176B5B]/10 p-4 text-sm">
+                  <p className="text-xs font-semibold text-[#176B5B] mb-1">Resolution note:</p>
+                  <p className="text-[#176B5B]">{ticketMeta?.resolutionNote ?? selTicket.resolutionNote}</p>
+                </div>
+              )}
 
-            <div className="border-t dark:border-gray-700 pt-4">
-              <h4 className="text-sm font-semibold mb-3 dark:text-gray-200">Conversation</h4>
-              {loadingMessages ? (
-                <p className="text-xs text-gray-400">Loading messages...</p>
-              ) : ticketMessages.length === 0 ? (
-                <p className="text-xs text-gray-400">No replies yet.</p>
-              ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {ticketMessages.map((m) => {
-                    const fromSupport = m.senderRole === 'super_admin' || m.senderRole === 'customer_care'
-                    return (
-                      <div key={m.id} className={`flex ${fromSupport ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                          fromSupport
-                            ? 'bg-teal-700 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                        }`}>
-                          <p>{m.message}</p>
-                          <p className={`text-[10px] mt-1 opacity-70 ${fromSupport ? '' : 'dark:text-gray-400'}`}>
-                            {m.senderName || (fromSupport ? 'Support' : 'Member')} &middot; {new Date(m.createdAt).toLocaleString()}
-                          </p>
+              <div className="border-t border-[#EDE2D3] pt-4">
+                <h4 className="text-sm font-bold text-[#2C1B13] mb-3">Conversation</h4>
+                {loadingMessages ? (
+                  <p className="text-xs text-[#6B5245]">Loading messages...</p>
+                ) : ticketMessages.length === 0 ? (
+                  <p className="text-xs text-[#6B5245]">No replies yet.</p>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {ticketMessages.map((m) => {
+                      const fromSupport = m.senderRole === 'super_admin' || m.senderRole === 'customer_care'
+                      return (
+                        <div key={m.id} className={`flex ${fromSupport ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
+                            fromSupport
+                              ? 'bg-[#176B5B] text-[#FFF9EF]'
+                              : 'bg-[#EDE2D3] text-[#2C1B13]'
+                          }`}>
+                            <p>{m.message}</p>
+                            <p className="text-[10px] mt-1 opacity-70">
+                              {m.senderName || (fromSupport ? 'Support' : 'Member')} · {new Date(m.createdAt).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {(ticketMeta?.status === 'open' || ticketMeta?.status === 'in_progress' || selTicket.status === 'open' || selTicket.status === 'in_progress') ? (
+                <div className="border-t border-[#EDE2D3] pt-4">
+                  <h4 className="text-sm font-bold text-[#2C1B13] mb-2">Reply</h4>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-3 text-sm text-[#2C1B13] placeholder-[#6B5245]/50 focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+                    placeholder="Type your reply..."
+                  />
+                  <button
+                    onClick={handleSendReply}
+                    disabled={sendingReply || !replyText.trim()}
+                    className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2.5 text-sm font-semibold text-[#FFF9EF] transition duration-200 hover:bg-[#1a7d6a] disabled:opacity-70 disabled:pointer-events-none"
+                  >
+                    <Send size={16} /> {sendingReply ? 'Sending...' : 'Send Reply'}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl bg-[#EDE2D3] px-4 py-3 text-sm text-[#6B5245]">
+                  <Lock size={16} />
+                  This ticket is {ticketMeta?.status || selTicket.status} and is read-only.
                 </div>
               )}
             </div>
-
-            {(ticketMeta?.status === 'open' || ticketMeta?.status === 'in_progress' || selTicket.status === 'open' || selTicket.status === 'in_progress') ? (
-              <div className="border-t dark:border-gray-700 pt-4">
-                <h4 className="text-sm font-semibold mb-2 dark:text-gray-200">Reply</h4>
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
-                  placeholder="Type your reply..."
-                />
-                <Button className="mt-2 w-full bg-teal-700 hover:bg-teal-800" onClick={handleSendReply} disabled={sendingReply || !replyText.trim()}>
-                  {sendingReply ? 'Sending...' : 'Send Reply'}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-500">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                This ticket is {ticketMeta?.status || selTicket.status} and is read-only.
-              </div>
-            )}
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
 
       {/* New Ticket Modal */}
-      <Modal open={newTicketModal} onClose={() => setNewTicketModal(false)} title="Create Internal Ticket">
-        <div className="space-y-4">
-          <Input id="t-sub" label="Subject" value={ticketSubject} onChange={(e) => setTicketSubject(e.target.value)} required />
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
-            <select value={ticketCategory} onChange={(e) => setTicketCategory(e.target.value)}
-              className="block w-full rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm">
-              <option value="order_inquiry">Order Inquiry</option>
-              <option value="repayment_issue">Repayment Issue</option>
-              <option value="technical_glitch">Technical Glitch</option>
-              <option value="reconciliation">Reconciliation</option>
-              <option value="other">Other</option>
-            </select>
+      {newTicketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#23150F]/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#D8C9A9] bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-[#2C1B13]">Create Internal Ticket</h2>
+              <button onClick={() => setNewTicketModal(false)} className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#2C1B13] mb-1.5">Subject</label>
+                <input
+                  type="text"
+                  value={ticketSubject}
+                  onChange={(e) => setTicketSubject(e.target.value)}
+                  placeholder="Enter subject"
+                  className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-2.5 text-sm text-[#2C1B13] placeholder-[#6B5245]/50 focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#2C1B13] mb-1.5">Category</label>
+                <select
+                  value={ticketCategory}
+                  onChange={(e) => setTicketCategory(e.target.value)}
+                  className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-2.5 text-sm text-[#2C1B13] focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+                >
+                  <option value="order_inquiry">Order Inquiry</option>
+                  <option value="repayment_issue">Repayment Issue</option>
+                  <option value="technical_glitch">Technical Glitch</option>
+                  <option value="reconciliation">Reconciliation</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#2C1B13] mb-1.5">Description</label>
+                <textarea
+                  value={ticketDesc}
+                  onChange={(e) => setTicketDesc(e.target.value)}
+                  rows={3}
+                  placeholder="Enter description"
+                  className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-3 text-sm text-[#2C1B13] placeholder-[#6B5245]/50 focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#2C1B13] mb-1.5">Related Order ID (optional)</label>
+                <input
+                  type="text"
+                  value={ticketRelatedOrder}
+                  onChange={(e) => setTicketRelatedOrder(e.target.value)}
+                  placeholder="Enter order ID"
+                  className="w-full rounded-xl border border-[#D8C9A9] bg-white px-4 py-2.5 text-sm text-[#2C1B13] placeholder-[#6B5245]/50 focus:outline-none focus:ring-2 focus:ring-[#176B5B] focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={handleCreateTicket}
+                disabled={saving || !ticketSubject}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2.5 text-sm font-semibold text-[#FFF9EF] transition duration-200 hover:bg-[#1a7d6a] disabled:opacity-70 disabled:pointer-events-none"
+              >
+                {saving ? 'Creating...' : 'Create'}
+              </button>
+            </div>
           </div>
-          <Input id="t-desc" label="Description" value={ticketDesc} onChange={(e) => setTicketDesc(e.target.value)} />
-          <Input id="t-order" label="Related Order ID (optional)" value={ticketRelatedOrder} onChange={(e) => setTicketRelatedOrder(e.target.value)} />
-          <Button onClick={handleCreateTicket} className="w-full" disabled={saving || !ticketSubject}>Create</Button>
         </div>
-      </Modal>
+      )}
     </div>
   )
 }
