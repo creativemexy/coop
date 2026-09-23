@@ -15,8 +15,7 @@ import { SupportTicket } from '../bnpl/entities/support-ticket.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
-        secret:
-          configService.get<string>('jwt.accessSecret') || 'default-access-secret',
+        secret: configService.get<string>('jwt.accessSecret'),
       }),
     }),
   ],

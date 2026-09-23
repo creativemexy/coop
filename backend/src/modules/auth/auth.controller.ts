@@ -9,6 +9,7 @@ import {
   Req,
   Res,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
@@ -18,6 +19,11 @@ import {
   generateCsrfSecret,
   SkipCsrf,
 } from '../../common/guards/csrf.guard';
+import {
+  REFRESH_COOKIE,
+  setRefreshCookie,
+  clearRefreshCookie,
+} from '../../common/refresh-cookie.util';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -51,41 +57,79 @@ export class AuthController {
   @Post('register')
   @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  async register(@Body() dto: RegisterDto) {
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     if (!dto.email && !dto.phone) {
       throw new BadRequestException('Email or phone number is required');
     }
-    return this.authService.register(dto);
+    const result = await this.authService.register(dto);
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+    return result;
   }
 
   @Post('login')
   @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  async login(@Req() req: Request, @Body() dto: LoginDto) {
+  async login(
+    @Req() req: Request,
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const ip = req.ip || req.socket?.remoteAddress;
     const userAgent = req.headers['user-agent'] || '';
-    return this.authService.login(dto.emailOrPhone, dto.password, {
-      ip,
-      userAgent,
-    });
+    const result = await this.authService.login(
+      dto.emailOrPhone,
+      dto.password,
+      {
+        ip,
+        userAgent,
+      },
+    );
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+    return result;
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() dto: { refreshToken: string }) {
-    return this.authService.refreshTokens(dto.refreshToken);
+  async refresh(
+    @Req() req: Request,
+    @Body() dto: { refreshToken?: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
+      REFRESH_COOKIE
+    ];
+    const refreshToken = cookieToken || dto?.refreshToken;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const tokens = await this.authService.refreshTokens(refreshToken);
+    setRefreshCookie(res, tokens.refreshToken);
+    return tokens;
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@CurrentUser('sub') userId: string) {
+  async logout(
+    @CurrentUser('sub') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.authService.logout(userId);
+    clearRefreshCookie(res);
   }
 
   @Post('forgot-password')
   @SkipCsrf()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.emailOrPhone);
@@ -93,6 +137,7 @@ export class AuthController {
 
   @Post('reset-password')
   @SkipCsrf()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(

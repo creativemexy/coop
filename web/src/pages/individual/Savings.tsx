@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
+import {
+  PiggyBank, Wallet, Copy, Check, Landmark, Banknote, ArrowDownLeft, ArrowUpRight,
+  Target, Sparkles, CheckCircle2, AlertTriangle, Loader2, Clock, RefreshCw, Hash,
+} from 'lucide-react'
 
 interface SavingsAccount {
   id: string
@@ -42,6 +43,21 @@ interface DepositInstruction {
   expiresAt: string | null
   creditedAt: string | null
 }
+
+const ngn = (n: number) => `₦${n.toLocaleString()}`
+
+const solidGreen =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const solidMaroon =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#9D4824] px-4 py-2 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#B85A38] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const solidGold =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-4 py-2 text-sm font-semibold text-[#2C1B13] shadow-sm transition hover:bg-[#B9891F] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const pillActive =
+  'inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-4 py-1.5 text-sm font-semibold text-[#FFF9EF] transition cursor-pointer'
+const pillGhost =
+  'inline-flex items-center gap-2 rounded-full border border-[#E7DCCB] bg-white px-4 py-1.5 text-sm font-semibold text-[#6B5245] transition hover:bg-[#FFF9EF] cursor-pointer disabled:opacity-60 disabled:pointer-events-none'
+const fieldCls =
+  'w-full rounded-xl border border-[#E7DCCB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#23150F] outline-none transition placeholder:text-[#C9B89F] hover:border-[#D8C9A9] focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20'
 
 export function Savings() {
   const [account, setAccount] = useState<SavingsAccount | null>(null)
@@ -225,254 +241,369 @@ export function Savings() {
       : ''
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Savings</h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B79B6B]">Co-op Savings</p>
+          <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Savings</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+            Grow your general and goal savings, funded by bank transfer.
+          </p>
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+          <PiggyBank size={22} className="text-[#176B5B]" />
+        </div>
+      </div>
 
-      <Card className="border-blue-500 bg-blue-50/30 dark:bg-blue-950/10">
-        <CardTitle className="text-sm font-medium text-blue-600 dark:text-blue-400">
-          Fund via Bank Transfer · Virtual Account
-        </CardTitle>
+      {/* Virtual account */}
+      <div className="overflow-hidden rounded-2xl border border-[#176B5B]/20 bg-gradient-to-br from-[#176B5B] via-[#0F5A4B] to-[#0B463A] p-6 text-[#FFF9EF] shadow-lg">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF9EF]/15">
+            <Landmark size={16} />
+          </div>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#F7D674]">Fund via Bank Transfer · Virtual Account</p>
+        </div>
         {virtualAccount ? (
-          <div className="mt-3 flex flex-wrap items-end gap-6">
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
             <div>
-              <p className="text-xs text-gray-500">Account Number</p>
-              <div className="flex items-center gap-2">
-                <p className="text-2xl font-bold tracking-wider text-gray-800 dark:text-gray-100">
-                  {virtualAccount.accountNumber}
-                </p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#FFF9EF]/70">Account Number</p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="text-3xl font-black tracking-[0.08em] text-[#FFF9EF]">{virtualAccount.accountNumber}</p>
                 <button
                   onClick={() => copyNumber(virtualAccount.accountNumber)}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#FFF9EF]/15 transition hover:bg-[#E4A42A] hover:text-[#2C1B13]"
+                  aria-label="Copy account number"
                 >
-                  {copied === virtualAccount.accountNumber ? 'Copied!' : 'Copy'}
+                  {copied === virtualAccount.accountNumber ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
+              {copied === virtualAccount.accountNumber && <p className="mt-1 text-xs font-semibold text-[#F7D674]">Copied!</p>}
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase">Account Name</p>
-              <p className="font-semibold text-gray-700 dark:text-gray-200">{virtualAccount.accountName}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#FFF9EF]/70">Account Name</p>
+              <p className="mt-1 text-base font-bold text-[#FFF9EF]">{virtualAccount.accountName}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase">Bank</p>
-              <p className="font-semibold text-gray-700 dark:text-gray-200">{virtualAccount.bankName}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#FFF9EF]/70">Bank</p>
+              <p className="mt-1 text-base font-bold text-[#FFF9EF]">{virtualAccount.bankName}</p>
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-sm text-gray-400">
-            Virtual account is being provisioned — it will appear here shortly.
+          <p className="mt-4 text-sm text-[#FFF9EF]/80">
+          Virtual account is being provisioned — it will appear here shortly.
           </p>
         )}
-        <p className="mt-3 text-xs text-gray-500">
+        <div className="mt-5 flex items-start gap-2 rounded-xl bg-[#FFF9EF]/10 px-4 py-3 text-xs leading-relaxed text-[#FFF9EF]/85">
+          <Banknote size={14} className="mt-px shrink-0 text-[#F7D674]" />
           Transfer any amount to this account and it will be credited to your savings automatically.
-        </p>
-      </Card>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-emerald-500">
-          <CardTitle className="text-sm font-medium text-gray-500">General Savings</CardTitle>
-          <p className="mt-2 text-3xl font-bold text-green-600">₦{balance.toLocaleString()}</p>
-        </Card>
-        <Card className="border-blue-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Goal Savings</CardTitle>
-          <p className="mt-2 text-3xl font-bold text-blue-600">₦{goalBalance.toLocaleString()}</p>
-          {targetAmount > 0 && (
-            <div className="mt-2">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Target: ₦{targetAmount.toLocaleString()}</span>
-                <span>{goalProgress}%</span>
+      {/* Balances */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+              <Wallet size={16} className="text-[#176B5B]" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">General Savings</p>
+          </div>
+          <p className="mt-4 break-words text-3xl font-black tracking-[-0.03em] text-[#176B5B]">{ngn(balance)}</p>
+          <p className="mt-1 text-xs text-[#B79B6B]">Available to deposit or withdraw</p>
+        </div>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E4A42A]/15">
+                <PiggyBank size={16} className="text-[#8A5A00]" />
               </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full">
-                <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${Math.min(goalProgress, 100)}%` }} />
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Goal Savings</p>
+            </div>
+            {targetAmount > 0 && (
+              <span className="rounded-full bg-[#E4A42A]/15 px-2.5 py-1 text-xs font-bold text-[#8A5A00]">{goalProgress}%</span>
+            )}
+          </div>
+          <p className="mt-4 break-words text-3xl font-black tracking-[-0.03em] text-[#8A5A00]">{ngn(goalBalance)}</p>
+          {targetAmount > 0 && (
+            <div className="mt-3">
+              <div className="flex justify-between text-xs font-medium text-[#6B5245]">
+                <span>Target: {ngn(targetAmount)}</span>
+                <span>{goalBalance >= targetAmount ? 'Goal reached' : `${ngn(Math.max(0, targetAmount - goalBalance))} to go`}</span>
+              </div>
+              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[#F0DDAD]/60">
+                <div
+                  className="h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(goalProgress, 100)}%`, background: 'linear-gradient(90deg, #E4A42A, #176B5B)' }}
+                />
               </div>
             </div>
           )}
-        </Card>
+        </div>
       </div>
 
+      {/* Notice */}
       {notice && (
-        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{notice}</p>
+        <div className="flex items-center gap-2 rounded-2xl border border-[#176B5B]/25 bg-[#176B5B]/10 px-4 py-3 text-sm font-semibold text-[#176B5B]">
+          <CheckCircle2 size={16} className="shrink-0" /> {notice}
+        </div>
       )}
 
+      {/* Pending deposit instruction */}
       {depositInstruction && (
-        <Card className="border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20">
-          <CardTitle className="text-sm font-medium text-indigo-600 dark:text-indigo-300">
-            Complete your {depositInstruction.type === 'goal' ? 'Goal' : 'General'} Savings Deposit
-          </CardTitle>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+        <div className="rounded-2xl border border-[#9D4824]/30 bg-gradient-to-br from-[#9D4824]/10 to-[#FFF9EF] p-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9D4824]/10">
+              <Banknote size={16} className="text-[#9D4824]" />
+            </div>
+            <p className="font-bold text-[#2C1B13]">
+              Complete your {depositInstruction.type === 'goal' ? 'Goal' : 'General'} Savings Deposit
+            </p>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-[#6B5245]">
             Transfer{' '}
-            <span className="font-bold text-indigo-700 dark:text-indigo-300">
-              exactly ₦{depositInstruction.amount.toLocaleString()}
-            </span>{' '}
+            <span className="font-black text-[#176B5B]">{ngn(depositInstruction.amount)}</span>{' '}
             to the account below. Your savings are credited only after the transfer is confirmed by the bank — hit "Check status" to confirm.
           </p>
-          <div className="mt-4 flex flex-wrap items-end gap-6">
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <div>
-              <p className="text-xs text-gray-500">Account Number</p>
-              <div className="flex items-center gap-2">
-                <p className="text-2xl font-bold tracking-wider text-gray-800 dark:text-gray-100">
-                  {depositInstruction.accountNumber}
-                </p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#6B5245]">Account Number</p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <p className="text-2xl font-black tracking-[0.06em] text-[#2C1B13]">{depositInstruction.accountNumber}</p>
                 <button
                   onClick={() => copyNumber(depositInstruction.accountNumber)}
-                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-[#E7DCCB] bg-white text-[#6B5245] transition hover:bg-[#9D4824] hover:text-[#FFF9EF]"
+                  aria-label="Copy account number"
                 >
-                  {copied === depositInstruction.accountNumber ? 'Copied!' : 'Copy'}
+                  {copied === depositInstruction.accountNumber ? <Check size={13} /> : <Copy size={13} />}
                 </button>
               </div>
+              {copied === depositInstruction.accountNumber && <p className="mt-1 text-xs font-semibold text-[#9D4824]">Copied!</p>}
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase">Account Name</p>
-              <p className="font-semibold text-gray-700 dark:text-gray-200">{depositInstruction.accountName}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#6B5245]">Account Name</p>
+              <p className="mt-1 font-semibold text-[#2C1B13]">{depositInstruction.accountName}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase">Bank</p>
-              <p className="font-semibold text-gray-700 dark:text-gray-200">{depositInstruction.bankName}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#6B5245]">Bank</p>
+              <p className="mt-1 font-semibold text-[#2C1B13]">{depositInstruction.bankName}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase">Reference</p>
-              <p className="font-mono text-sm text-gray-600 dark:text-gray-300">{depositInstruction.reference}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#6B5245]">Reference</p>
+              <p className="mt-1 flex items-center gap-1 font-mono text-sm text-[#9D4824]"><Hash size={12} /> {depositInstruction.reference}</p>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-4">
-            <p className="text-xs text-gray-500">{expiresText(depositInstruction)}</p>
-            <Button variant="secondary" size="sm" onClick={refreshStatus}>
-              Check status
-            </Button>
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#6B5245]">
+              <Clock size={13} /> {expiresText(depositInstruction)}
+            </span>
+            <button type="button" onClick={refreshStatus} className="inline-flex items-center gap-2 rounded-full bg-[#E4A42A] px-4 py-2 text-sm font-bold text-[#2C1B13] shadow-sm transition hover:bg-[#B9891F] cursor-pointer">
+              <RefreshCw size={14} /> Check status
+            </button>
           </div>
-        </Card>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardTitle className="text-sm font-medium text-gray-500 mb-4">General Savings</CardTitle>
-          <div className="flex gap-2 mb-4">
-            <Button
-              variant={generalMode === 'deposit' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setGeneralMode('deposit')}
-            >
-              Deposit
-            </Button>
-            <Button
-              variant={generalMode === 'withdraw' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setGeneralMode('withdraw')}
-              disabled={!withdrawalsEnabled}
-              title={!withdrawalsEnabled ? 'Withdrawals are currently disabled' : ''}
-            >
-              Withdraw
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Amount"
-              value={generalAmount}
-              onChange={(e) => setGeneralAmount(e.target.value)}
-              className="flex-1 rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-            />
-            <Button onClick={handleGeneralSubmit} disabled={loading || !generalAmount || (generalMode === 'withdraw' && !withdrawalsEnabled)}>
-              {loading ? 'Processing...' : generalMode === 'deposit' ? 'Deposit' : 'Withdraw'}
-            </Button>
-          </div>
-          {generalMode === 'withdraw' && !withdrawalsEnabled && (
-            <p className="text-xs text-red-500 mt-1">Withdrawals are currently disabled by admin</p>
-          )}
-        </Card>
-
-        <Card>
-          <CardTitle className="text-sm font-medium text-gray-500 mb-4">Goal Savings</CardTitle>
-          <div className="flex gap-2 mb-4">
-            <Button
-              variant={goalMode === 'deposit' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setGoalMode('deposit')}
-            >
-              Deposit
-            </Button>
-            <Button
-              variant={goalMode === 'withdraw' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setGoalMode('withdraw')}
-              disabled={!withdrawalsEnabled}
-              title={!withdrawalsEnabled ? 'Withdrawals are currently disabled' : ''}
-            >
-              Withdraw
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Amount"
-              value={goalAmount}
-              onChange={(e) => setGoalAmount(e.target.value)}
-              className="flex-1 rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-            />
-            <Button onClick={handleGoalSubmit} disabled={loading || !goalAmount || (goalMode === 'withdraw' && !withdrawalsEnabled)}>
-              {loading ? 'Processing...' : goalMode === 'deposit' ? 'Deposit' : 'Withdraw'}
-            </Button>
-          </div>
-          {goalMode === 'withdraw' && !withdrawalsEnabled && (
-            <p className="text-xs text-red-500 mt-1">Withdrawals are currently disabled by admin</p>
-          )}
-        </Card>
+      {/* Balance actions */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ActionCard
+          title="General Savings"
+          icon={<Wallet size={16} className="text-[#176B5B]" />}
+          iconCls="bg-[#176B5B]/10"
+          mode={generalMode}
+          setMode={setGeneralMode}
+          amount={generalAmount}
+          setAmount={setGeneralAmount}
+          loading={loading}
+          withdrawalsEnabled={withdrawalsEnabled}
+          onSubmit={handleGeneralSubmit}
+        />
+        <ActionCard
+          title="Goal Savings"
+          icon={<PiggyBank size={16} className="text-[#8A5A00]" />}
+          iconCls="bg-[#E4A42A]/15"
+          mode={goalMode}
+          setMode={setGoalMode}
+          amount={goalAmount}
+          setAmount={setGoalAmount}
+          loading={loading}
+          withdrawalsEnabled={withdrawalsEnabled}
+          onSubmit={handleGoalSubmit}
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardTitle className="text-sm font-medium text-gray-500 mb-4">Savings Goal Target</CardTitle>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Target amount"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              className="flex-1 rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-            />
-            <Button onClick={handleSetTarget} disabled={!target}>Set Target</Button>
-          </div>
-        </Card>
-
-        <Card>
-          <CardTitle className="text-sm font-medium text-gray-500">Account Status</CardTitle>
-          <div className="mt-2">
-            <Badge variant={account?.status === 'active' ? 'success' : 'default'}>
-              {account?.status ?? '—'}
-            </Badge>
-          </div>
-        </Card>
-      </div>
-
-      <Card>
-        <CardTitle className="text-sm font-medium text-gray-500 mb-4">Transaction History</CardTitle>
-        <div className="space-y-3">
-          {(account?.transactions ?? []).length === 0 && (
-            <p className="text-gray-400 text-sm">No transactions yet</p>
-          )}
-          {(account?.transactions ?? []).slice(0, 20).map((tx, i) => (
-            <div key={tx.id} className={`flex items-center justify-between py-2 border-b border-gray-100 last:border-0 rounded-lg px-2 ${
-              [
-                'bg-sky-50/40 dark:bg-sky-950/10',
-                'bg-emerald-50/40 dark:bg-emerald-950/10',
-                'bg-amber-50/40 dark:bg-amber-950/10',
-                'bg-fuchsia-50/40 dark:bg-fuchsia-950/10',
-                'bg-violet-50/40 dark:bg-violet-950/10',
-              ][i % 5]
-            }`}>
-              <div>
-                <p className="font-medium capitalize text-gray-700 dark:text-gray-300">
-                  {tx.type === 'goal_deposit' ? 'Goal Deposit' : tx.type === 'goal_withdrawal' ? 'Goal Withdrawal' : tx.type}
-                </p>
-                <p className="text-sm text-gray-500">{tx.description}</p>
-                <p className="text-xs text-gray-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
-              </div>
-              <p className={`font-bold ${tx.type.includes('deposit') || tx.type === 'interest' ? 'text-green-600' : 'text-red-600'}`}>
-                {tx.type.includes('deposit') || tx.type === 'interest' ? '+' : '-'}₦{Number(tx.amount).toLocaleString()}
-              </p>
+      {/* Target + status */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E4A42A]/15">
+              <Target size={16} className="text-[#8A5A00]" />
             </div>
-          ))}
+            <p className="text-sm font-bold text-[#2C1B13]">Savings Goal Target</p>
+          </div>
+          {targetAmount > 0 && <p className="mt-1 text-xs text-[#B79B6B]">Current target: {ngn(targetAmount)}</p>}
+          <div className="mt-4 flex gap-2">
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#B79B6B]">₦</span>
+              <input
+                type="number"
+                placeholder="Target amount"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                className={`${fieldCls} pl-9`}
+              />
+            </div>
+            <button type="button" onClick={handleSetTarget} disabled={!target} className={solidGold}>
+              Set Target
+            </button>
+          </div>
         </div>
-      </Card>
+
+        <div className="flex flex-col justify-between rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+                <Landmark size={16} className="text-[#176B5B]" />
+              </div>
+              <p className="text-sm font-bold text-[#2C1B13]">Account Status</p>
+            </div>
+            <p className="mt-1 text-xs text-[#B79B6B]">Your savings account health</p>
+          </div>
+          <div className="mt-4">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              account?.status === 'active' ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#EDE2D3] text-[#6B5245]'
+            }`}>
+              <span className={`h-2 w-2 rounded-full ${account?.status === 'active' ? 'bg-[#176B5B]' : 'bg-[#C9B89F]'}`} />
+              {account?.status ?? '—'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Transactions */}
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EDE2D3] px-5 py-4">
+          <div>
+            <h2 className="text-lg font-black tracking-[-0.02em] text-[#2C1B13]">Transaction History</h2>
+            <p className="text-xs text-[#6B5245]">Your recent savings movements.</p>
+          </div>
+          <span className="rounded-full bg-[#176B5B]/10 px-2.5 py-1 text-xs font-bold text-[#176B5B]">
+            Interest accrues regularly
+          </span>
+        </div>
+        <div className="divide-y divide-[#EDE2D3]">
+          {(account?.transactions ?? []).length === 0 && (
+            <p className="px-5 py-10 text-center text-sm text-[#C9B89F]">No transactions yet</p>
+          )}
+          {(account?.transactions ?? []).slice(0, 20).map((tx, i) => {
+            const up = tx.type.includes('deposit') || tx.type === 'interest'
+            const label =
+              tx.type === 'goal_deposit' ? 'Goal Deposit'
+              : tx.type === 'goal_withdrawal' ? 'Goal Withdrawal'
+              : tx.type === 'interest' ? 'Interest Earned'
+              : tx.type === 'deposit' ? 'Savings Deposit'
+              : 'Withdrawal'
+            const icon =
+              tx.type === 'interest' ? <Sparkles size={15} />
+              : tx.type === 'goal_withdrawal' || tx.type === 'goal_deposit' ? <Target size={15} />
+              : up ? <ArrowDownLeft size={15} /> : <ArrowUpRight size={15} />
+            const tone =
+              tx.type === 'interest' ? 'bg-[#E4A42A]/15 text-[#8A5A00]'
+              : up ? 'bg-[#176B5B]/10 text-[#176B5B]'
+              : 'bg-[#B3261E]/10 text-[#B3261E]'
+            return (
+              <div key={tx.id} className={`flex items-start justify-between gap-3 px-5 py-4 transition hover:bg-[#FFF9EF]/50 sm:items-center ${i === 0 ? 'bg-[#FFF9EF]/60' : ''}`}>
+                <div className="flex min-w-0 items-start gap-3 sm:items-center">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}>{icon}</span>
+                  <div className="min-w-0">
+                    <p className="capitalize text-sm font-bold text-[#2C1B13]">{label}</p>
+                    {tx.description && <p className="max-w-[55vw] truncate text-xs text-[#6B5245] sm:max-w-sm">{tx.description}</p>}
+                    <p className="text-[11px] text-[#B79B6B]">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <p className={`shrink-0 text-right text-sm font-black ${up ? 'text-[#176B5B]' : 'text-[#B3261E]'}`}>
+                  {up ? '+' : '-'}{ngn(Number(tx.amount))}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ActionCard({
+  title,
+  icon,
+  iconCls,
+  mode,
+  setMode,
+  amount,
+  setAmount,
+  loading,
+  withdrawalsEnabled,
+  onSubmit,
+}: {
+  title: string
+  icon: ReactNode
+  iconCls: string
+  mode: 'deposit' | 'withdraw'
+  setMode: (m: 'deposit' | 'withdraw') => void
+  amount: string
+  setAmount: (v: string) => void
+  loading: boolean
+  withdrawalsEnabled: boolean
+  onSubmit: () => void
+}) {
+  return (
+    <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconCls}`}>{icon}</div>
+          <p className="text-sm font-bold text-[#2C1B13]">{title}</p>
+        </div>
+        <div className="flex gap-1.5">
+          <button type="button" className={mode === 'deposit' ? pillActive : pillGhost} onClick={() => setMode('deposit')}>
+            Deposit
+          </button>
+          <button
+            type="button"
+            className={`${mode === 'withdraw' ? 'inline-flex items-center gap-2 rounded-full bg-[#9D4824] px-4 py-1.5 text-sm font-semibold text-[#FFF9EF] transition cursor-pointer' : pillGhost}`}
+            onClick={() => setMode('withdraw')}
+            disabled={!withdrawalsEnabled}
+            title={!withdrawalsEnabled ? 'Withdrawals are currently disabled' : ''}
+          >
+            Withdraw
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <div className="relative flex-1">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#B79B6B]">₦</span>
+          <input
+            type="number"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={`${fieldCls} pl-9`}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={loading || !amount || (mode === 'withdraw' && !withdrawalsEnabled)}
+          className={mode === 'withdraw' ? solidMaroon : solidGreen}
+        >
+          {loading ? (<><Loader2 size={15} className="animate-spin" /> Processing...</>) : mode === 'deposit' ? 'Deposit' : 'Withdraw'}
+        </button>
+      </div>
+      {mode === 'withdraw' && !withdrawalsEnabled && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-[#B3261E]">
+          <AlertTriangle size={13} /> Withdrawals are currently disabled by admin
+        </p>
+      )}
     </div>
   )
 }

@@ -1,8 +1,23 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import { naira } from '../../lib/utils'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
+import {
+  Badge,
+  Btn,
+  EmptyRow,
+  Modal,
+  PageHeader,
+  Panel,
+  StatCard,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+  TextInput,
+} from '../../components/ui/warm'
 
 interface ApexOrg {
   id: string
@@ -33,11 +48,11 @@ interface ApexDashboard {
 export function ApexBusinessManagerDashboard() {
   const [data, setData] = useState<ApexDashboard | null>(null)
   const [withdrawing, setWithdrawing] = useState(false)
-  const [withdrawMsg, setWithdrawMsg] = useState('')
+  const [withdrawMsg, setWithdrawMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null)
   const [bankEdit, setBankEdit] = useState(false)
   const [bankForm, setBankForm] = useState({ bankName: '', accountName: '', accountNumber: '', sortCode: '', bankCode: '' })
   const [bankSaving, setBankSaving] = useState(false)
-  const [bankMsg, setBankMsg] = useState('')
+  const [bankMsg, setBankMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null)
 
   const load = () => api.get('/apex-bm/dashboard').then(r => setData(r.data))
 
@@ -45,13 +60,13 @@ export function ApexBusinessManagerDashboard() {
 
   const withdraw = async () => {
     setWithdrawing(true)
-    setWithdrawMsg('')
+    setWithdrawMsg(null)
     try {
       const { data: res } = await api.post('/ledger/fee-pots/withdraw/share')
-      setWithdrawMsg(`Withdrawn ${naira(res.withdrawn)}. Remaining: ${naira(res.remaining)}`)
+      setWithdrawMsg({ tone: 'success', text: `Withdrawn ${naira(res.withdrawn)}. Remaining: ${naira(res.remaining)}` })
       load()
     } catch {
-      setWithdrawMsg('Withdrawal failed')
+      setWithdrawMsg({ tone: 'danger', text: 'Withdrawal failed' })
     }
     setWithdrawing(false)
   }
@@ -66,115 +81,99 @@ export function ApexBusinessManagerDashboard() {
       bankCode: data.apexOrg.bankCode || '',
     })
     setBankEdit(true)
-    setBankMsg('')
+    setBankMsg(null)
   }
 
   const saveBank = async () => {
     setBankSaving(true)
     try {
       await api.patch('/apex-bm/bank', bankForm)
-      setBankMsg('Bank details saved')
+      setBankMsg({ tone: 'success', text: 'Bank details saved' })
       setBankEdit(false)
       load()
     } catch {
-      setBankMsg('Failed to save bank details')
+      setBankMsg({ tone: 'danger', text: 'Failed to save bank details' })
     }
     setBankSaving(false)
   }
 
-  if (!data) return <div className="p-6">Loading...</div>
+  if (!data) return <div className="p-6 text-sm text-[#6B5245]">Loading...</div>
 
   const hasBank = !!data.apexOrg.accountNumber
 
   return (
-    <div className="space-y-6 p-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Apex Dashboard — {data.apexOrg.name}</h2>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Apex Overview"
+        title={data.apexOrg.name}
+        subtitle="Fee balances, settlement bank and the most recent fee ledger entries."
+        actions={<Badge variant="default">Code · {data.apexOrg.code}</Badge>}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <Card className="border-blue-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Organizations</CardTitle>
-          <p className="mt-2 text-3xl font-bold">{data.stats.organizations}</p>
-        </Card>
-        <Card className="border-emerald-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Members</CardTitle>
-          <p className="mt-2 text-3xl font-bold">{data.stats.members}</p>
-        </Card>
-        <Card className="border-green-600">
-          <CardTitle className="text-sm font-medium text-gray-500">Apex Fee Balance</CardTitle>
-          <p className="mt-2 text-3xl font-bold text-green-600 break-words">{naira(data.fees.apexBalance)}</p>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard label="Organizations" value={data.stats.organizations} sub="affiliate cooperatives" icon="🏢" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
+        <StatCard label="Members" value={data.stats.members} sub="across all members" icon="👥" iconCls="bg-[#E4A42A]/15 text-[#8A5A00]" />
+        <StatCard
+          label="Apex Fee Balance"
+          value={naira(data.fees.apexBalance)}
+          sub="eligible for withdrawal"
+          valueCls="text-[#176B5B]"
+          icon="💰"
+          iconCls="bg-[#176B5B]/10 text-[#176B5B]"
+        />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <Card className="border-indigo-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Total Registration Fees</CardTitle>
-          <p className="mt-2 text-xl font-bold break-words">{naira(data.fees.totalFees)}</p>
-        </Card>
-        <Card className="border-fuchsia-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Apex Share (15%)</CardTitle>
-          <p className="mt-2 text-xl font-bold break-words">{naira(data.fees.apexShare)}</p>
-        </Card>
-        <Card className="border-cyan-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Org Share (35%)</CardTitle>
-          <p className="mt-2 text-xl font-bold break-words">{naira(data.fees.orgShares)}</p>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard label="Total Registration Fees" value={naira(data.fees.totalFees)} sub="cumulative" icon="🧾" iconCls="bg-[#9D4824]/10 text-[#9D4824]" />
+        <StatCard label="Apex Share (15%)" value={naira(data.fees.apexShare)} sub="apex cut of registration fees" icon="📈" iconCls="bg-[#E4A42A]/15 text-[#8A5A00]" />
+        <StatCard label="Org Share (35%)" value={naira(data.fees.orgShares)} sub="passed to organizations" icon="🏛️" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
       </div>
 
-      {hasBank ? (
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-500">Bank Details</span>
-            <button onClick={openBankEdit} className="text-xs text-blue-600 hover:underline cursor-pointer">Edit</button>
-          </div>
-          <div className="text-sm space-y-1 dark:text-gray-200">
-            <p>Bank: {data.apexOrg.bankName}</p>
-            <p>Account: {data.apexOrg.accountName}</p>
-            <p>Number: {data.apexOrg.accountNumber}</p>
-            <p>Sort Code: {data.apexOrg.sortCode}{data.apexOrg.bankCode ? ` / Bank Code: ${data.apexOrg.bankCode}` : ''}</p>
-          </div>
-        </Card>
-      ) : (
-        <Card className="p-4 border-dashed dark:border-gray-600">
-          <p className="text-sm text-gray-400 mb-2">No bank details set. Add bank details to enable withdrawals.</p>
-          <button onClick={openBankEdit} className="text-sm text-blue-600 hover:underline cursor-pointer">Add Bank Details</button>
-        </Card>
-      )}
-
-      <div className="flex items-center gap-4">
-        <button
-          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-          onClick={withdraw}
-          disabled={withdrawing || !hasBank || data.fees.apexBalance <= 0}
-          title={!hasBank ? 'Set bank details first' : ''}
-        >
-          {withdrawing ? 'Processing...' : 'Withdraw Apex Share'}
-        </button>
-        {withdrawMsg && <span className="text-sm text-green-600">{withdrawMsg}</span>}
-      </div>
-
-      {bankEdit && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setBankEdit(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold dark:text-gray-100">Bank Details</h3>
-            <input placeholder="Bank Name" className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} />
-            <input placeholder="Account Name" className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={bankForm.accountName} onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })} />
-            <input placeholder="Account Number" className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} />
-            <input placeholder="Sort Code" className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={bankForm.sortCode} onChange={(e) => setBankForm({ ...bankForm, sortCode: e.target.value })} />
-            <input placeholder="Bank Code" className="w-full border rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600" value={bankForm.bankCode} onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })} />
-            <div className="flex gap-2">
-              <button onClick={saveBank} disabled={bankSaving} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50 cursor-pointer">
-                {bankSaving ? 'Saving...' : 'Save'}
-              </button>
-              <button onClick={() => setBankEdit(false)} className="px-4 py-2 border rounded-lg text-sm cursor-pointer">Cancel</button>
+      <Panel title="Settlement Bank" subtitle={hasBank ? 'Withdrawal destination' : 'Add bank details to enable withdrawals'} actions={<Btn variant="ghost" size="sm" onClick={openBankEdit}>{hasBank ? 'Edit' : 'Add Bank Details'}</Btn>}>
+        {hasBank ? (
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#B79B6B]">Bank</p>
+              <p className="mt-0.5 font-semibold text-[#2C1B13]">{data.apexOrg.bankName}</p>
             </div>
-            {bankMsg && <p className="text-sm text-green-600">{bankMsg}</p>}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#B79B6B]">Account</p>
+              <p className="mt-0.5 font-semibold text-[#2C1B13]">{data.apexOrg.accountName}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#B79B6B]">Number</p>
+              <p className="mt-0.5 font-semibold text-[#2C1B13]">{data.apexOrg.accountNumber}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#B79B6B]">Codes</p>
+              <p className="mt-0.5 text-[#6B5245]">
+                {data.apexOrg.sortCode}{data.apexOrg.bankCode ? ` / ${data.apexOrg.bankCode}` : ''}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-[#6B5245]">No bank details set yet.</p>
+            <Btn size="sm" onClick={openBankEdit}>Add Bank Details</Btn>
+          </div>
+        )}
+      </Panel>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-3 dark:text-gray-100">Recent Fee Ledger</h3>
-        <Table borderClass="border-fuchsia-500">
+      <Panel title="Withdraw Apex Share" subtitle="Settle the apex fee balance to your bank account">
+        <div className="flex flex-wrap items-center gap-4">
+          <Btn
+            onClick={withdraw}
+            disabled={withdrawing || !hasBank || data.fees.apexBalance <= 0}
+          >
+            {withdrawing ? 'Processing...' : 'Withdraw Apex Share'}
+          </Btn>
+          {!hasBank && <p className="text-xs text-[#B79B6B]">Set bank details first to withdraw.</p>}
+          {withdrawMsg && <Badge variant={withdrawMsg.tone}>{withdrawMsg.text}</Badge>}
+        </div>
+      </Panel>
+
+      <Panel title="Recent Fee Ledger" subtitle="Latest registration fee splits hitting this apex" padded={false}>
+        <Table>
           <THead>
             <THeadRow>
               <THeadCell>Total Fee</THeadCell>
@@ -186,20 +185,37 @@ export function ApexBusinessManagerDashboard() {
           <TBody>
             {data.recentLedger.map((l) => (
               <TBodyRow key={l.id}>
-                <TBodyCell>{naira(Number(l.totalFee))}</TBodyCell>
+                <TBodyCell className="font-semibold text-[#2C1B13]">{naira(Number(l.totalFee))}</TBodyCell>
                 <TBodyCell>{naira(Number(l.apexShare))}</TBodyCell>
                 <TBodyCell>{naira(Number(l.organizationShare))}</TBodyCell>
-                <TBodyCell className="text-gray-500">{new Date(l.createdAt).toLocaleDateString()}</TBodyCell>
+                <TBodyCell>{new Date(l.createdAt).toLocaleDateString()}</TBodyCell>
               </TBodyRow>
             ))}
             {data.recentLedger.length === 0 && (
-              <TBodyRow>
-                <TBodyCell colSpan={4} className="text-center text-gray-400 py-8">No fee entries yet</TBodyCell>
-              </TBodyRow>
+              <EmptyRow colSpan={4}>No fee entries yet</EmptyRow>
             )}
           </TBody>
         </Table>
-      </div>
+      </Panel>
+
+      <Modal open={bankEdit} onClose={() => setBankEdit(false)} title="Bank Details">
+        <div className="space-y-4">
+          <TextInput label="Bank Name" placeholder="e.g. GTBank" value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} />
+          <TextInput label="Account Name" placeholder="e.g. FENAC Apex Cooperative" value={bankForm.accountName} onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })} />
+          <TextInput label="Account Number" placeholder="e.g. 0123456789" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3">
+            <TextInput label="Sort Code" placeholder="e.g. 044" value={bankForm.sortCode} onChange={(e) => setBankForm({ ...bankForm, sortCode: e.target.value })} />
+            <TextInput label="Bank Code" placeholder="e.g. 058" value={bankForm.bankCode} onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })} />
+          </div>
+          <div className="flex gap-2">
+            <Btn onClick={saveBank} disabled={bankSaving} className="flex-1">
+              {bankSaving ? 'Saving...' : 'Save'}
+            </Btn>
+            <Btn variant="secondary" onClick={() => setBankEdit(false)}>Cancel</Btn>
+          </div>
+          {bankMsg && <Badge variant={bankMsg.tone} dot>{bankMsg.text}</Badge>}
+        </div>
+      </Modal>
     </div>
   )
 }

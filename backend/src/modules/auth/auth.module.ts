@@ -35,9 +35,7 @@ import { SmsModule } from '../sms/sms.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
-        secret:
-          configService.get<string>('jwt.accessSecret') ||
-          'default-access-secret',
+        secret: configService.get<string>('jwt.accessSecret'),
         signOptions: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           expiresIn: (configService.get<string>('jwt.accessExpiry') ||

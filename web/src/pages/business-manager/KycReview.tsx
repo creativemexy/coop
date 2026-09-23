@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { api } from '../../api/client'
+import { api, getAccessToken } from '../../api/client'
 import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -80,7 +80,7 @@ export function KycReview() {
   }
 
   const handleExport = async () => {
-    const token = localStorage.getItem('access_token')
+    const token = getAccessToken()
     const res = await fetch('/api/v1/kyc/export', {
       headers: { Authorization: `Bearer ${token}` },
     })

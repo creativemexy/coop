@@ -5,7 +5,9 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Req,
   UseGuards,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -13,6 +15,14 @@ import { SkipCsrf } from '../../common/guards/csrf.guard';
 import { WebhookAuthGuard } from '../../common/guards/webhook-auth.guard';
 import { DepositNotificationData } from './firstcheckout.client';
 import { VirtualAccountsService } from './virtual-accounts.service';
+import type { Request } from 'express';
+
+function safeEqualHex(expected: string, provided: string): boolean {
+  const a = Buffer.from(expected.toLowerCase(), 'hex');
+  const b = Buffer.from(provided.toLowerCase(), 'hex');
+  if (a.length === 0 || a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
 
 /**
  * FirstCheckout / Interswitch (FBN whitelabel) virtual-account deposit callback.
@@ -44,23 +54,33 @@ export class VirtualAccountWebhookController {
   @Post('firstcheckout/virtual-account-deposit')
   @HttpCode(HttpStatus.OK)
   async handleDeposit(
+    @Req() req: Request,
     @Body() payload: Record<string, unknown>,
     @Headers('x-fch-signature') signature?: string,
     @Headers('x-fch-x-signature') altSignature?: string,
   ) {
     const headerSignature = signature || altSignature;
-    if (this.secretKey && headerSignature) {
-      const hash = crypto
-        .createHmac('sha512', this.secretKey)
-        .update(JSON.stringify(payload))
-        .digest('hex');
-      if (
-        hash !== headerSignature &&
-        // Some gateways sign the raw stringified body with the x header
-        hash.toLowerCase() !== headerSignature.toLowerCase()
-      ) {
-        return { status: 'invalid_signature' };
-      }
+    if (!this.secretKey) {
+      // Fail closed: never process a deposit callback without the gateway key.
+      throw new ServiceUnavailableException(
+        'Payment webhook misconfigured (gateway secret not set)',
+      );
+    }
+
+    if (!headerSignature) {
+      return { status: 'invalid_signature' };
+    }
+
+    const rawBody =
+      (req as unknown as { rawBody?: string }).rawBody ??
+      JSON.stringify(payload);
+    const expected = crypto
+      .createHmac('sha512', this.secretKey)
+      .update(rawBody)
+      .digest('hex');
+
+    if (!safeEqualHex(expected, headerSignature)) {
+      return { status: 'invalid_signature' };
     }
 
     return this.service.handleDepositNotification(

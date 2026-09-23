@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
-import { Modal } from '../../components/ui/modal'
+import {
+  Landmark, ClipboardList, CheckCircle2, XCircle, AlertTriangle, ArrowUpRight,
+  ArrowDownLeft, Copy, Check, Banknote, Hash, Loader2, CalendarDays, Wallet, X, Plus, ShieldCheck,
+} from 'lucide-react'
 
 interface LoanRepayment {
   id: string
@@ -46,15 +46,27 @@ interface Loan {
   repayments: LoanRepayment[]
 }
 
-const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-  pending: 'warning',
-  apex_approved: 'info',
-  org_approved: 'info',
-  approved: 'success',
-  active: 'info',
-  completed: 'success',
-  defaulted: 'danger',
-  rejected: 'danger',
+const statusMeta = (s: string) => {
+  switch (s) {
+    case 'pending':
+      return { cls: 'bg-[#E4A42A]/15 text-[#8A5A00]', dot: 'bg-[#E4A42A]' }
+    case 'apex_approved':
+      return { cls: 'bg-[#9D4824]/10 text-[#9D4824]', dot: 'bg-[#9D4824]' }
+    case 'org_approved':
+      return { cls: 'bg-[#9D4824]/10 text-[#9D4824]', dot: 'bg-[#9D4824]' }
+    case 'approved':
+      return { cls: 'bg-[#E4A42A]/15 text-[#8A5A00]', dot: 'bg-[#E4A42A]' }
+    case 'active':
+      return { cls: 'bg-[#176B5B]/10 text-[#176B5B]', dot: 'bg-[#176B5B]' }
+    case 'completed':
+      return { cls: 'bg-[#176B5B]/10 text-[#176B5B]', dot: 'bg-[#176B5B]' }
+    case 'defaulted':
+      return { cls: 'bg-[#B3261E]/10 text-[#B3261E]', dot: 'bg-[#B3261E]' }
+    case 'rejected':
+      return { cls: 'bg-[#B3261E]/10 text-[#B3261E]', dot: 'bg-[#B3261E]' }
+    default:
+      return { cls: 'bg-[#EDE2D3] text-[#6B5245]', dot: 'bg-[#C9B89F]' }
+  }
 }
 
 const statusLabels: Record<string, string> = {
@@ -77,6 +89,95 @@ interface LoanEligibility {
   maxAmount: number
   activeLoans: number
   reasons: Array<{ key: string; label: string; passed: boolean }>
+}
+
+const ngn = (n: number) => `₦${n.toLocaleString()}`
+
+const solidGreen =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const solidGold =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-4 py-2 text-sm font-semibold text-[#2C1B13] shadow-sm transition hover:bg-[#B9891F] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const ghost =
+  'inline-flex items-center justify-center gap-2 rounded-full border border-[#E7DCCB] bg-white px-4 py-2 text-sm font-semibold text-[#6B5245] transition hover:bg-[#FFF9EF] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const tinyGold =
+  'inline-flex items-center gap-1.5 rounded-full bg-[#E4A42A] px-3 py-1.5 text-xs font-bold text-[#2C1B13] transition hover:bg-[#B9891F] cursor-pointer disabled:opacity-60 disabled:pointer-events-none'
+const fieldCls =
+  'w-full rounded-xl border border-[#E7DCCB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#23150F] outline-none transition placeholder:text-[#C9B89F] hover:border-[#D8C9A9] focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20'
+
+function Label({ children, optional }: { children: ReactNode; optional?: boolean }) {
+  return (
+    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B5245]">
+      {children}
+      {optional && <span className="ml-1 font-medium normal-case text-[#B79B6B]">(optional)</span>}
+    </label>
+  )
+}
+
+function StatusPill({ status }: { status: string }) {
+  const meta = statusMeta(status)
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${meta.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {statusLabels[status] ?? status}
+    </span>
+  )
+}
+
+function BrandModal({
+  open,
+  onClose,
+  icon,
+  iconCls,
+  title,
+  subtitle,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  icon: ReactNode
+  iconCls: string
+  title: string
+  subtitle?: string
+  children: ReactNode
+}) {
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-[#23150F]/50 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconCls}`}>{icon}</div>
+            <div>
+              <h2 className="text-xl font-black tracking-[-0.02em] text-[#2C1B13]">{title}</h2>
+              {subtitle && <p className="text-xs text-[#6B5245]">{subtitle}</p>}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-[#6B5245] transition hover:bg-[#FFF9EF] hover:text-[#2C1B13] cursor-pointer"
+            aria-label="Close"
+          >
+            <X size={17} />
+          </button>
+        </div>
+        <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-6 py-5">{children}</div>
+      </div>
+    </div>
+  )
 }
 
 export function Loans() {
@@ -201,210 +302,279 @@ export function Loans() {
   const outstandingBalance = activeLoans.reduce((s, l) => s + (l.totalRepayment - l.amountPaid), 0)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">My Loans</h2>
-        <Button onClick={() => setShowApply(!showApply)} variant="primary">
-          {showApply ? 'Cancel' : 'Apply for Loan'}
-        </Button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B79B6B]">Loan Services</p>
+          <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">My Loans</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+            Apply for credit against your savings and track repayments.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowApply(!showApply)}
+          className={showApply ? ghost : solidGreen}
+        >
+          {showApply ? (<><X size={15} /> Cancel</>) : (<><Plus size={15} /> Apply for Loan</>)}
+        </button>
       </div>
 
+      {/* Apply card */}
       {showApply && (
-        <Card>
-          <CardTitle className="text-sm font-medium text-gray-500 mb-4">Apply for a Loan</CardTitle>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+              <ClipboardList size={16} className="text-[#176B5B]" />
+            </div>
+            <h2 className="text-lg font-black tracking-[-0.02em] text-[#2C1B13]">Apply for a Loan</h2>
+          </div>
 
           {eligibility && !eligibility.eligible && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-4">
-              <p className="font-medium text-amber-800 dark:text-amber-300">Not yet eligible for a loan</p>
-              <ul className="mt-2 text-sm space-y-1">
+            <div className="mt-4 rounded-2xl border border-[#B3261E]/25 bg-[#B3261E]/5 p-4">
+              <p className="flex items-center gap-2 font-bold text-[#2C1B13]">
+                <AlertTriangle size={16} className="text-[#B3261E]" /> Not yet eligible for a loan
+              </p>
+              <ul className="mt-2 space-y-1.5 text-sm">
                 {eligibility.reasons.map((r) => (
                   <li key={r.key} className="flex items-center gap-2">
-                    <span className={r.passed ? 'text-green-600' : 'text-red-600'}>
-                      {r.passed ? '✓' : '✗'}
-                    </span>
-                    <span className={r.passed ? 'text-gray-600' : 'text-red-600'}>{r.label}</span>
+                    {r.passed
+                      ? <CheckCircle2 size={14} className="shrink-0 text-[#176B5B]" />
+                      : <XCircle size={14} className="shrink-0 text-[#B3261E]" />}
+                    <span className={r.passed ? 'text-[#6B5245]' : 'font-medium text-[#B3261E]'}>{r.label}</span>
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-xs text-amber-700">
-                Savings balance: ₦{eligibility.savingsBalance.toLocaleString()} ·
-                Max loan at {eligibility.multiplier}x: ₦{eligibility.maxAmount.toLocaleString()}
+              <p className="mt-2 text-xs font-medium text-[#6B5245]">
+                Savings balance: {ngn(eligibility.savingsBalance)} · Max loan at {eligibility.multiplier}x: {ngn(eligibility.maxAmount)}
               </p>
             </div>
           )}
 
           {eligibility?.eligible && (
-            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4">
-              <p className="font-medium text-green-700 dark:text-green-300">You are eligible!</p>
-              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                Max loan: ₦{eligibility.maxAmount.toLocaleString()} ({eligibility.multiplier}x your ₦{eligibility.savingsBalance.toLocaleString()} savings)
+            <div className="mt-4 rounded-2xl border border-[#176B5B]/25 bg-[#176B5B]/10 p-4">
+              <p className="flex items-center gap-2 font-bold text-[#176B5B]">
+                <ShieldCheck size={16} /> You are eligible!
+              </p>
+              <p className="mt-1 text-sm text-[#6B5245]">
+                Max loan: <strong className="text-[#176B5B]">{ngn(eligibility.maxAmount)}</strong>{' '}
+                ({eligibility.multiplier}x your {ngn(eligibility.savingsBalance)} savings)
               </p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Amount (₦)</label>
-              <input
-                type="number"
-                placeholder="e.g. 500000"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-              />
+              <Label>Amount (₦)</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#B79B6B]">₦</span>
+                <input
+                  type="number"
+                  placeholder="e.g. 500000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className={`${fieldCls} pl-9`}
+                />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Duration (months)</label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-              >
+              <Label>Duration (months)</Label>
+              <select value={duration} onChange={(e) => setDuration(e.target.value)} className={`${fieldCls} appearance-none`}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                   <option key={m} value={m}>{m} month{m > 1 ? 's' : ''}</option>
                 ))}
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Purpose (optional)</label>
+              <Label optional>Purpose</Label>
               <input
                 type="text"
                 placeholder="What's the loan for?"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+                className={fieldCls}
               />
             </div>
           </div>
+
           {amount && duration && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-sm space-y-1">
-              <p>Loan amount: <strong>₦{Number(amount).toLocaleString()}</strong></p>
-              <p>Interest (5%): <strong>₦{Math.round(Number(amount) * 0.05).toLocaleString()}</strong></p>
-              <p>Service fee (1%): <strong>₦{Math.round(Number(amount) * 0.01).toLocaleString()}</strong></p>
-              <p>Total repayment: <strong>₦{Math.round(Number(amount) * 1.05).toLocaleString()}</strong></p>
-              <p>Monthly payment: <strong>₦{Math.round((Number(amount) * 1.05) / Number(duration)).toLocaleString()}</strong></p>
-              <p className="text-green-700 dark:text-green-300">
-                Net amount disbursed: <strong>₦{Math.round(Number(amount) * 0.99).toLocaleString()}</strong>
-                <span className="text-xs"> (service fee deducted from the loan)</span>
-              </p>
+            <div className="mt-4 space-y-2 rounded-2xl border border-[#E4A42A]/30 bg-gradient-to-br from-[#E4A42A]/10 to-[#FFF9EF] p-4 text-sm">
+              <div className="flex justify-between"><span className="text-[#6B5245]">Loan amount</span><strong className="text-[#2C1B13]">{ngn(Number(amount))}</strong></div>
+              <div className="flex justify-between"><span className="text-[#6B5245]">Interest (5%)</span><strong className="text-[#2C1B13]">{ngn(Math.round(Number(amount) * 0.05))}</strong></div>
+              <div className="flex justify-between"><span className="text-[#6B5245]">Service fee (1%)</span><strong className="text-[#2C1B13]">{ngn(Math.round(Number(amount) * 0.01))}</strong></div>
+              <div className="flex justify-between"><span className="text-[#6B5245]">Total repayment</span><strong className="text-[#2C1B13]">{ngn(Math.round(Number(amount) * 1.05))}</strong></div>
+              <div className="flex justify-between"><span className="text-[#6B5245]">Monthly payment</span><strong className="text-[#2C1B13]">{ngn(Math.round((Number(amount) * 1.05) / Number(duration)))}</strong></div>
+              <div className="flex justify-between border-t border-[#E4A42A]/30 pt-2">
+                <span className="text-[#6B5245]">Net amount disbursed</span>
+                <strong className="text-[#176B5B]">{ngn(Math.round(Number(amount) * 0.99))}</strong>
+              </div>
+              <p className="text-xs text-[#6B5245]">(service fee deducted from the loan)</p>
             </div>
           )}
-          <Button onClick={handleApply} disabled={loading || !amount || (eligibility ? !eligibility.eligible : false)} className="mt-4">
-            {loading ? 'Submitting...' : 'Submit Application'}
-          </Button>
-        </Card>
-      )}
 
-      {activeLoans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-blue-500">
-            <CardTitle className="text-sm font-medium text-gray-500">Active Loans</CardTitle>
-            <p className="mt-2 text-3xl font-bold">{activeLoans.length}</p>
-          </Card>
-          <Card className="border-amber-500">
-            <CardTitle className="text-sm font-medium text-gray-500">Outstanding Balance</CardTitle>
-            <p className="mt-2 text-3xl font-bold">₦{outstandingBalance.toLocaleString()}</p>
-          </Card>
+          <button
+            type="button"
+            onClick={handleApply}
+            disabled={loading || !amount || (eligibility ? !eligibility.eligible : false)}
+            className={`${solidGreen} mt-4`}
+          >
+            {loading ? (<><Loader2 size={15} className="animate-spin" /> Submitting...</>) : 'Submit Application'}
+          </button>
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* Stats */}
+      {activeLoans.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+                <Landmark size={16} className="text-[#176B5B]" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Active Loans</p>
+            </div>
+            <p className="mt-4 text-3xl font-black tracking-[-0.03em] text-[#2C1B13]">{activeLoans.length}</p>
+          </div>
+          <div className="rounded-2xl border border-[#E7DCCB] bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9D4824]/10">
+                <Wallet size={16} className="text-[#9D4824]" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Outstanding Balance</p>
+            </div>
+            <p className="mt-4 break-words text-3xl font-black tracking-[-0.03em] text-[#9D4824]">{ngn(outstandingBalance)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loan cards */}
+      <div className="space-y-5">
         {loans.length === 0 && (
-          <p className="text-gray-400 text-center py-8">No loan applications yet</p>
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#E7DCCB] bg-white/60 px-6 py-14 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E4A42A]/15">
+              <Landmark size={26} className="text-[#8A5A00]" />
+            </div>
+            <p className="font-bold text-[#2C1B13]">No loan applications yet</p>
+            <p className="max-w-sm text-sm text-[#6B5245]">When you apply, your loans and repayment schedules will appear here.</p>
+            <button type="button" onClick={() => setShowApply(true)} className={solidGold}>
+              <Plus size={15} /> Apply for a loan
+            </button>
+          </div>
         )}
         {loans.map((loan) => {
           const balance = loan.totalRepayment - loan.amountPaid
           const overdueCount = loan.repayments.filter(
             (r) => r.status === 'pending' && new Date(r.dueDate) < new Date(),
           ).length
+          const paidPct = loan.totalRepayment > 0 ? Math.round((loan.amountPaid / loan.totalRepayment) * 100) : 0
 
           return (
-            <Card key={loan.id}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Loan #{loan.id.slice(0, 8)}
-                  </CardTitle>
-                  <p className="text-2xl font-bold mt-1">₦{Number(loan.amount).toLocaleString()}</p>
-                  {loan.purpose && (
-                    <p className="text-sm text-gray-500 mt-1">{loan.purpose}</p>
-                  )}
+            <div key={loan.id} className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#EDE2D3] px-6 py-5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#B79B6B]">Loan #{loan.id.slice(0, 8)}</p>
+                  <p className="mt-0.5 break-words text-2xl font-black tracking-[-0.03em] text-[#2C1B13]">{ngn(Number(loan.amount))}</p>
+                  {loan.purpose && <p className="mt-0.5 text-sm text-[#6B5245]">{loan.purpose}</p>}
                 </div>
-                <div className="text-right">
-                  <Badge variant={statusColors[loan.status] ?? 'default'}>{statusLabels[loan.status] ?? loan.status}</Badge>
-                  <p className="text-sm text-gray-500 mt-1">{loan.duration} months @ {loan.interestRate}%</p>
+                <div className="shrink-0 text-right">
+                  <StatusPill status={loan.status} />
+                  <p className="mt-1 text-xs font-medium text-[#6B5245]">{loan.duration} months @ {loan.interestRate}%</p>
+                  <p className="text-[11px] text-[#B79B6B]">{new Date(loan.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-4 text-sm">
+              <div className="flex flex-wrap gap-x-8 gap-y-4 px-6 py-4 text-sm">
                 {Number(loan.serviceFee) > 0 && (
                   <div>
-                    <span className="text-gray-500">Service fee (deducted from loan)</span>
-                    <p className="font-bold text-amber-600">₦{Number(loan.serviceFee).toLocaleString()}</p>
+                    <p className="text-xs text-[#6B5245]">Service fee (deducted from loan)</p>
+                    <p className="mt-0.5 font-bold text-[#8A5A00]">{ngn(Number(loan.serviceFee))}</p>
                   </div>
                 )}
                 {loan.disbursedAmount != null && (
                   <div>
-                    <span className="text-gray-500">Disbursed amount</span>
-                    <p className="font-bold text-green-600">₦{Number(loan.disbursedAmount).toLocaleString()}</p>
+                    <p className="text-xs text-[#6B5245]">Disbursed amount</p>
+                    <p className="mt-0.5 font-bold text-[#176B5B]">{ngn(Number(loan.disbursedAmount))}</p>
                   </div>
                 )}
                 {loan.status === 'rejected' && (
                   <div className="w-full">
-                    <span className="text-gray-500">Rejection reason</span>
-                    <p className="font-medium text-red-600">{loan.rejectionReason || 'Not provided'}</p>
+                    <p className="text-xs flex items-center gap-1 text-[#B3261E]"><AlertTriangle size={12} /> Rejection reason</p>
+                    <p className="mt-0.5 font-medium text-[#B3261E]">{loan.rejectionReason || 'Not provided'}</p>
                   </div>
                 )}
               </div>
 
               {loan.status === 'active' && (
-                <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Monthly</span>
-                    <p className="font-bold">₦{Number(loan.monthlyPayment).toLocaleString()}</p>
+                <div className="border-t border-[#EDE2D3] px-6 py-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-[#6B5245]">Monthly</p>
+                      <p className="mt-0.5 font-bold text-[#2C1B13]">{ngn(Number(loan.monthlyPayment))}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B5245]">Paid</p>
+                      <p className="mt-0.5 font-bold text-[#176B5B]">{ngn(Number(loan.amountPaid))}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B5245]">Balance</p>
+                      <p className="mt-0.5 font-bold text-[#B3261E]">{ngn(balance)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-gray-500">Paid</span>
-                    <p className="font-bold">₦{Number(loan.amountPaid).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Balance</span>
-                    <p className="font-bold text-red-600">₦{balance.toLocaleString()}</p>
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between text-xs font-medium text-[#6B5245]">
+                      <span>Repayment progress</span>
+                      <span>{paidPct}%</span>
+                    </div>
+                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-[#F0DDAD]/60">
+                      <div
+                        className="h-2 rounded-full transition-all"
+                        style={{ width: `${paidPct}%`, background: paidPct >= 100 ? 'linear-gradient(90deg, #176B5B, #E4A42A)' : 'linear-gradient(90deg, #176B5B, #2A8A75)' }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               {loan.repayments.length > 0 && (
-                <div className="mt-4">
-                  {overdueCount > 0 && (
-                    <Badge variant="danger" className="mb-2">{overdueCount} overdue</Badge>
-                  )}
+                <div className="border-t border-[#EDE2D3] px-6 py-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#6B5245]">Repayment schedule</p>
+                    {overdueCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B3261E]/10 px-2.5 py-1 text-xs font-semibold text-[#B3261E]">
+                        <AlertTriangle size={12} /> {overdueCount} overdue
+                      </span>
+                    )}
+                  </div>
                   <div className="space-y-2">
                     {loan.repayments.map((r) => {
                       const isOverdue = r.status === 'pending' && new Date(r.dueDate) < new Date()
+                      const paid = r.status === 'paid'
                       return (
-                        <div key={r.id} className="flex items-center justify-between rounded-lg border dark:border-gray-700 px-4 py-2 text-sm">
-                          <span className="font-medium">₦{Number(r.amount).toLocaleString()}</span>
-                          <span className="text-gray-500">due {new Date(r.dueDate).toLocaleDateString()}</span>
+                        <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E7DCCB] bg-white px-4 py-3 text-sm">
+                          <div className="flex items-center gap-3">
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${paid ? 'bg-[#176B5B]/10 text-[#176B5B]' : isOverdue ? 'bg-[#B3261E]/10 text-[#B3261E]' : 'bg-[#E4A42A]/15 text-[#8A5A00]'}`}>
+                              {paid ? <ArrowDownLeft size={14} /> : isOverdue ? <XCircle size={14} /> : <CalendarDays size={14} />}
+                            </span>
+                            <div>
+                              <p className="font-bold text-[#2C1B13]">{ngn(Number(r.amount))}</p>
+                              <p className="text-xs text-[#6B5245]">due {new Date(r.dueDate).toLocaleDateString()}</p>
+                            </div>
+                          </div>
                           <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                r.status === 'paid' ? 'success'
-                                : isOverdue ? 'danger'
-                                : 'warning'
-                              }
-                            >
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${paid ? 'bg-[#176B5B]/10 text-[#176B5B]' : isOverdue ? 'bg-[#B3261E]/10 text-[#B3261E]' : 'bg-[#E4A42A]/15 text-[#8A5A00]'}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${paid ? 'bg-[#176B5B]' : isOverdue ? 'bg-[#B3261E]' : 'bg-[#E4A42A]'}`} />
                               {isOverdue && r.status === 'pending' ? 'overdue' : r.status}
-                            </Badge>
+                            </span>
                             {r.status === 'pending' && (
-                              <Button
-                                variant="primary"
-                                size="sm"
+                              <button
+                                type="button"
                                 onClick={() => handlePayNow(r.id)}
                                 disabled={payingId === r.id}
+                                className={tinyGold}
                               >
-                                {payingId === r.id ? 'Starting...' : 'Pay Now'}
-                              </Button>
+                                {payingId === r.id ? (<><Loader2 size={12} className="animate-spin" /> Starting...</>) : (<><ArrowUpRight size={12} /> Pay Now</>)}
+                              </button>
                             )}
                           </div>
                         </div>
@@ -413,84 +583,98 @@ export function Loans() {
                   </div>
                 </div>
               )}
-            </Card>
+            </div>
           )
         })}
       </div>
 
-      <Modal open={!!pay} onClose={() => setPay(null)} title="Pay Loan with Bank Transfer">
+      {/* Pay modal */}
+      <BrandModal
+        open={!!pay}
+        onClose={() => setPay(null)}
+        icon={<Banknote size={18} className="text-[#176B5B]" />}
+        iconCls="bg-[#176B5B]/10"
+        title="Pay Loan with Bank Transfer"
+        subtitle="Repay via your bank"
+      >
         {pay && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {pay.pending.status === 'credited' ? (
-              <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 text-sm">
-                <p className="font-medium text-green-700 dark:text-green-300">Payment confirmed</p>
-                <p className="text-green-600 dark:text-green-400 mt-1">
-                  Your repayment of ₦{Number(pay.pending.amount).toLocaleString()} has been recorded.
-                </p>
+              <div className="flex items-start gap-3 rounded-2xl border border-[#176B5B]/25 bg-[#176B5B]/10 p-4 text-sm">
+                <CheckCircle2 size={18} className="mt-px shrink-0 text-[#176B5B]" />
+                <div>
+                  <p className="font-bold text-[#176B5B]">Payment confirmed</p>
+                  <p className="mt-1 text-[#6B5245]">
+                    Your repayment of {ngn(Number(pay.pending.amount))} has been recorded.
+                  </p>
+                </div>
               </div>
             ) : (
               <>
-                <p className="text-sm text-gray-500">
-                  Transfer exactly <strong>₦{Number(pay.pending.amount).toLocaleString()}</strong> to the
+                <p className="text-sm leading-relaxed text-[#6B5245]">
+                  Transfer exactly <strong className="font-black text-[#176B5B]">{ngn(Number(pay.pending.amount))}</strong> to the
                   account below. Your loan repayment is recorded automatically once the transfer is confirmed.
                 </p>
 
-                <div className="rounded-lg border dark:border-gray-700 p-4 space-y-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Account number</span>
+                <div className="rounded-2xl border border-[#E7DCCB] bg-[#FFF9EF] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#6B5245]">Account number</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-lg">{pay.pending.accountNumber}</span>
+                      <span className="font-mono text-xl font-black tracking-wider text-[#2C1B13]">{pay.pending.accountNumber}</span>
                       <button
                         onClick={copyAccount}
-                        className="text-xs text-blue-600 hover:underline"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[#E7DCCB] bg-white text-[#6B5245] transition hover:bg-[#176B5B] hover:text-[#FFF9EF]"
+                        aria-label="Copy account number"
                       >
-                        {copied ? 'Copied!' : 'Copy'}
+                        {copied ? <Check size={14} /> : <Copy size={14} />}
                       </button>
                     </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Account name</span>
-                    <span className="font-medium">{pay.pending.accountName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Bank</span>
-                    <span className="font-medium">{pay.pending.bankName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Amount</span>
-                    <span className="font-medium">₦{Number(pay.pending.amount).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Reference</span>
-                    <span className="font-mono text-xs">{pay.pending.reference}</span>
+                  {copied && <p className="mt-1 text-right text-xs font-semibold text-[#176B5B]">Copied!</p>}
+                  <div className="mt-3 space-y-2 border-t border-[#E7DCCB] pt-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[#6B5245]">Account name</span>
+                      <span className="font-semibold text-[#2C1B13]">{pay.pending.accountName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#6B5245]">Bank</span>
+                      <span className="font-semibold text-[#2C1B13]">{pay.pending.bankName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#6B5245]">Amount</span>
+                      <span className="font-semibold text-[#176B5B]">{ngn(Number(pay.pending.amount))}</span>
+                    </div>
+                    <div className="flex justify-between items-start gap-3">
+                      <span className="text-[#6B5245]">Reference</span>
+                      <span className="flex items-center gap-1 font-mono text-xs text-[#9D4824]"><Hash size={12} /> {pay.pending.reference}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-xs">
-                  <p className="font-medium mb-1">Payment status</p>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded ${pay.pending.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                <div className="rounded-xl bg-[#F0DDAD]/40 px-4 py-3 text-xs">
+                  <p className="mb-1.5 font-bold uppercase tracking-wider text-[#6B5245]">Payment status</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ${
+                      pay.pending.status === 'pending' ? 'bg-[#E4A42A]/15 text-[#8A5A00]' : 'bg-[#176B5B]/10 text-[#176B5B]'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${pay.pending.status === 'pending' ? 'bg-[#E4A42A]' : 'bg-[#176B5B]'}`} />
                       {pay.pending.status}
                     </span>
                     {pay.pending.expiresAt && (
-                      <span className="text-gray-500">
-                        expires {new Date(pay.pending.expiresAt).toLocaleString()}
-                      </span>
+                      <span className="text-[#6B5245]">expires {new Date(pay.pending.expiresAt).toLocaleString()}</span>
                     )}
                   </div>
                 </div>
 
-                <Button className="w-full" onClick={checkPayment} disabled={checking}>
-                  {checking ? 'Checking...' : 'Check status'}
-                </Button>
+                <button type="button" onClick={checkPayment} disabled={checking} className={`${solidGreen} w-full`}>
+                  {checking ? (<><Loader2 size={15} className="animate-spin" /> Checking...</>) : 'Check status'}
+                </button>
               </>
             )}
-            <Button variant="ghost" className="w-full" onClick={() => setPay(null)}>
-              Close
-            </Button>
+            <button type="button" onClick={() => setPay(null)} className={`${ghost} w-full`}>Close</button>
           </div>
         )}
-      </Modal>
+      </BrandModal>
     </div>
   )
 }

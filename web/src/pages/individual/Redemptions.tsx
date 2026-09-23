@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Modal } from '../../components/ui/modal'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
+import {
+  Undo2, X, Loader2, Layers, Unlock, MessageSquare, Calculator, XCircle, Coins,
+} from 'lucide-react'
 
 interface Holding {
   id: string
@@ -30,12 +27,111 @@ interface Redemption {
   processedAt: string | null
 }
 
-const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-  requested: 'warning',
-  approved: 'info',
-  processed: 'info',
-  paid: 'success',
-  rejected: 'danger',
+const statusMeta = (s: string) => {
+  switch (s) {
+    case 'requested':
+      return { label: 'Requested', cls: 'bg-[#E4A42A]/15 text-[#8A5A00]', dot: 'bg-[#E4A42A]' }
+    case 'approved':
+    case 'processed':
+      return { label: s, cls: 'bg-[#9D4824]/10 text-[#9D4824]', dot: 'bg-[#9D4824]' }
+    case 'paid':
+      return { label: 'Paid', cls: 'bg-[#176B5B]/10 text-[#176B5B]', dot: 'bg-[#176B5B]' }
+    case 'rejected':
+      return { label: 'Rejected', cls: 'bg-[#B3261E]/10 text-[#B3261E]', dot: 'bg-[#B3261E]' }
+    default:
+      return { label: s, cls: 'bg-[#EDE2D3] text-[#6B5245]', dot: 'bg-[#C9B89F]' }
+  }
+}
+
+const solidGold =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-4 py-2.5 text-sm font-semibold text-[#2C1B13] shadow-sm transition hover:bg-[#B9891F] disabled:opacity-50 disabled:pointer-events-none cursor-pointer'
+const solidGreen =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const fieldCls =
+  'w-full rounded-xl border border-[#E7DCCB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#23150F] outline-none transition placeholder:text-[#C9B89F] hover:border-[#D8C9A9] focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20'
+
+const thCls = 'px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5245]'
+const tdCls = 'px-5 py-3.5 text-sm text-[#2C1B13]'
+
+const ticketBtn =
+  'inline-flex items-center justify-center gap-1.5 rounded-full border border-[#E7DCCB] bg-white px-3 py-1.5 text-xs font-semibold text-[#176B5B] transition hover:bg-[#176B5B]/5 cursor-pointer'
+
+function BrandModal({
+  open,
+  onClose,
+  icon,
+  iconCls,
+  title,
+  subtitle,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  icon: ReactNode
+  iconCls: string
+  title: string
+  subtitle?: string
+  children: ReactNode
+}) {
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-[#23150F]/50 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconCls}`}>{icon}</div>
+            <div>
+              <h2 className="text-xl font-black tracking-[-0.02em] text-[#2C1B13]">{title}</h2>
+              {subtitle && <p className="text-xs text-[#6B5245]">{subtitle}</p>}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-[#6B5245] transition hover:bg-[#FFF9EF] hover:text-[#2C1B13] cursor-pointer"
+            aria-label="Close"
+          >
+            <X size={17} />
+          </button>
+        </div>
+        <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-6 py-5">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ icon, title, value, tileCls }: { icon: ReactNode; title: string; value: string; tileCls: string }) {
+  return (
+    <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tileCls}`}>{icon}</span>
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5245]">{title}</p>
+      </div>
+      <p className="mt-3 text-3xl font-black tracking-[-0.03em] text-[#2C1B13]">{value}</p>
+    </div>
+  )
+}
+
+function StatusPill({ status }: { status: string }) {
+  const meta = statusMeta(status)
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${meta.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {meta.label}
+    </span>
+  )
 }
 
 export function Redemptions() {
@@ -86,20 +182,117 @@ export function Redemptions() {
   }
 
   const availableHoldings = holdings.filter((h) => !h.isLocked)
+  const unitsValid = redeemUnits && !Number.isNaN(Number(redeemUnits))
+    && Number(redeemUnits) >= 1 && Number(redeemUnits) <= (selectedHolding?.units ?? -1)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">Redemptions / Withdrawals</h2>
-        <Button onClick={() => setShowForm(true)} disabled={availableHoldings.length === 0}>
-          Request Redemption
-        </Button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B79B6B]">Investments</p>
+          <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Redemptions / Withdrawals</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+            Convert units from your unlocked holdings back into cash.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            disabled={availableHoldings.length === 0}
+            className={solidGold}
+          >
+            <Undo2 size={15} /> Request Redemption
+          </button>
+        </div>
       </div>
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Request Redemption">
+      {loading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="h-28 animate-pulse rounded-2xl bg-[#F0DDAD]/30" />
+            <div className="h-28 animate-pulse rounded-2xl bg-[#F0DDAD]/30" />
+          </div>
+          <div className="h-64 animate-pulse rounded-2xl bg-[#F0DDAD]/30" />
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <StatCard icon={<Layers size={20} />} tileCls="bg-[#9D4824]/10 text-[#9D4824]" title="Total Holdings" value={String(holdings.length)} />
+            <StatCard icon={<Unlock size={20} />} tileCls="bg-[#176B5B]/10 text-[#176B5B]" title="Available for Redemption" value={String(availableHoldings.length)} />
+          </div>
+
+          {/* History */}
+          {redemptions.length > 0 ? (
+            <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+              <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+                <Coins size={16} className="text-[#8A5A00]" />
+                <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Redemption History</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead>
+                    <tr className="border-b border-[#EDE2D3] bg-[#FFF9EF]">
+                      <th className={thCls}>Product</th>
+                      <th className={thCls}>Units</th>
+                      <th className={thCls}>Amount</th>
+                      <th className={thCls}>Status</th>
+                      <th className={thCls}>Reason</th>
+                      <th className={thCls}>Date</th>
+                      <th className={thCls}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EDE2D3]">
+                    {redemptions.map((r) => (
+                      <tr key={r.id} className="transition hover:bg-[#FFF9EF]/70">
+                        <td className={`${tdCls} font-semibold`}>{r.holding?.product?.name || 'Unknown'}</td>
+                        <td className={tdCls}>{r.units}</td>
+                        <td className={`${tdCls} font-semibold`}>{formatCurrency(Number(r.amount))}</td>
+                        <td className={tdCls}><StatusPill status={r.status} /></td>
+                        <td className={`${tdCls} max-w-[150px] truncate text-xs text-[#6B5245]`}>{r.reason || '—'}</td>
+                        <td className={tdCls}>{new Date(r.createdAt).toLocaleDateString()}</td>
+                        <td className={tdCls}>
+                          <button type="button" onClick={() => raiseTicket('Issue with redemption: ' + (r.holding?.product?.name || ''), r.id)} className={ticketBtn}>
+                            <MessageSquare size={13} /> Ticket
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#E7DCCB] bg-white/60 px-6 py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+                <Undo2 size={26} className="text-[#176B5B]" />
+              </div>
+              <p className="font-bold text-[#2C1B13]">No redemption requests yet</p>
+              <p className="max-w-sm text-sm text-[#6B5245]">Submit a request to withdraw from an unlocked holding.</p>
+              {availableHoldings.length > 0 && (
+                <button type="button" onClick={() => setShowForm(true)} className={`${solidGold} mt-2`}>
+                  <Undo2 size={15} /> Request Redemption
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Redemption form modal */}
+      <BrandModal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        icon={<Undo2 size={18} className="text-[#8A5A00]" />}
+        iconCls="bg-[#E4A42A]/15"
+        title="Request Redemption"
+        subtitle="Withdraw units from an unlocked holding"
+      >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Holding</label>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#6B5245]">Holding</label>
             <select
               value={selectedHolding?.id || ''}
               onChange={(e) => {
@@ -107,7 +300,7 @@ export function Redemptions() {
                 setSelectedHolding(h || null)
                 setRedeemUnits('')
               }}
-              className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+              className={`${fieldCls} appearance-none`}
             >
               <option value="">Select holding</option>
               {availableHoldings.map((h) => (
@@ -117,94 +310,64 @@ export function Redemptions() {
               ))}
             </select>
           </div>
+
           {selectedHolding && (
             <>
-              <Input
-                label={`Units (max ${selectedHolding.units})`}
-                type="number"
-                value={redeemUnits}
-                onChange={(e) => setRedeemUnits(e.target.value)}
-                placeholder={`Max ${selectedHolding.units}`}
-              />
-              {redeemUnits && Number(redeemUnits) <= selectedHolding.units && (
-                <div className="text-sm bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                  Est. payout: {formatCurrency(Number(redeemUnits) * (Number(selectedHolding.currentValue) / selectedHolding.units))}
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#6B5245]">
+                  Units <span className="text-[#6B5245]">(max {selectedHolding.units})</span>
+                </label>
+                <input
+                  type="number"
+                  value={redeemUnits}
+                  onChange={(e) => setRedeemUnits(e.target.value)}
+                  placeholder={`Max ${selectedHolding.units}`}
+                  className={fieldCls}
+                />
+              </div>
+
+              {unitsValid && (
+                <div className="rounded-2xl border border-[#E7DCCB] bg-gradient-to-br from-[#FFF9EF] to-[#F0DDAD]/30 p-4">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#8A5A00]">
+                    <Calculator size={13} /> Estimated payout
+                  </p>
+                  <p className="text-lg font-black tracking-[-0.02em] text-[#2C1B13]">
+                    {formatCurrency(Number(redeemUnits) * (Number(selectedHolding.currentValue) / selectedHolding.units))}
+                  </p>
+                  <p className="mt-1 text-xs text-[#6B5245]">
+                    {Number(redeemUnits)} units × {formatCurrency(Number(selectedHolding.currentValue) / selectedHolding.units)}/unit
+                  </p>
                 </div>
               )}
-              <Input
-                label="Reason (optional)"
-                value={redeemReason}
-                onChange={(e) => setRedeemReason(e.target.value)}
-              />
-              <Button
-                className="w-full"
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#6B5245]">Reason (optional)</label>
+                <input
+                  value={redeemReason}
+                  onChange={(e) => setRedeemReason(e.target.value)}
+                  placeholder="e.g. Moving funds to savings"
+                  className={fieldCls}
+                />
+              </div>
+
+              <button
+                type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !redeemUnits || Number(redeemUnits) < 1 || Number(redeemUnits) > selectedHolding.units}
+                disabled={submitting || !unitsValid}
+                className={`${solidGreen} w-full`}
               >
-                {submitting ? 'Submitting...' : 'Submit Request'}
-              </Button>
+                {submitting ? (<><Loader2 size={15} className="animate-spin" /> Submitting...</>) : 'Submit Request'}
+              </button>
+
+              {redeemUnits && !unitsValid && (
+                <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-[#B3261E]">
+                  <XCircle size={13} /> Enter between 1 and {selectedHolding.units} units
+                </p>
+              )}
             </>
           )}
         </div>
-      </Modal>
-
-      {loading ? (
-        <div className="py-12 text-center text-gray-500">Loading...</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-indigo-500">
-              <CardTitle className="text-sm font-medium text-gray-500">Total Holdings</CardTitle>
-              <p className="mt-2 text-3xl font-bold">{holdings.length}</p>
-            </Card>
-            <Card className="border-emerald-500">
-              <CardTitle className="text-sm font-medium text-gray-500">Available for Redemption</CardTitle>
-              <p className="mt-2 text-3xl font-bold">{availableHoldings.length}</p>
-            </Card>
-          </div>
-
-          {redemptions.length > 0 && (
-            <Card>
-              <CardTitle>Redemption History</CardTitle>
-              <Table>
-                <THead>
-                  <THeadRow>
-                    <THeadCell>Product</THeadCell>
-                    <THeadCell>Units</THeadCell>
-                    <THeadCell>Amount</THeadCell>
-                    <THeadCell>Status</THeadCell>
-                    <THeadCell>Reason</THeadCell>
-                    <THeadCell>Date</THeadCell>
-                    <THeadCell>Actions</THeadCell>
-                  </THeadRow>
-                </THead>
-                <TBody>
-                  {redemptions.map((r) => (
-                    <TBodyRow key={r.id}>
-                      <TBodyCell className="font-medium">{r.holding?.product?.name || 'Unknown'}</TBodyCell>
-                      <TBodyCell>{r.units}</TBodyCell>
-                      <TBodyCell>{formatCurrency(Number(r.amount))}</TBodyCell>
-                      <TBodyCell><Badge variant={statusColors[r.status] ?? 'default'}>{r.status}</Badge></TBodyCell>
-                      <TBodyCell className="text-xs max-w-[150px] truncate">{r.reason || '—'}</TBodyCell>
-                      <TBodyCell className="text-sm">{new Date(r.createdAt).toLocaleDateString()}</TBodyCell>
-                      <TBodyCell>
-                        <Button size="sm" variant="ghost" onClick={() => raiseTicket('Issue with redemption: ' + (r.holding?.product?.name || ''), r.id)}>Ticket</Button>
-                      </TBodyCell>
-                    </TBodyRow>
-                  ))}
-                </TBody>
-              </Table>
-            </Card>
-          )}
-
-          {redemptions.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <p>No redemption requests yet</p>
-              <p className="text-sm mt-1">Submit a request to withdraw from an unlocked holding.</p>
-            </div>
-          )}
-        </>
-      )}
+      </BrandModal>
     </div>
   )
 }

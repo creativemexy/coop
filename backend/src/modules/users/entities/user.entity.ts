@@ -23,25 +23,59 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true, transformer: encryptColumn })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    unique: true,
+    transformer: encryptColumn,
+  })
   email: string;
 
-  @Column({ type: 'varchar', name: 'email_hash', length: 64, unique: true, nullable: true })
+  @Column({
+    type: 'varchar',
+    name: 'email_hash',
+    length: 64,
+    unique: true,
+    nullable: true,
+  })
   emailHash: string | null;
 
   @Column({ type: 'varchar', name: 'password_hash', length: 255 })
   passwordHash: string;
 
-  @Column({ type: 'varchar', name: 'first_name', length: 255, transformer: encryptColumn, nullable: true })
+  @Column({
+    type: 'varchar',
+    name: 'first_name',
+    length: 255,
+    transformer: encryptColumn,
+    nullable: true,
+  })
   firstName: string | null;
 
-  @Column({ type: 'varchar', name: 'last_name', length: 255, transformer: encryptColumn, nullable: true })
+  @Column({
+    type: 'varchar',
+    name: 'last_name',
+    length: 255,
+    transformer: encryptColumn,
+    nullable: true,
+  })
   lastName: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, transformer: encryptColumn })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    transformer: encryptColumn,
+  })
   phone: string | null;
 
-  @Column({ type: 'varchar', name: 'phone_hash', length: 64, nullable: true, unique: true })
+  @Column({
+    type: 'varchar',
+    name: 'phone_hash',
+    length: 64,
+    nullable: true,
+    unique: true,
+  })
   phoneHash: string | null;
 
   @Column({ type: 'enum', enum: Role })
@@ -96,7 +130,13 @@ export class User {
   @Column({ type: 'jsonb', name: 'notification_preferences', nullable: true })
   notificationPreferences: { email?: boolean; sms?: boolean; inApp?: boolean };
 
-  @Column({ type: 'varchar', name: 'referral_code', length: 20, nullable: true, unique: true })
+  @Column({
+    type: 'varchar',
+    name: 'referral_code',
+    length: 20,
+    nullable: true,
+    unique: true,
+  })
   referralCode: string;
 
   @Column({ type: 'varchar', name: 'referred_by', nullable: true })
@@ -105,7 +145,13 @@ export class User {
   @Column({ type: 'int', name: 'referral_count', default: 0 })
   referralCount: number;
 
-  @Column({ type: 'decimal', name: 'referral_earnings', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'referral_earnings',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   referralEarnings: number;
 
   @Column({ type: 'varchar', name: 'refresh_token_hash', nullable: true })
@@ -122,6 +168,15 @@ export class User {
 
   @Column({ type: 'timestamp', name: 'reset_token_expiry', nullable: true })
   resetTokenExpiry: Date;
+
+  @Column({ type: 'int', name: 'reset_attempts', default: 0 })
+  resetAttempts: number;
+
+  @Column({ type: 'timestamp', name: 'last_reset_at', nullable: true })
+  lastResetAt: Date;
+
+  @Column({ type: 'int', name: 'reset_hourly_count', default: 0 })
+  resetHourlyCount: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

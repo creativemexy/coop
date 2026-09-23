@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent, type ReactNode } from 'react'
 import { api } from '../../api/client'
 import { useAuth } from '../../stores/auth.store'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
+import {
+  UserRound, ShieldCheck, Bell, KeyRound, CheckCircle2, XCircle, Lock,
+  Mail, Phone, CalendarDays, Loader2, Save, BadgeCheck,
+} from 'lucide-react'
 
 interface MatchDetail {
   user: string
@@ -37,6 +37,57 @@ interface ProfileUser {
   kycImage?: string
 }
 
+const solidGreen =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const fieldCls =
+  'w-full rounded-xl border border-[#E7DCCB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#23150F] outline-none transition placeholder:text-[#C9B89F] hover:border-[#D8C9A9] focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 bg-white disabled:cursor-not-allowed disabled:bg-[#FFF9EF] disabled:text-[#6B5245] disabled:border-[#EDE2D3]'
+
+function Label({ children, locked }: { children: ReactNode; locked?: boolean }) {
+  return (
+    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]">
+      {children}
+      {locked && <Lock size={11} className="text-[#B79B6B]" />}
+    </label>
+  )
+}
+
+function KycStatusBadge({ status }: { status?: string }) {
+  const s = status
+  if (s === 'approved') return <span className="inline-flex items-center gap-1.5 rounded-full bg-[#176B5B]/10 px-2.5 py-1 text-xs font-semibold text-[#176B5B]"><BadgeCheck size={12} /> Verified</span>
+  if (s === 'pending') return <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E4A42A]/15 px-2.5 py-1 text-xs font-semibold text-[#8A5A00]"><span className="h-1.5 w-1.5 rounded-full bg-[#E4A42A]" /> KYC Pending</span>
+  if (s === 'rejected') return <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B3261E]/10 px-2.5 py-1 text-xs font-semibold text-[#B3261E]"><XCircle size={12} /> KYC Rejected</span>
+  return <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EDE2D3] px-2.5 py-1 text-xs font-semibold text-[#6B5245]"><Lock size={12} /> KYC Not Started</span>
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="text-[#6B5245]">{label}</span>
+      <span className="font-semibold text-[#2C1B13]">{children}</span>
+    </div>
+  )
+}
+
+function Toggle({ on, onChange, label, hint }: { on: boolean; onChange: () => void; label: string; hint: string }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-4 py-2.5">
+      <div>
+        <p className="flex items-center gap-2 text-sm font-bold text-[#2C1B13]">{label}</p>
+        <p className="mt-0.5 text-xs text-[#6B5245]">{hint}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        onClick={onChange}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors cursor-pointer ${on ? 'bg-[#176B5B]' : 'bg-[#DDD0BC]'}`}
+      >
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`} />
+      </button>
+    </label>
+  )
+}
+
 export function Profile() {
   const { user, refreshUser } = useAuth()
   const [korayData, setKorayData] = useState<VerifiedIdentity | null>(null)
@@ -67,7 +118,7 @@ export function Profile() {
     }
   }, [user])
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setProfileMsg('')
@@ -82,7 +133,7 @@ export function Profile() {
     }
   }
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
     setPasswordMsg('')
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -112,197 +163,223 @@ export function Profile() {
     }
   }
 
-  const kycBadge = () => {
-    const s = user?.kycStatus
-    if (s === 'approved') return <Badge variant="success">Verified</Badge>
-    if (s === 'pending') return <Badge variant="warning">KYC Pending</Badge>
-    if (s === 'rejected') return <Badge variant="danger">KYC Rejected</Badge>
-    return <Badge variant="default">KYC Not Started</Badge>
-  }
+  const profileUser = user as typeof user & ProfileUser
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Profile & Account Settings</h2>
+    <div className="mx-auto max-w-2xl space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+          <UserRound size={24} className="text-[#176B5B]" />
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B79B6B]">Your Account</p>
+          <h1 className="mt-0.5 text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Profile & Account Settings</h1>
+          <p className="mt-0.5 text-sm leading-relaxed text-[#6B5245]">Manage your identity, security and preferences.</p>
+        </div>
+      </div>
 
-      <Card>
-        <CardTitle>Account Status</CardTitle>
-        <div className="mt-4 space-y-3">
-          {(user as (typeof user & ProfileUser))?.kycImage && (
-            <div className="flex justify-center mb-2">
+      {/* Account status */}
+      <div className="rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+            <UserRound size={16} className="text-[#176B5B]" />
+          </div>
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Account Status</p>
+        </div>
+        <div className="px-6 py-5">
+          {profileUser?.kycImage && (
+            <div className="mb-5 flex justify-center">
               <img
-                src={(user as (typeof user & ProfileUser)).kycImage}
+                src={profileUser.kycImage}
                 alt="Profile photo"
-                className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500"
+                className="h-24 w-24 rounded-full border-4 border-[#176B5B]/25 object-cover shadow-md"
               />
             </div>
           )}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Account</span>
-            <Badge variant={user?.isActive !== false ? 'success' : 'danger'}>
-              {user?.isActive !== false ? 'Active' : 'Suspended'}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">KYC Status</span>
-            <div className="flex items-center gap-2">
-              {kycBadge()}
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Role</span>
-            <span className="font-medium capitalize">{user?.role ?? '—'}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Email</span>
-            <span className="font-medium">{user?.email ?? '—'}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Member since</span>
-            <span className="font-medium">
-              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}
-            </span>
+          <div className="space-y-2.5">
+            <DetailRow label="Account">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                user?.isActive !== false ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#B3261E]/10 text-[#B3261E]'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${user?.isActive !== false ? 'bg-[#176B5B]' : 'bg-[#B3261E]'}`} />
+                {user?.isActive !== false ? 'Active' : 'Suspended'}
+              </span>
+            </DetailRow>
+            <DetailRow label="KYC Status"><KycStatusBadge status={user?.kycStatus} /></DetailRow>
+            <DetailRow label="Role"><span className="capitalize text-[#9D4824]">{user?.role ?? '—'}</span></DetailRow>
+            <DetailRow label="Email"><span className="flex items-center gap-1.5"><Mail size={13} className="text-[#B79B6B]" /> {user?.email ?? '—'}</span></DetailRow>
+            <DetailRow label="Member since">
+              <span className="flex items-center gap-1.5"><CalendarDays size={13} className="text-[#B79B6B]" /> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</span>
+            </DetailRow>
           </div>
         </div>
-      </Card>
+      </div>
 
+      {/* Verified identity */}
       {user?.kycStatus === 'approved' && (
-        <Card>
-          <CardTitle>Verified Identity</CardTitle>
-          <div className="mt-4 space-y-3">
+        <div className="rounded-2xl border border-[#176B5B]/25 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+              <ShieldCheck size={16} className="text-[#176B5B]" />
+            </div>
+            <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Verified Identity</p>
+          </div>
+          <div className="px-6 py-5">
             {korayData?.image && (
-              <div className="flex justify-center">
-                <img src={korayData.image} alt="ID photo" className="w-28 h-28 rounded-xl object-cover border dark:border-gray-700" />
+              <div className="mb-5 flex justify-center">
+                <img src={korayData.image} alt="ID photo" className="h-28 w-28 rounded-2xl border border-[#E7DCCB] object-cover shadow-sm" />
               </div>
             )}
             {korayData?.match && (
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-xs space-y-2">
-                <p className="font-medium text-sm">Identity match</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="mb-4 rounded-xl bg-[#F0DDAD]/40 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#6B5245]">Identity match</p>
+                <div className="mt-2 flex flex-wrap gap-2">
                   {korayData.match.firstName && (
-                    <span className={`px-2 py-0.5 rounded ${korayData.match.firstName.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      First name ✓
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${korayData.match.firstName.match ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#B3261E]/10 text-[#B3261E]'}`}>
+                      {korayData.match.firstName.match ? <CheckCircle2 size={12} /> : <XCircle size={12} />} First name
                     </span>
                   )}
                   {korayData.match.lastName && (
-                    <span className={`px-2 py-0.5 rounded ${korayData.match.lastName.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      Last name {korayData.match.lastName.match ? '✓' : '✗'}
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${korayData.match.lastName.match ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#B3261E]/10 text-[#B3261E]'}`}>
+                      {korayData.match.lastName.match ? <CheckCircle2 size={12} /> : <XCircle size={12} />} Last name
                     </span>
                   )}
                   {korayData.match.email && (
-                    <span className={`px-2 py-0.5 rounded ${korayData.match.email.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      Email {korayData.match.email.match ? '✓' : '✗'}
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${korayData.match.email.match ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#B3261E]/10 text-[#B3261E]'}`}>
+                      {korayData.match.email.match ? <CheckCircle2 size={12} /> : <XCircle size={12} />} Email
                     </span>
                   )}
                   {korayData.match.phone && (
-                    <span className={`px-2 py-0.5 rounded ${korayData.match.phone.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      Phone {korayData.match.phone.match ? '✓' : '✗'}
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${korayData.match.phone.match ? 'bg-[#176B5B]/10 text-[#176B5B]' : 'bg-[#B3261E]/10 text-[#B3261E]'}`}>
+                      {korayData.match.phone.match ? <CheckCircle2 size={12} /> : <XCircle size={12} />} Phone
                     </span>
                   )}
                 </div>
               </div>
             )}
-            <div className="rounded-lg border dark:border-gray-700 p-3 text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Full name</span>
-                <span className="font-medium capitalize">
+            <div className="space-y-2.5 rounded-2xl border border-[#E7DCCB] bg-[#FFF9EF] p-4">
+              <DetailRow label="Full name">
+                <span className="capitalize">
                   {(korayData?.first_name || '—')} {(korayData?.middle_name || '')} {(korayData?.last_name || '')}
                 </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Date of birth</span>
-                <span className="font-medium">{korayData?.date_of_birth || '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Gender</span>
-                <span className="font-medium">{korayData?.gender || '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Phone</span>
-                <span className="font-medium">{korayData?.phone_number || '—'}</span>
-              </div>
-              {korayData?.email && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Email</span>
-                  <span className="font-medium">{korayData.email}</span>
-                </div>
-              )}
-              {korayData?.nin && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">NIN</span>
-                  <span className="font-mono text-xs">{korayData.nin}</span>
-                </div>
-              )}
+              </DetailRow>
+              <DetailRow label="Date of birth">{korayData?.date_of_birth || '—'}</DetailRow>
+              <DetailRow label="Gender">{korayData?.gender || '—'}</DetailRow>
+              <DetailRow label="Phone"><span className="flex items-center gap-1.5"><Phone size={12} className="text-[#B79B6B]" /> {korayData?.phone_number || '—'}</span></DetailRow>
+              {korayData?.email && <DetailRow label="Email">{korayData.email}</DetailRow>}
+              {korayData?.nin && <DetailRow label="NIN"><span className="font-mono text-xs text-[#9D4824]">{korayData.nin}</span></DetailRow>}
               {korayData?.address && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Address</span>
-                  <span className="font-medium text-right ml-4">
+                <DetailRow label="Address">
+                  <span className="text-right">
                     {korayData.address.street}, {korayData.address.town}, {korayData.address.lga}, {korayData.address.state}
                   </span>
-                </div>
+                </DetailRow>
               )}
             </div>
-            <p className="text-xs text-green-600 font-medium">
-              ✓ Your identity has been verified against government records.
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#176B5B]">
+              <CheckCircle2 size={13} /> Your identity has been verified against government records.
             </p>
           </div>
-        </Card>
+        </div>
       )}
 
-      <Card>
-        <CardTitle>Personal Information</CardTitle>
-        {user?.kycStatus === 'approved' && (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-3 text-xs text-amber-700 dark:text-amber-300">
-            Your identity details were verified against government records and are now locked.
-            Contact support to change your name or phone.
+      {/* Personal info */}
+      <div className="rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9D4824]/10">
+            <UserRound size={16} className="text-[#9D4824]" />
           </div>
-        )}
-        <form onSubmit={handleProfileUpdate} className="mt-4 space-y-4">
-          <Input id="prof-email" label="Email" value={user?.email ?? ''} disabled />
-          <Input id="prof-first" label="First name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} disabled={user?.kycStatus === 'approved'} required />
-          <Input id="prof-last" label="Last name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} disabled={user?.kycStatus === 'approved'} required />
-          <Input id="prof-phone" label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={user?.kycStatus === 'approved'} />
-          {profileMsg && <p className={`text-sm ${profileMsg === 'Profile updated' ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>}
-          <Button type="submit" className="w-full" disabled={saving || user?.kycStatus === 'approved'}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-        </form>
-      </Card>
-
-      <Card>
-        <CardTitle>Notification Preferences</CardTitle>
-        <div className="mt-4 space-y-4">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={notifPrefs.email} onChange={() => handleNotificationToggle('email')} className="w-4 h-4" />
-            <div>
-              <p className="font-medium text-sm">Email notifications</p>
-              <p className="text-xs text-gray-500">Payment confirmations, KYC updates, and account alerts</p>
-            </div>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={notifPrefs.sms} onChange={() => handleNotificationToggle('sms')} className="w-4 h-4" />
-            <div>
-              <p className="font-medium text-sm">SMS notifications</p>
-              <p className="text-xs text-gray-500">Payment due reminders and urgent alerts via SMS</p>
-            </div>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={notifPrefs.inApp} onChange={() => handleNotificationToggle('inApp')} className="w-4 h-4" />
-            <div>
-              <p className="font-medium text-sm">In-app notifications</p>
-              <p className="text-xs text-gray-500">Real-time updates within the dashboard</p>
-            </div>
-          </label>
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Personal Information</p>
         </div>
-      </Card>
+        <div className="px-6 py-5">
+          {user?.kycStatus === 'approved' && (
+            <div className="mb-4 flex items-start gap-2 rounded-xl border border-[#E4A42A]/30 bg-[#E4A42A]/10 p-3 text-xs leading-relaxed text-[#8A5A00]">
+              <Lock size={14} className="mt-px shrink-0" />
+              Your identity details were verified against government records and are now locked. Contact support to change your name or phone.
+            </div>
+          )}
+          <form onSubmit={handleProfileUpdate} className="space-y-4">
+            <div>
+              <Label>Email <Lock size={11} className="inline text-[#B79B6B]" /></Label>
+              <input id="prof-email" value={user?.email ?? ''} disabled className={fieldCls} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label locked={user?.kycStatus === 'approved'}>First name</Label>
+                <input id="prof-first" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} disabled={user?.kycStatus === 'approved'} required className={fieldCls} />
+              </div>
+              <div>
+                <Label locked={user?.kycStatus === 'approved'}>Last name</Label>
+                <input id="prof-last" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} disabled={user?.kycStatus === 'approved'} required className={fieldCls} />
+              </div>
+            </div>
+            <div>
+              <Label locked={user?.kycStatus === 'approved'}>Phone</Label>
+              <input id="prof-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={user?.kycStatus === 'approved'} className={fieldCls} />
+            </div>
+            {profileMsg && (
+              <p className={`flex items-center gap-1.5 text-sm font-semibold ${profileMsg === 'Profile updated' ? 'text-[#176B5B]' : 'text-[#B3261E]'}`}>
+                {profileMsg === 'Profile updated' ? <CheckCircle2 size={14} /> : <XCircle size={14} />} {profileMsg}
+              </p>
+            )}
+            <button type="submit" disabled={saving || user?.kycStatus === 'approved'} className={`${solidGreen} w-full`}>
+              {saving ? (<><Loader2 size={15} className="animate-spin" /> Saving...</>) : (<><Save size={15} /> Save Changes</>)}
+            </button>
+          </form>
+        </div>
+      </div>
 
-      <Card>
-        <CardTitle>Change Password</CardTitle>
-        <form onSubmit={handlePasswordChange} className="mt-4 space-y-4">
-          <Input id="pw-current" label="Current password" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required />
-          <Input id="pw-new" label="New password" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required />
-          <Input id="pw-confirm" label="Confirm new password" type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} required />
-          {passwordMsg && <p className={`text-sm ${passwordMsg === 'Password changed' ? 'text-green-600' : 'text-red-600'}`}>{passwordMsg}</p>}
-          <Button type="submit" className="w-full">Change Password</Button>
-        </form>
-      </Card>
+      {/* Notification preferences */}
+      <div className="rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+            <Bell size={16} className="text-[#176B5B]" />
+          </div>
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Notification Preferences</p>
+        </div>
+        <div className="divide-y divide-[#EDE2D3] px-6 py-2">
+          <Toggle on={notifPrefs.email} onChange={() => handleNotificationToggle('email')} label="Email notifications" hint="Payment confirmations, KYC updates, and account alerts" />
+          <Toggle on={notifPrefs.sms} onChange={() => handleNotificationToggle('sms')} label="SMS notifications" hint="Payment due reminders and urgent alerts via SMS" />
+          <Toggle on={notifPrefs.inApp} onChange={() => handleNotificationToggle('inApp')} label="In-app notifications" hint="Real-time updates within the dashboard" />
+        </div>
+      </div>
+
+      {/* Change password */}
+      <div className="rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E4A42A]/15">
+            <KeyRound size={16} className="text-[#8A5A00]" />
+          </div>
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Change Password</p>
+        </div>
+        <div className="px-6 py-5">
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div>
+              <Label>Current password</Label>
+              <input id="pw-current" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required className={fieldCls} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>New password</Label>
+                <input id="pw-new" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required className={fieldCls} />
+              </div>
+              <div>
+                <Label>Confirm new password</Label>
+                <input id="pw-confirm" type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} required className={fieldCls} />
+              </div>
+            </div>
+            {passwordMsg && (
+              <p className={`flex items-center gap-1.5 text-sm font-semibold ${passwordMsg === 'Password changed' ? 'text-[#176B5B]' : 'text-[#B3261E]'}`}>
+                {passwordMsg === 'Password changed' ? <CheckCircle2 size={14} /> : <XCircle size={14} />} {passwordMsg}
+              </p>
+            )}
+            <button type="submit" className={`${solidGreen} w-full`}>
+              <KeyRound size={15} /> Change Password
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }

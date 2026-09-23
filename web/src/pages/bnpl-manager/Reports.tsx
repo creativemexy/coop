@@ -1,9 +1,22 @@
 import { useEffect, useState, useCallback } from 'react'
-import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
+import { api, getAccessToken } from '../../api/client'
+import {
+  Badge,
+  Btn,
+  EmptyRow,
+  Modal,
+  PageHeader,
+  Panel,
+  StatCard,
+  TabBar,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+} from '../../components/ui/warm'
 
 type Tab = 'kpis' | 'delinquency' | 'audit'
 
@@ -94,6 +107,9 @@ interface AuditEntry {
 const fmt = (n: number) => `₦${n.toLocaleString()}`
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
+const rateTone = (r: number): 'success' | 'warning' | 'danger' =>
+  r > 0.1 ? 'danger' : r > 0.05 ? 'warning' : 'success'
+
 /* ─── Component ─── */
 export function Reports() {
   const [tab, setTab] = useState<Tab>('kpis')
@@ -139,7 +155,7 @@ export function Reports() {
 
   /* ─── Export handlers ─── */
   const handleExportCsv = async () => {
-    const token = localStorage.getItem('access_token')
+    const token = getAccessToken()
     const res = await fetch('/api/v1/bnpl/compliance/export', {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -163,72 +179,91 @@ export function Reports() {
     } catch { alert('Failed to load evidence') }
   }
 
-  if (loading) return <p className="text-gray-400">Loading reports…</p>
+  if (loading) return <p className="text-sm text-[#C9B89F]">Loading reports…</p>
 
   /* ─── Card helper ─── */
-  const StatCard = ({ title, value, sub, color }: { title: string; value: string; sub?: string; color?: string }) => (
-    <Card>
-      <CardTitle className="text-sm font-medium text-gray-500">{title}</CardTitle>
-      <p className={`mt-2 text-3xl font-bold ${color || ''}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </Card>
+  const Metric = ({ icon, iconCls, title, value, sub, color }: { icon?: string; iconCls?: string; title: string; value: string; sub?: string; color?: string }) => (
+    <StatCard
+      label={title}
+      value={value}
+      sub={sub}
+      valueCls={color}
+      icon={icon}
+      iconCls={iconCls}
+    />
   )
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">Reports & Exports</h2>
-        <div className="flex gap-2">
-          <Button variant="primary" onClick={handleExportCsv}>Export CSV</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Compliance & Portfolio"
+        title="Reports & Exports"
+        subtitle="BNPL portfolio health, delinquency cohorts and audit trails."
+        actions={<Btn onClick={handleExportCsv}>Export CSV</Btn>}
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b dark:border-gray-700 pb-2">
-        {([['kpis', 'Portfolio KPIs'], ['delinquency', 'Delinquency & Trends'], ['audit', 'Audit Trails']] as [Tab, string][]).map(([k, v]) => (
-          <Button key={k} variant={tab === k ? 'primary' : 'ghost'} size="sm" onClick={() => setTab(k)}>{v}</Button>
-        ))}
-      </div>
+      <TabBar
+        tabs={[
+          { key: 'kpis', label: 'Portfolio KPIs' },
+          { key: 'delinquency', label: 'Delinquency & Trends' },
+          { key: 'audit', label: 'Audit Trails' },
+        ]}
+        active={tab}
+        onChange={setTab}
+      />
 
       {/* ─── Tab: Portfolio KPIs ─── */}
       {tab === 'kpis' && kpis && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <StatCard title="Active Subscriptions" value={String(kpis.totalActiveSubscriptions)} />
-            <StatCard title="Active Principal" value={fmt(kpis.totalActivePrincipal)} />
-            <StatCard title="Outstanding Principal" value={fmt(kpis.totalOutstandingPrincipal)} color="text-red-600" />
-            <StatCard title="Defaulted Amount" value={fmt(kpis.defaultedAmount)} color="text-red-700"
-              sub={`${kpis.defaultedSubscriptions} subscriptions`} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Metric icon="🧾" iconCls="bg-[#176B5B]/10 text-[#176B5B]" title="Active Subscriptions" value={String(kpis.totalActiveSubscriptions)} />
+            <Metric icon="💼" iconCls="bg-[#176B5B]/10 text-[#176B5B]" title="Active Principal" value={fmt(kpis.totalActivePrincipal)} />
+            <Metric icon="📊" iconCls="bg-[#E4A42A]/15 text-[#8A5A00]" title="Outstanding Principal" value={fmt(kpis.totalOutstandingPrincipal)} color="text-[#B3261E]" />
+            <Metric icon="⚠️" iconCls="bg-[#B3261E]/10 text-[#B3261E]" title="Defaulted Amount" value={fmt(kpis.defaultedAmount)} sub={`${kpis.defaultedSubscriptions} subscriptions`} color="text-[#B3261E]" />
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold mb-3 dark:text-gray-300">Installments Due</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <StatCard title="Today" value={fmt(kpis.installmentsDue.today.amount)} sub={`${kpis.installmentsDue.today.count} installments`}
-                color={kpis.installmentsDue.today.count > 0 ? 'text-orange-600' : ''} />
-              <StatCard title="Next 7 Days" value={fmt(kpis.installmentsDue.next7Days.amount)} sub={`${kpis.installmentsDue.next7Days.count} installments`} />
-              <StatCard title="Next 30 Days" value={fmt(kpis.installmentsDue.next30Days.amount)} sub={`${kpis.installmentsDue.next30Days.count} installments`} />
+          <Panel title="Installments Due" subtitle="Expected incoming payments over the next horizons">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Metric
+                icon="🗓️"
+                iconCls={kpis.installmentsDue.today.count > 0 ? 'bg-[#E4A42A]/15 text-[#8A5A00]' : 'bg-[#176B5B]/10 text-[#176B5B]'}
+                title="Today"
+                value={fmt(kpis.installmentsDue.today.amount)}
+                sub={`${kpis.installmentsDue.today.count} installments`}
+                color={kpis.installmentsDue.today.count > 0 ? 'text-orange-600' : ''}
+              />
+              <Metric title="Next 7 Days" value={fmt(kpis.installmentsDue.next7Days.amount)} sub={`${kpis.installmentsDue.next7Days.count} installments`} icon="📅" iconCls="bg-[#9D4824]/10 text-[#9D4824]" />
+              <Metric title="Next 30 Days" value={fmt(kpis.installmentsDue.next30Days.amount)} sub={`${kpis.installmentsDue.next30Days.count} installments`} icon="🧮" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
             </div>
+          </Panel>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Metric icon="✅" iconCls="bg-[#176B5B]/10 text-[#176B5B]" title="Paid MTD" value={fmt(kpis.paidMtd.amount)} sub={`${kpis.paidMtd.count} installments`} color="text-[#176B5B]" />
+            <Metric
+              icon="📉"
+              iconCls={kpis.delinquencyRate > 0.1 ? 'bg-[#B3261E]/10 text-[#B3261E]' : 'bg-[#E4A42A]/15 text-[#8A5A00]'}
+              title="Delinquency Rate"
+              value={pct(kpis.delinquencyRate)}
+              color={kpis.delinquencyRate > 0.1 ? 'text-[#B3261E]' : kpis.delinquencyRate > 0.05 ? 'text-orange-600' : undefined}
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <StatCard title="Paid MTD" value={fmt(kpis.paidMtd.amount)} sub={`${kpis.paidMtd.count} installments`} color="text-green-600" />
-            <StatCard title="Delinquency Rate" value={pct(kpis.delinquencyRate)}
-              color={kpis.delinquencyRate > 0.1 ? 'text-red-600' : kpis.delinquencyRate > 0.05 ? 'text-orange-600' : ''} />
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold mb-3 dark:text-gray-300">Delinquency Breakdown</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Panel title="Delinquency Breakdown" subtitle="Delinquent installments by age bucket">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               {(['1-30days', '31-60days', '61-90days', '90plus'] as const).map((k) => (
-                <DelinquencyCard key={k} label={k === '90plus' ? '90+ Days' : `${k.replace('days', '').replace('-', '–')} Days`}
-                  data={kpis.delinquency[k]} variant={k === '61-90days' || k === '90plus' ? 'danger' : 'warning'} />
+                <Metric
+                  key={k}
+                  title={k === '90plus' ? '90+ Days' : `${k.replace('days', '').replace('-', '–')} Days`}
+                  value={fmt(kpis.delinquency[k].amount)}
+                  sub={`${kpis.delinquency[k].count} installments`}
+                  color={k === '61-90days' || k === '90plus' ? 'text-[#B3261E]' : 'text-[#8A5A00]'}
+                />
               ))}
             </div>
-            <p className="text-sm mt-3 text-gray-500">
-              Total Delinquent: <strong className="text-red-600">{fmt(kpis.totalDelinquentAmount)}</strong>
+            <p className="mt-4 text-sm text-[#6B5245]">
+              Total Delinquent: <strong className="text-[#B3261E]">{fmt(kpis.totalDelinquentAmount)}</strong>
             </p>
-          </div>
+          </Panel>
         </div>
       )}
 
@@ -236,192 +271,165 @@ export function Reports() {
       {tab === 'delinquency' && (
         <div className="space-y-6">
           {portfolio && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Portfolio Summary</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard title="Active Subscriptions" value={String(portfolio.totalActiveSubscriptions)} />
-                <StatCard title="Outstanding Principal" value={fmt(portfolio.totalOutstandingPrincipal)} />
-                <StatCard title="Installments Due" value={`${fmt(portfolio.totalInstallmentsDue)}`}
-                  sub={`${portfolio.totalInstallmentsDueCount} installments`} />
+            <Panel title="Portfolio Summary" subtitle="At-a-glance portfolio exposure">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Metric icon="🧾" iconCls="bg-[#176B5B]/10 text-[#176B5B]" title="Active Subscriptions" value={String(portfolio.totalActiveSubscriptions)} />
+                <Metric title="Outstanding Principal" value={fmt(portfolio.totalOutstandingPrincipal)} icon="💼" iconCls="bg-[#E4A42A]/15 text-[#8A5A00]" />
+                <Metric title="Installments Due" value={fmt(portfolio.totalInstallmentsDue)} sub={`${portfolio.totalInstallmentsDueCount} installments`} icon="🗓️" iconCls="bg-[#9D4824]/10 text-[#9D4824]" />
               </div>
-            </div>
+            </Panel>
           )}
 
           {revenue && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Revenue Summary</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard title="Interest / Fees Collected" value={fmt(revenue.interestFeesCollected)} color="text-green-600"
-                  sub={`${revenue.totalPaidInstallments} paid installments`} />
-                <StatCard title="Projected Remaining Revenue" value={fmt(revenue.projectedRemainingRevenue)}
-                  sub={`${revenue.totalPendingInstallments} pending installments`} />
-                <StatCard title="Completed Subscriptions" value={String(revenue.completedSubscriptions)}
-                  sub={`${fmt(revenue.totalCompletedRevenue)} total revenue`} />
+            <Panel title="Revenue Summary" subtitle="Collected and projected interest on the portfolio">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Metric icon="💵" iconCls="bg-[#176B5B]/10 text-[#176B5B]" title="Interest / Fees Collected" value={fmt(revenue.interestFeesCollected)} sub={`${revenue.totalPaidInstallments} paid installments`} color="text-[#176B5B]" />
+                <Metric icon="🔮" iconCls="bg-[#9D4824]/10 text-[#9D4824]" title="Projected Remaining Revenue" value={fmt(revenue.projectedRemainingRevenue)} sub={`${revenue.totalPendingInstallments} pending installments`} />
+                <Metric icon="🏁" iconCls="bg-[#176B5B]/10 text-[#176B5B]" title="Completed Subscriptions" value={String(revenue.completedSubscriptions)} sub={`${fmt(revenue.totalCompletedRevenue)} total revenue`} />
               </div>
-            </div>
+            </Panel>
           )}
 
-          {/* Cohorts */}
-          <div className="border-t dark:border-gray-700 pt-6">
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Delinquency Cohorts by Origination Month</h3>
-            {cohorts.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b dark:border-gray-700 text-left text-gray-500">
-                      <th className="pb-2 pr-4">Cohort</th>
-                      <th className="pb-2 pr-4">Subs</th>
-                      <th className="pb-2 pr-4">Principal</th>
-                      <th className="pb-2 pr-4">Outstanding</th>
-                      <th className="pb-2 pr-4">Delinq Count</th>
-                      <th className="pb-2 pr-4">Delinq Amt</th>
-                      <th className="pb-2 pr-4">Rate</th>
-                      <th className="pb-2 pr-4">1–30d</th>
-                      <th className="pb-2 pr-4">31–60d</th>
-                      <th className="pb-2 pr-4">61–90d</th>
-                      <th className="pb-2 pr-4">90+</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cohorts.map((c) => (
-                      <tr key={c.period} className="border-b dark:border-gray-800">
-                        <td className="py-2 pr-4 font-medium">{c.period}</td>
-                        <td className="py-2 pr-4">{c.subscriptionCount}</td>
-                        <td className="py-2 pr-4">{fmt(c.totalPrincipal)}</td>
-                        <td className="py-2 pr-4">{fmt(c.outstandingPrincipal)}</td>
-                        <td className="py-2 pr-4">{c.delinquentCount}</td>
-                        <td className="py-2 pr-4">{fmt(c.delinquentAmount)}</td>
-                        <td className="py-2 pr-4">
-                          <Badge variant={(c.delinquencyRate || 0) > 0.1 ? 'danger' : (c.delinquencyRate || 0) > 0.05 ? 'warning' : 'success'}>
-                            {pct(c.delinquencyRate)}
-                          </Badge>
-                        </td>
-                        <td className="py-2 pr-4">{c.bucketBreakdown['1-30days'].count}</td>
-                        <td className="py-2 pr-4">{c.bucketBreakdown['31-60days'].count}</td>
-                        <td className="py-2 pr-4">{c.bucketBreakdown['61-90days'].count}</td>
-                        <td className="py-2 pr-4">{c.bucketBreakdown['90plus'].count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : <p className="text-sm text-gray-400">No cohort data</p>}
-          </div>
+          <Panel title="Delinquency Cohorts by Origination Month" subtitle="How each origination month is aging" padded={false}>
+            <Table>
+              <THead>
+                <THeadRow>
+                  <THeadCell>Cohort</THeadCell>
+                  <THeadCell>Subs</THeadCell>
+                  <THeadCell>Principal</THeadCell>
+                  <THeadCell>Outstanding</THeadCell>
+                  <THeadCell>Delinq Count</THeadCell>
+                  <THeadCell>Delinq Amt</THeadCell>
+                  <THeadCell>Rate</THeadCell>
+                  <THeadCell>1–30d</THeadCell>
+                  <THeadCell>31–60d</THeadCell>
+                  <THeadCell>61–90d</THeadCell>
+                  <THeadCell>90+</THeadCell>
+                </THeadRow>
+              </THead>
+              <TBody>
+                {cohorts.map((c) => (
+                  <TBodyRow key={c.period}>
+                    <TBodyCell className="font-semibold text-[#2C1B13]">{c.period}</TBodyCell>
+                    <TBodyCell>{c.subscriptionCount}</TBodyCell>
+                    <TBodyCell>{fmt(c.totalPrincipal)}</TBodyCell>
+                    <TBodyCell>{fmt(c.outstandingPrincipal)}</TBodyCell>
+                    <TBodyCell>{c.delinquentCount}</TBodyCell>
+                    <TBodyCell>{fmt(c.delinquentAmount)}</TBodyCell>
+                    <TBodyCell>
+                      <Badge variant={rateTone(c.delinquencyRate || 0)} dot>{pct(c.delinquencyRate)}</Badge>
+                    </TBodyCell>
+                    <TBodyCell>{c.bucketBreakdown['1-30days'].count}</TBodyCell>
+                    <TBodyCell>{c.bucketBreakdown['31-60days'].count}</TBodyCell>
+                    <TBodyCell>{c.bucketBreakdown['61-90days'].count}</TBodyCell>
+                    <TBodyCell>{c.bucketBreakdown['90plus'].count}</TBodyCell>
+                  </TBodyRow>
+                ))}
+                {cohorts.length === 0 && <EmptyRow colSpan={11}>No cohort data</EmptyRow>}
+              </TBody>
+            </Table>
+          </Panel>
 
-          {/* Trends */}
-          <div className="border-t dark:border-gray-700 pt-6">
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Delinquency Trends (12 Month Rolling)</h3>
-            {trends.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b dark:border-gray-700 text-left text-gray-500">
-                      <th className="pb-2 pr-4">Month</th>
-                      <th className="pb-2 pr-4">Outstanding</th>
-                      <th className="pb-2 pr-4">Delinquent Amount</th>
-                      <th className="pb-2 pr-4">Rate</th>
-                      <th className="pb-2 pr-4">Trend</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trends.map((t, i) => {
-                      const prev = i > 0 ? trends[i - 1] : null
-                      const up = prev && t.delinquencyRate > prev.delinquencyRate
-                      const down = prev && t.delinquencyRate < prev.delinquencyRate
-                      return (
-                        <tr key={t.month} className="border-b dark:border-gray-800">
-                          <td className="py-2 pr-4 font-medium">{t.month}</td>
-                          <td className="py-2 pr-4">{fmt(t.totalOutstanding)}</td>
-                          <td className="py-2 pr-4">{fmt(t.delinquentAmount)}</td>
-                          <td className="py-2 pr-4">
-                            <Badge variant={t.delinquencyRate > 0.1 ? 'danger' : t.delinquencyRate > 0.05 ? 'warning' : 'success'}>
-                              {pct(t.delinquencyRate)}
-                            </Badge>
-                          </td>
-                          <td className="py-2 pr-4">{up ? '↑' : down ? '↓' : '—'}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : <p className="text-sm text-gray-400">No trend data</p>}
-          </div>
+          <Panel title="Delinquency Trends (12 Month Rolling)" subtitle="Rate and exposure month over month" padded={false}>
+            <Table>
+              <THead>
+                <THeadRow>
+                  <THeadCell>Month</THeadCell>
+                  <THeadCell>Outstanding</THeadCell>
+                  <THeadCell>Delinquent Amount</THeadCell>
+                  <THeadCell>Rate</THeadCell>
+                  <THeadCell>Trend</THeadCell>
+                </THeadRow>
+              </THead>
+              <TBody>
+                {trends.map((t, i) => {
+                  const prev = i > 0 ? trends[i - 1] : null
+                  const up = prev && t.delinquencyRate > prev.delinquencyRate
+                  const down = prev && t.delinquencyRate < prev.delinquencyRate
+                  return (
+                    <TBodyRow key={t.month}>
+                      <TBodyCell className="font-semibold text-[#2C1B13]">{t.month}</TBodyCell>
+                      <TBodyCell>{fmt(t.totalOutstanding)}</TBodyCell>
+                      <TBodyCell>{fmt(t.delinquentAmount)}</TBodyCell>
+                      <TBodyCell>
+                        <Badge variant={rateTone(t.delinquencyRate)} dot>{pct(t.delinquencyRate)}</Badge>
+                      </TBodyCell>
+                      <TBodyCell>
+                        {up ? <span className="font-bold text-[#B3261E]">↑</span> : down ? <span className="font-bold text-[#176B5B]">↓</span> : <span className="text-[#C9B89F]">—</span>}
+                      </TBodyCell>
+                    </TBodyRow>
+                  )
+                })}
+                {trends.length === 0 && <EmptyRow colSpan={5}>No trend data</EmptyRow>}
+              </TBody>
+            </Table>
+          </Panel>
         </div>
       )}
 
       {/* ─── Tab: Audit Trails ─── */}
       {tab === 'audit' && (
         <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {[['', 'All'], ['product', 'Product Changes'], ['order', 'Order Transitions'], ['repayment', 'Repayment Adjustments']].map(([v, l]) => (
-              <Button key={v} variant={auditCategory === v ? 'primary' : 'ghost'} size="sm" onClick={() => setAuditCategory(v)}>{l}</Button>
+              <Btn key={v} variant={auditCategory === v ? 'primary' : 'secondary'} size="sm" onClick={() => setAuditCategory(v)}>{l}</Btn>
             ))}
           </div>
 
-          <Table>
-            <THead>
-              <THeadRow>
-                <THeadCell>Date</THeadCell>
-                <THeadCell>Entity</THeadCell>
-                <THeadCell>Action</THeadCell>
-                <THeadCell>Changes</THeadCell>
-                <THeadCell>Reason</THeadCell>
-                <THeadCell>Performer</THeadCell>
-                <THeadCell />
-              </THeadRow>
-            </THead>
-            <TBody>
-              {auditLogs.map((log) => (
-                <TBodyRow key={log.id}>
-                  <TBodyCell className="text-xs whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</TBodyCell>
-                  <TBodyCell>
-                    <Badge variant="info">{log.entityType}</Badge>
-                    <span className="text-xs font-mono ml-1">{log.entityId.slice(0, 8)}…</span>
-                  </TBodyCell>
-                  <TBodyCell><code className="text-xs px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800">{log.action}</code></TBodyCell>
-                  <TBodyCell className="max-w-[200px] truncate text-xs">
-                    {log.changes ? Object.entries(log.changes).map(([k, v]) => `${k}: ${JSON.stringify(v.from)}→${JSON.stringify(v.to)}`).join('; ') : '—'}
-                  </TBodyCell>
-                  <TBodyCell className="max-w-[150px] truncate text-xs">{log.reason || '—'}</TBodyCell>
-                  <TBodyCell className="text-xs">{log.performerName || log.performedBy.slice(0, 8)}</TBodyCell>
-                  <TBodyCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleDownloadEvidence(log.id)}>
-                      {log.evidence ? 'View Evidence' : '—'}
-                    </Button>
-                  </TBodyCell>
-                </TBodyRow>
-              ))}
-              {auditLogs.length === 0 && (
-                <TBodyRow><TBodyCell colSpan={7} className="text-center py-8 text-gray-400">No audit logs found</TBodyCell></TBodyRow>
-              )}
-            </TBody>
-          </Table>
+          <Panel padded={false}>
+            <Table>
+              <THead>
+                <THeadRow>
+                  <THeadCell>Date</THeadCell>
+                  <THeadCell>Entity</THeadCell>
+                  <THeadCell>Action</THeadCell>
+                  <THeadCell>Changes</THeadCell>
+                  <THeadCell>Reason</THeadCell>
+                  <THeadCell>Performer</THeadCell>
+                  <THeadCell />
+                </THeadRow>
+              </THead>
+              <TBody>
+                {auditLogs.map((log) => (
+                  <TBodyRow key={log.id}>
+                    <TBodyCell className="whitespace-nowrap text-xs">{new Date(log.createdAt).toLocaleString()}</TBodyCell>
+                    <TBodyCell>
+                      <Badge variant="info">{log.entityType}</Badge>
+                      <span className="ml-1 font-mono text-xs text-[#6B5245]">{log.entityId.slice(0, 8)}…</span>
+                    </TBodyCell>
+                    <TBodyCell>
+                      <code className="rounded-md bg-[#FFF9EF] px-1.5 py-0.5 text-xs font-semibold text-[#6B5245]">{log.action}</code>
+                    </TBodyCell>
+                    <TBodyCell className="max-w-[200px] truncate text-xs">
+                      {log.changes ? Object.entries(log.changes).map(([k, v]) => `${k}: ${JSON.stringify(v.from)}→${JSON.stringify(v.to)}`).join('; ') : '—'}
+                    </TBodyCell>
+                    <TBodyCell className="max-w-[150px] truncate text-xs">{log.reason || '—'}</TBodyCell>
+                    <TBodyCell className="text-xs">{log.performerName || log.performedBy.slice(0, 8)}</TBodyCell>
+                    <TBodyCell>
+                      <Btn variant="ghost" size="sm" onClick={() => handleDownloadEvidence(log.id)}>
+                        {log.evidence ? 'View Evidence' : '—'}
+                      </Btn>
+                    </TBodyCell>
+                  </TBodyRow>
+                ))}
+                {auditLogs.length === 0 && <EmptyRow colSpan={7}>No audit logs found</EmptyRow>}
+              </TBody>
+            </Table>
+          </Panel>
         </div>
       )}
 
       {/* Evidence Modal */}
-      {evidenceModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEvidenceModal(null)}>
-          <div className="bg-white dark:bg-gray-900 rounded-xl max-w-lg w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-2 dark:text-gray-100">Evidence — {evidenceModal.id.slice(0, 8)}</h3>
-            <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-lg max-h-80 overflow-y-auto">
+      <Modal open={!!evidenceModal} onClose={() => setEvidenceModal(null)} title={evidenceModal ? `Evidence — ${evidenceModal.id.slice(0, 8)}` : 'Evidence'}>
+        {evidenceModal && (
+          <div className="space-y-4">
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-xl bg-[#FFF9EF] border border-[#EDE2D3] p-4 text-sm text-[#2C1B13]">
               {evidenceModal.text}
             </pre>
-            <Button variant="ghost" className="w-full mt-4" onClick={() => setEvidenceModal(null)}>Close</Button>
+            <Btn variant="secondary" className="w-full" onClick={() => setEvidenceModal(null)}>Close</Btn>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
-  )
-}
-
-function DelinquencyCard({ label, data, variant }: { label: string; data: { count: number; amount: number }; variant: 'warning' | 'danger' }) {
-  return (
-    <Card>
-      <CardTitle className="text-sm font-medium text-gray-500">{label}</CardTitle>
-      <p className="mt-2"><Badge variant={variant}>{data.count} installments</Badge></p>
-      <p className="text-lg font-bold mt-1">₦{data.amount.toLocaleString()}</p>
-    </Card>
   )
 }

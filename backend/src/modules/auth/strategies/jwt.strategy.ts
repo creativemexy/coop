@@ -17,9 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>('jwt.accessSecret') ||
-        'default-access-secret',
+      secretOrKey: configService.get<string>('jwt.accessSecret') as string,
     });
   }
 
@@ -31,11 +29,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or deactivated');
     }
     return {
-      sub: payload.sub,
-      email: payload.email,
-      role: payload.role,
-      apexOrgId: payload.apexOrgId,
-      organizationId: payload.organizationId,
+      sub: user.id,
+      email: user.email ?? undefined,
+      role: user.role,
+      apexOrgId: user.apexOrgId,
+      organizationId: user.organizationId,
+      isActive: user.isActive,
     };
   }
 }

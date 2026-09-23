@@ -1,13 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { Building2, Mail, User, Landmark } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef, Fragment } from 'react'
+import {
+  Building2, Mail, User, Landmark, Search, Plus, Pencil, Eye, Copy, Check,
+  MapPin, Phone, ShieldCheck, CreditCard, ChevronLeft, ChevronRight,
+  ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle, RefreshCw, UsersRound
+} from 'lucide-react'
 import { NUBAN_BANKS, parseAddress, composeAddress } from '../../lib/banks'
 import { api } from '../../api/client'
-import { Card } from '../../components/ui/card'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Badge } from '../../components/ui/badge'
-import { Modal } from '../../components/ui/modal'
 
 interface ApexOrg {
   id: string
@@ -55,22 +53,216 @@ const emptyForm = (): OrgForm => ({
   bankName: '', accountName: '', accountNumber: '', sortCode: '', bankCode: '',
 })
 
+const PAGE_SIZE = 10
+
+const statusMeta = (s: string) =>
+  s === 'active'
+    ? { label: 'Active', cls: 'bg-[#176B5B]/10 text-[#176B5B]', dot: 'bg-[#176B5B]' }
+    : { label: 'Inactive', cls: 'bg-[#B3261E]/10 text-[#B3261E]', dot: 'bg-[#B3261E]' }
+
+const fieldCls =
+  'w-full rounded-xl border border-[#E7DCCB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#23150F] outline-none transition placeholder:text-[#C9B89F] hover:border-[#D8C9A9] focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20 read-only:cursor-not-allowed read-only:bg-[#FFF9EF] read-only:text-[#6B5245] read-only:hover:border-[#E7DCCB]'
+
+function Field({
+  id,
+  label,
+  required,
+  value,
+  onChange,
+  readOnly,
+  placeholder,
+  icon,
+  hint,
+}: {
+  id: string
+  label: string
+  required?: boolean
+  value: string
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+  readOnly?: boolean
+  placeholder?: string
+  icon?: React.ReactNode
+  hint?: React.ReactNode
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B5245]">
+        {label}
+        {required && <span className="text-[#E4A42A]"> *</span>}
+      </label>
+      <div className="relative">
+        {icon && (
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#C9B89F]">{icon}</span>
+        )}
+        <input
+          id={id}
+          value={value}
+          onChange={onChange}
+          readOnly={readOnly}
+          placeholder={placeholder}
+          className={`${fieldCls} ${icon ? 'pl-10' : ''}`}
+        />
+      </div>
+      {hint && <div className="mt-1 text-xs text-[#6B5245]">{hint}</div>}
+    </div>
+  )
+}
+
+function StatusPill({ status }: { status: string }) {
+  const meta = statusMeta(status)
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  )
+}
+
+function PaginationBar({
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  page: number
+  pageSize: number
+  total: number
+  onPage: (p: number) => void
+}) {
+  if (total === 0) return null
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  if (totalPages <= 1) return null
+  const start = (page - 1) * pageSize + 1
+  const end = Math.min(page * pageSize, total)
+  const lo = Math.max(1, page - 2)
+  const pages: number[] = []
+  for (let p = lo; p <= lo + 4 && p <= totalPages; p++) pages.push(p)
+
+  const btn =
+    'inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none'
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDE2D3] px-5 py-3.5">
+      <p className="text-xs font-medium text-[#6B5245]">
+        Showing <span className="font-bold text-[#2C1B13]">{start}–{end}</span> of{' '}
+        <span className="font-bold text-[#2C1B13]">{total}</span>
+      </p>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+          className={`${btn} text-[#6B5245] hover:bg-[#F0DDAD]/50`}
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        {pages.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onPage(p)}
+            className={`${btn} ${
+              p === page
+                ? 'bg-[#176B5B] text-[#FFF9EF] shadow-sm'
+                : 'text-[#6B5245] hover:bg-[#F0DDAD]/50'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => onPage(page + 1)}
+          className={`${btn} text-[#6B5245] hover:bg-[#F0DDAD]/50`}
+          aria-label="Next page"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function BrandModal({
+  open,
+  onClose,
+  icon,
+  iconCls,
+  title,
+  subtitle,
+  wide,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  icon: React.ReactNode
+  iconCls: string
+  title: string
+  subtitle?: string
+  wide?: boolean
+  children: React.ReactNode
+}) {
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-[#23150F]/50 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className={`relative z-10 max-h-[92vh] w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-2xl`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconCls}`}>{icon}</div>
+            <div>
+              <h2 className="text-xl font-black tracking-[-0.02em] text-[#2C1B13]">{title}</h2>
+              {subtitle && <p className="text-xs text-[#6B5245]">{subtitle}</p>}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-[#6B5245] transition hover:bg-[#FFF9EF] hover:text-[#2C1B13] cursor-pointer"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-6 py-5">{children}</div>
+      </div>
+    </div>
+  )
+}
+
 export function ApexOrganizations() {
   const [orgs, setOrgs] = useState<ApexOrg[]>([])
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<ApexOrg | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [form, setForm] = useState<OrgForm>(emptyForm())
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [resolving, setResolving] = useState(false)
   const [step, setStep] = useState(1)
   const [stepError, setStepError] = useState('')
   const [createdResult, setCreatedResult] = useState<{ email: string; password: string; code: string } | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
   const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetch = useCallback(() => {
-    api.get('/apex-organizations').then((r) => setOrgs(r.data))
+    api.get('/apex-organizations').then((r) => setOrgs(r.data)).finally(() => setLoading(false))
   }, [])
 
   useEffect(() => { fetch() }, [fetch])
@@ -79,6 +271,12 @@ export function ApexOrganizations() {
     o.name.toLowerCase().includes(search.toLowerCase()) ||
     o.code.toLowerCase().includes(search.toLowerCase()),
   )
+
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const activeCount = orgs.filter((o) => o.status === 'active').length
+  const inactiveCount = orgs.length - activeCount
+  const memberOrgs = orgs.reduce((s, o) => s + (o.organizations?.length ?? 0), 0)
 
   const handleCreate = async () => {
     setSaving(true)
@@ -111,7 +309,14 @@ export function ApexOrganizations() {
     }
   }
 
-  const openCreate = () => { setForm(emptyForm()); setStep(1); setStepError(''); setCreateOpen(true) }
+  const openCreate = () => {
+    setForm(emptyForm())
+    setStep(1)
+    setStepError('')
+    setPage(1)
+    setCreateOpen(true)
+  }
+
   const openEdit = (o: ApexOrg) => {
     setSelected(o)
     const addr = parseAddress(o.address)
@@ -168,6 +373,16 @@ export function ApexOrganizations() {
     }
   }
 
+  const copy = async (label: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(label)
+      setTimeout(() => setCopied(null), 1600)
+    } catch {
+      // clipboard unavailable
+    }
+  }
+
   const normalize = (s: string) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim()
 
   const requiredFields: (keyof OrgForm)[] = [
@@ -204,253 +419,611 @@ export function ApexOrganizations() {
     setStep((s) => Math.max(s - 1, 1))
   }
 
+  const UnknownBankNote = () => (
+    <p className="inline-flex items-center gap-1.5 rounded-lg bg-[#F7D674]/25 px-3 py-2 text-xs font-medium text-[#7A5A00]">
+      <AlertTriangle size={13} /> Unknown bank code — auto-fill stays locked until a known bank is entered.
+    </p>
+  )
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">Apex Organizations</h2>
-        <Button onClick={openCreate}>Create</Button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+              <Building2 size={22} className="text-[#176B5B]" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Apex Organizations</h1>
+              <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+                Apex co-operative groups, their business managers, and settlement bank details.
+              </p>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={openCreate}
+          className="inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] cursor-pointer"
+        >
+          <Plus size={16} /> New apex group
+        </button>
       </div>
 
-      <Input
-        placeholder="Search by name or code..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-
-      <Card className="border-sky-500 p-0 overflow-hidden">
-        <Table>
-          <THead>
-            <THeadRow>
-              <THeadCell>Name</THeadCell>
-              <THeadCell>Code</THeadCell>
-              <THeadCell>Status</THeadCell>
-              <THeadCell>Orgs</THeadCell>
-              <THeadCell>Bank</THeadCell>
-              <THeadCell>Created</THeadCell>
-              <THeadCell />
-            </THeadRow>
-          </THead>
-          <TBody>
-            {filtered.map((o) => (
-              <TBodyRow key={o.id}>
-                <TBodyCell className="font-medium">{o.name}</TBodyCell>
-                <TBodyCell><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{o.code}</code></TBodyCell>
-                <TBodyCell><Badge variant={o.status === 'active' ? 'success' : 'danger'}>{o.status}</Badge></TBodyCell>
-                <TBodyCell>{o.organizations?.length ?? 0}</TBodyCell>
-                <TBodyCell>
-                  {o.accountNumber ? (
-                    <span className="text-xs">{o.bankName} ••••{o.accountNumber.slice(-4)}</span>
-                  ) : (
-                    <span className="text-xs text-gray-400">—</span>
-                  )}
-                </TBodyCell>
-                <TBodyCell>{new Date(o.createdAt).toLocaleDateString()}</TBodyCell>
-                <TBodyCell>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setSelected(o)}>View</Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(o)}>Edit</Button>
-                  </div>
-                </TBodyCell>
-              </TBodyRow>
-            ))}
-            {filtered.length === 0 && (
-              <TBodyRow>
-                <TBodyCell colSpan={7} className="text-center text-gray-400 py-8">No apex organizations found</TBodyCell>
-              </TBodyRow>
-            )}
-          </TBody>
-        </Table>
-      </Card>
-
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Apex Organization">
-        <div className="space-y-4">
-          <div className="flex items-center gap-1">
-            {stepTitles.map((t, i) => {
-              const n = i + 1
-              const active = n === step
-              const done = n < step
-              const Icon = stepIcons[i]
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => { if (done || stepFields[i].every((k) => (form[k] ?? '').toString().trim() !== '')) { setStep(n); setStepError('') } }}
-                  className={`flex-1 flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs ${active ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : done ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'border-gray-200 text-gray-400 dark:border-gray-700'}`}
-                >
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center ${active ? 'bg-blue-600 text-white' : done ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400 dark:bg-gray-700'}`}>
-                    <Icon size={16} strokeWidth={2.5} />
-                  </span>
-                  <span className="text-center">{t}</span>
-                </button>
-              )
-            })}
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+              <Building2 size={16} className="text-[#176B5B]" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Apex groups</p>
           </div>
+          <p className="mt-2 text-2xl font-black tracking-[-0.02em] text-[#2C1B13]">{orgs.length}</p>
+        </div>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#176B5B]/10">
+              <ShieldCheck size={16} className="text-[#176B5B]" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Active</p>
+          </div>
+          <p className="mt-2 text-2xl font-black tracking-[-0.02em] text-[#2C1B13]">{activeCount}</p>
+        </div>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#B3261E]/10">
+              <AlertTriangle size={16} className="text-[#B3261E]" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Inactive</p>
+          </div>
+          <p className="mt-2 text-2xl font-black tracking-[-0.02em] text-[#2C1B13]">{inactiveCount}</p>
+        </div>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E4A42A]/10">
+              <UsersRound size={16} className="text-[#E4A42A]" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Member orgs</p>
+          </div>
+          <p className="mt-2 text-2xl font-black tracking-[-0.02em] text-[#2C1B13]">{memberOrgs}</p>
+        </div>
+      </div>
 
-          <div className="space-y-4 max-h-[55vh] overflow-y-auto">
-            {step === 1 && (
-              <>
-                <Input id="create-name" label="Organization Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                <p className="text-xs text-gray-400">Code will be auto-generated from the name.</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input id="create-house-num" label="House Number" value={form.houseNumber} onChange={(e) => setForm({ ...form, houseNumber: e.target.value })} required />
-                  <Input id="create-street" label="Street Name" value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })} required />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input id="create-city" label="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
-                  <Input id="create-state" label="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} required />
-                </div>
-              </>
-            )}
+      {/* Search */}
+      <div className="relative max-w-md">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#C9B89F]">
+          <Search size={16} />
+        </span>
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          placeholder="Search by name or code..."
+          className={`${fieldCls} pl-10`}
+        />
+        {search && (
+          <button
+            onClick={() => { setSearch(''); setPage(1) }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[#C9B89F] hover:text-[#2C1B13] cursor-pointer"
+            aria-label="Clear search"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
-            {step === 2 && (
-              <>
-                <Input id="create-email" label="Contact Email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} required />
-                <Input id="create-phone" label="Contact Phone" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} required />
-              </>
-            )}
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EDE2D3] px-5 py-4">
+          <div>
+            <h2 className="text-lg font-black tracking-[-0.02em] text-[#2C1B13]">Apex groups</h2>
+            <p className="text-xs text-[#6B5245]">
+              {filtered.length} of {orgs.length} {filtered.length === 1 ? 'result' : 'results'}{search ? ` for “${search}”` : ''}
+            </p>
+          </div>
+          <button
+            onClick={fetch}
+            className="inline-flex items-center gap-2 rounded-full border border-[#E7DCCB] bg-white px-3.5 py-2 text-xs font-semibold text-[#6B5245] transition hover:border-[#176B5B]/40 hover:text-[#176B5B] cursor-pointer"
+          >
+            <RefreshCw size={13} /> Refresh
+          </button>
+        </div>
 
-            {step === 3 && (
-              <>
-                <Input id="create-cp-name" label="Name" value={form.contactPersonName} onChange={(e) => setForm({ ...form, contactPersonName: e.target.value })} required />
-                <Input id="create-cp-phone" label="Phone" value={form.contactPersonPhone} onChange={(e) => setForm({ ...form, contactPersonPhone: e.target.value })} required />
-                <Input id="create-cp-email" label="Email" value={form.contactPersonEmail} onChange={(e) => setForm({ ...form, contactPersonEmail: e.target.value })} required />
-              </>
-            )}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#FFF9EF]">
+              <tr>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Name</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Code</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Status</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Member orgs</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Bank</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Created</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#EDE2D3]">
+              {loading && orgs.length === 0 ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}>
+                    <td colSpan={7} className="px-5 py-6">
+                      <div className="h-4 w-1/2 animate-pulse rounded bg-[#F0DDAD]/40" />
+                    </td>
+                  </tr>
+                ))
+              ) : pageItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center">
+                    <div className="mx-auto flex max-w-xs flex-col items-center gap-2">
+                      <Building2 size={24} className="text-[#C9B89F]" />
+                      <p className="text-sm font-semibold text-[#2C1B13]">
+                        {search ? 'No matching apex groups' : 'No apex organizations yet'}
+                      </p>
+                      <p className="text-xs text-[#6B5245]">
+                        {search ? 'Try a different name or code.' : 'Create the first apex group to get started.'}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                pageItems.map((o) => (
+                  <tr key={o.id} className="transition-colors hover:bg-[#FFF9EF]/60">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#176B5B]/10">
+                          <Building2 size={16} className="text-[#176B5B]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-[#2C1B13]">{o.name}</p>
+                          {o.contactEmail && (
+                            <p className="truncate text-xs text-[#6B5245]">{o.contactEmail}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <code className="rounded-lg bg-[#FFF9EF] px-2 py-1 font-mono text-xs font-semibold text-[#176B5B] ring-1 ring-[#E7DCCB]">
+                        {o.code}
+                      </code>
+                    </td>
+                    <td className="px-5 py-3.5"><StatusPill status={o.status} /></td>
+                    <td className="px-5 py-3.5 text-sm font-semibold text-[#2C1B13]">{o.organizations?.length ?? 0}</td>
+                    <td className="px-5 py-3.5">
+                      {o.accountNumber ? (
+                        <div>
+                          <p className="text-xs font-semibold text-[#2C1B13]">{o.bankName}</p>
+                          <p className="font-mono text-[11px] text-[#6B5245]">••••{o.accountNumber.slice(-4)}</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#C9B89F]">No bank on file</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs text-[#6B5245]">{new Date(o.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setSelected(o)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[#E7DCCB] px-3 py-1.5 text-xs font-semibold text-[#6B5245] transition hover:border-[#176B5B]/40 hover:text-[#176B5B] cursor-pointer"
+                        >
+                          <Eye size={13} /> View
+                        </button>
+                        <button
+                          onClick={() => openEdit(o)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[#E7DCCB] px-3 py-1.5 text-xs font-semibold text-[#6B5245] transition hover:border-[#176B5B]/40 hover:text-[#176B5B] cursor-pointer"
+                        >
+                          <Pencil size={13} /> Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <PaginationBar page={page} pageSize={PAGE_SIZE} total={filtered.length} onPage={setPage} />
+      </div>
 
-            {step === 4 && (
-              <>
-                <p className="text-sm font-medium text-gray-500">Bank Details (for fee withdrawals)</p>
-                <Input id="create-acct-num" label="Account Number" value={form.accountNumber} onChange={handleAccountNumberChange} placeholder="10-digit account number" required />
-                {form.accountNumber && !NUBAN_BANKS[form.accountNumber.slice(0, 3)] && (
-                  <p className="text-xs text-amber-600">Unknown bank code — fields stay locked until a known bank is entered.</p>
+      {/* Create wizard modal */}
+      <BrandModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        icon={<Plus size={20} className="text-[#176B5B]" />}
+        iconCls="bg-[#176B5B]/10"
+        title="Create apex organization"
+        subtitle="Code and business-manager credentials are generated automatically."
+        wide
+      >
+        {/* Steps */}
+        <div className="mb-6 flex items-start">
+          {stepTitles.map((t, i) => {
+            const n = i + 1
+            const active = n === step
+            const done = n < step
+            const Icon = stepIcons[i]
+            const clickable = done || stepFields[i].every((k) => (form[k] ?? '').toString().trim() !== '')
+            return (
+              <Fragment key={t}>
+                {i > 0 && (
+                  <div className={`mt-4 h-px flex-1 ${done ? 'bg-[#176B5B]' : 'bg-[#E7DCCB]'}`} />
                 )}
-                <Input id="create-bank" label="Bank Name" value={form.bankName} readOnly placeholder="Auto-filled from account number" required />
-                <div>
-                  <Input id="create-acct-name" label="Account Name" value={form.accountName} readOnly placeholder={resolving ? 'Resolving…' : 'Auto-filled from bank enquiry'} required />
-                  {resolving && <p className="text-xs text-blue-500 mt-1">Resolving account name…</p>}
-                </div>
-                <Input id="create-sort" label="Sort Code" value={form.sortCode} readOnly placeholder="Auto-filled" required />
-                <Input id="create-bank-code" label="Bank Code" value={form.bankCode} readOnly placeholder="Auto-filled" required />
-              </>
-            )}
-          </div>
+                <button
+                  type="button"
+                  onClick={() => { if (clickable) { setStep(n); setStepError('') } }}
+                  className={`group flex w-24 flex-col items-center gap-1.5 ${clickable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                >
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition ${
+                      active
+                        ? 'border-[#176B5B] bg-[#176B5B] text-[#FFF9EF] shadow-sm'
+                        : done
+                          ? 'border-[#176B5B] bg-[#176B5B]/10 text-[#176B5B]'
+                          : 'border-[#E7DCCB] bg-white text-[#C9B89F]'
+                    }`}
+                  >
+                    {done ? <Check size={15} strokeWidth={3} /> : <Icon size={15} strokeWidth={2.5} />}
+                  </span>
+                  <span
+                    className={`text-center text-[11px] font-semibold leading-tight ${
+                      active ? 'text-[#176B5B]' : done ? 'text-[#2C1B13]' : 'text-[#C9B89F]'
+                    }`}
+                  >
+                    {t}
+                  </span>
+                </button>
+              </Fragment>
+            )
+          })}
+        </div>
 
-          {stepError && <p className="text-xs text-red-500">{stepError}</p>}
-          {isLastStep && !allRequiredFilled && <p className="text-xs text-red-500">All fields are required before creating.</p>}
-          {isLastStep && allRequiredFilled && !accountNameMatchesOrg && (
-            <p className="text-xs text-red-500">Account name must match the organization name.</p>
+        <div className="space-y-4">
+          {step === 1 && (
+            <>
+              <Field
+                id="apex-create-name"
+                label="Organization name"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                icon={<Landmark size={15} />}
+                placeholder="e.g. FENAC Apex Co-operative"
+              />
+              <p className="text-xs text-[#6B5245]">A short code will be auto-generated from the name.</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-create-house" label="House number" required value={form.houseNumber} onChange={(e) => setForm({ ...form, houseNumber: e.target.value })} placeholder="12" />
+                <Field id="apex-create-street" label="Street name" required value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })} placeholder="Allen Avenue" />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-create-city" label="City" required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Ikeja" />
+                <Field id="apex-create-state" label="State" required value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="Lagos" />
+              </div>
+            </>
           )}
 
-          <div className="flex gap-2">
-            {step > 1 && (
-              <Button variant="secondary" onClick={backStep} className="w-1/3">Back</Button>
-            )}
-            {!isLastStep ? (
-              <Button onClick={nextStep} className="flex-1">Next</Button>
-            ) : (
-              <Button onClick={handleCreate} disabled={saving || !canCreate} className="flex-1">{saving ? 'Creating...' : 'Create'}</Button>
-            )}
-          </div>
-        </div>
-      </Modal>
+          {step === 2 && (
+            <>
+              <p className="text-sm font-semibold text-[#2C1B13]">Primary contact</p>
+              <Field id="apex-create-email" label="Contact email" required value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} icon={<Mail size={15} />} placeholder="apex@example.com" />
+              <Field id="apex-create-phone" label="Contact phone" required value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} icon={<Phone size={15} />} placeholder="+234 800 000 0000" />
+            </>
+          )}
 
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Apex Organization">
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <Input id="edit-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <hr className="dark:border-gray-700" />
-          <p className="text-sm font-medium text-gray-500">Address</p>
-          <div className="grid grid-cols-2 gap-3">
-            <Input id="edit-house-num" label="House Number" value={form.houseNumber} onChange={(e) => setForm({ ...form, houseNumber: e.target.value })} />
-            <Input id="edit-street" label="Street Name" value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input id="edit-city" label="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            <Input id="edit-state" label="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-          </div>
-          <hr className="dark:border-gray-700" />
-          <p className="text-sm font-medium text-gray-500">Contact Details</p>
-          <Input id="edit-email" label="Contact Email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
-          <Input id="edit-phone" label="Contact Phone" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-          <hr className="dark:border-gray-700" />
-          <p className="text-sm font-medium text-gray-500">Contact Person</p>
-          <Input id="edit-cp-name" label="Name" value={form.contactPersonName} onChange={(e) => setForm({ ...form, contactPersonName: e.target.value })} />
-          <Input id="edit-cp-phone" label="Phone" value={form.contactPersonPhone} onChange={(e) => setForm({ ...form, contactPersonPhone: e.target.value })} />
-          <Input id="edit-cp-email" label="Email" value={form.contactPersonEmail} onChange={(e) => setForm({ ...form, contactPersonEmail: e.target.value })} />
-          <hr className="dark:border-gray-700" />
-          <p className="text-sm font-medium text-gray-500">Bank Details (for fee withdrawals)</p>
-          <Input id="edit-acct-num" label="Account Number" value={form.accountNumber} onChange={handleAccountNumberChange} placeholder="10-digit account number" required />
-          <Input id="edit-bank" label="Bank Name" value={form.bankName} readOnly placeholder="Auto-filled from account number" required />
+          {step === 3 && (
+            <>
+              <p className="text-sm font-semibold text-[#2C1B13]">Business manager contact person</p>
+              <Field id="apex-create-cp-name" label="Name" required value={form.contactPersonName} onChange={(e) => setForm({ ...form, contactPersonName: e.target.value })} icon={<User size={15} />} placeholder="Full name" />
+              <Field id="apex-create-cp-phone" label="Phone" required value={form.contactPersonPhone} onChange={(e) => setForm({ ...form, contactPersonPhone: e.target.value })} icon={<Phone size={15} />} placeholder="+234 800 000 0000" />
+              <Field id="apex-create-cp-email" label="Email" required value={form.contactPersonEmail} onChange={(e) => setForm({ ...form, contactPersonEmail: e.target.value })} icon={<Mail size={15} />} placeholder="bm@example.com" />
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <p className="text-sm font-semibold text-[#2C1B13]">Bank details (for fee withdrawals)</p>
+              <Field
+                id="apex-create-acct"
+                label="Account number"
+                required
+                value={form.accountNumber}
+                onChange={handleAccountNumberChange}
+                placeholder="10-digit account number"
+                icon={<CreditCard size={15} />}
+              />
+              {form.accountNumber && !NUBAN_BANKS[form.accountNumber.slice(0, 3)] ? (
+                <UnknownBankNote />
+              ) : (
+                <p className="text-xs text-[#6B5245]">Bank, sort code, and bank code fill in automatically.</p>
+              )}
+              <Field id="apex-create-bank" label="Bank name" required value={form.bankName} readOnly placeholder="Auto-filled from account number" />
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B5245]">
+                  Account name <span className="text-[#E4A42A]"> *</span>
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#C9B89F]"><User size={15} /></span>
+                  <input
+                    value={form.accountName}
+                    readOnly
+                    placeholder={resolving ? 'Resolving…' : 'Auto-filled from bank enquiry'}
+                    className={`${fieldCls} pl-10`}
+                  />
+                  {resolving && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#C9B89F]/30 border-t-[#176B5B]" />
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-create-sort" label="Sort code" required value={form.sortCode} readOnly placeholder="Auto-filled" />
+                <Field id="apex-create-bank-code" label="Bank code" required value={form.bankCode} readOnly placeholder="Auto-filled" />
+              </div>
+            </>
+          )}
+        </div>
+
+        {stepError && (
+          <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#B3261E]">
+            <AlertTriangle size={13} /> {stepError}
+          </p>
+        )}
+        {isLastStep && !allRequiredFilled && (
+          <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#B3261E]">
+            <AlertTriangle size={13} /> All fields are required before creating.
+          </p>
+        )}
+        {isLastStep && allRequiredFilled && !accountNameMatchesOrg && (
+          <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#B3261E]">
+            <AlertTriangle size={13} /> Account name must match the organization name.
+          </p>
+        )}
+
+        <div className="mt-6 flex gap-2 border-t border-[#EDE2D3] pt-4">
+          {step > 1 && (
+            <button
+              onClick={backStep}
+              className="inline-flex items-center gap-2 rounded-full border border-[#E7DCCB] px-4 py-2.5 text-sm font-semibold text-[#6B5245] transition hover:bg-[#FFF9EF] cursor-pointer"
+            >
+              <ArrowLeft size={15} /> Back
+            </button>
+          )}
+          {!isLastStep ? (
+            <button
+              onClick={nextStep}
+              className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] cursor-pointer"
+            >
+              Continue <ArrowRight size={15} />
+            </button>
+          ) : (
+            <button
+              onClick={handleCreate}
+              disabled={saving || !canCreate}
+              className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? 'Creating…' : 'Create apex group'}
+            </button>
+          )}
+        </div>
+      </BrandModal>
+
+      {/* Edit modal */}
+      <BrandModal
+        open={editOpen}
+        onClose={() => { setEditOpen(false); setSelected(null) }}
+        icon={<Pencil size={20} className="text-[#9D4824]" />}
+        iconCls="bg-[#9D4824]/10"
+        title="Edit apex organization"
+        subtitle={selected?.code ? `Code ${selected.code}` : undefined}
+        wide
+      >
+        <div className="space-y-5">
           <div>
-            <Input id="edit-acct-name" label="Account Name" value={form.accountName} readOnly placeholder={resolving ? 'Resolving…' : 'Auto-filled from bank enquiry'} required />
-            {resolving && <p className="text-xs text-blue-500 mt-1">Resolving account name…</p>}
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><Landmark size={13} /> Organization & address</p>
+            <div className="space-y-3">
+              <Field id="apex-edit-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-edit-house" label="House number" value={form.houseNumber} onChange={(e) => setForm({ ...form, houseNumber: e.target.value })} />
+                <Field id="apex-edit-street" label="Street name" value={form.streetName} onChange={(e) => setForm({ ...form, streetName: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-edit-city" label="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <Field id="apex-edit-state" label="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+              </div>
+            </div>
           </div>
-          <Input id="edit-sort" label="Sort Code" value={form.sortCode} readOnly placeholder="Auto-filled" required />
-          <Input id="edit-bank-code" label="Bank Code" value={form.bankCode} readOnly placeholder="Auto-filled" required />
-          <Button onClick={handleUpdate} disabled={saving} className="w-full">{saving ? 'Saving...' : 'Save'}</Button>
-        </div>
-      </Modal>
 
-      <Modal open={!!selected && !editOpen} onClose={() => setSelected(null)} title={selected?.name ?? ''}>
+          <div className="border-t border-[#EDE2D3]" />
+
+          <div>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><Mail size={13} /> Contact details</p>
+            <div className="space-y-3">
+              <Field id="apex-edit-email" label="Contact email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
+              <Field id="apex-edit-phone" label="Contact phone" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="border-t border-[#EDE2D3]" />
+
+          <div>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><User size={13} /> Contact person</p>
+            <div className="space-y-3">
+              <Field id="apex-edit-cp-name" label="Name" value={form.contactPersonName} onChange={(e) => setForm({ ...form, contactPersonName: e.target.value })} />
+              <Field id="apex-edit-cp-phone" label="Phone" value={form.contactPersonPhone} onChange={(e) => setForm({ ...form, contactPersonPhone: e.target.value })} />
+              <Field id="apex-edit-cp-email" label="Email" value={form.contactPersonEmail} onChange={(e) => setForm({ ...form, contactPersonEmail: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="border-t border-[#EDE2D3]" />
+
+          <div>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><CreditCard size={13} /> Bank details (for fee withdrawals)</p>
+            <div className="space-y-3">
+              <Field id="apex-edit-acct" label="Account number" required value={form.accountNumber} onChange={handleAccountNumberChange} placeholder="10-digit account number" />
+              {form.accountNumber && !NUBAN_BANKS[form.accountNumber.slice(0, 3)] && <UnknownBankNote />}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-edit-bank" label="Bank name" value={form.bankName} readOnly placeholder="Auto-filled from account number" />
+                <Field id="apex-edit-acct-name" label="Account name" value={form.accountName} readOnly placeholder={resolving ? 'Resolving…' : 'Auto-filled from bank enquiry'} />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field id="apex-edit-sort" label="Sort code" value={form.sortCode} readOnly placeholder="Auto-filled" />
+                <Field id="apex-edit-bank-code" label="Bank code" value={form.bankCode} readOnly placeholder="Auto-filled" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2 border-t border-[#EDE2D3] pt-4">
+          <button
+            onClick={() => { setEditOpen(false); setSelected(null) }}
+            className="rounded-full border border-[#E7DCCB] px-4 py-2.5 text-sm font-semibold text-[#6B5245] transition hover:bg-[#FFF9EF] cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleUpdate}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full bg-[#9D4824] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#B85A38] disabled:opacity-50 cursor-pointer"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </BrandModal>
+
+      {/* View modal */}
+      <BrandModal
+        open={!!selected && !editOpen}
+        onClose={() => setSelected(null)}
+        icon={<Building2 size={20} className="text-[#176B5B]" />}
+        iconCls="bg-[#176B5B]/10"
+        title={selected?.name ?? ''}
+        subtitle={selected ? `Created ${new Date(selected.createdAt).toLocaleDateString()}` : undefined}
+        wide
+      >
         {selected && (
-          <div className="space-y-4">
-            <div><span className="text-sm text-gray-500">Code:</span><p className="font-medium">{selected.code}</p></div>
-            <div><span className="text-sm text-gray-500">Status:</span><div className="mt-1"><Badge variant={selected.status === 'active' ? 'success' : 'danger'}>{selected.status}</Badge></div></div>
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="rounded-lg bg-[#FFF9EF] px-2 py-1 font-mono text-xs font-semibold text-[#176B5B] ring-1 ring-[#E7DCCB]">
+                {selected.code}
+              </code>
+              <StatusPill status={selected.status} />
+              {selected.organizations && selected.organizations.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E4A42A]/10 px-2.5 py-1 text-xs font-semibold text-[#8A5A00]">
+                  <UsersRound size={13} /> {selected.organizations.length} member {selected.organizations.length === 1 ? 'organization' : 'organizations'}
+                </span>
+              )}
+            </div>
+
             {(selected.address || selected.contactEmail || selected.contactPhone) && (
               <div>
-                <span className="text-sm text-gray-500">Contact:</span>
-                <div className="mt-1 space-y-1 text-sm">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><MapPin size={13} /> Contact</p>
+                <div className="space-y-1.5 rounded-xl bg-[#FFF9EF] p-4 text-sm text-[#23150F]">
                   {selected.address && <p>{selected.address}</p>}
-                  {selected.contactEmail && <p>Email: {selected.contactEmail}</p>}
-                  {selected.contactPhone && <p>Phone: {selected.contactPhone}</p>}
+                  {selected.contactEmail && <p className="flex items-center gap-1.5"><Mail size={13} className="text-[#6B5245]" /> {selected.contactEmail}</p>}
+                  {selected.contactPhone && <p className="flex items-center gap-1.5"><Phone size={13} className="text-[#6B5245]" /> {selected.contactPhone}</p>}
                 </div>
               </div>
             )}
-            {(selected.contactPersonName || selected.contactPersonEmail) && (
+
+            {(selected.contactPersonName || selected.contactPersonEmail || selected.contactPersonPhone) && (
               <div>
-                <span className="text-sm text-gray-500">Contact Person:</span>
-                <div className="mt-1 space-y-1 text-sm">
-                  <p>{selected.contactPersonName}</p>
-                  {selected.contactPersonEmail && <p>Email: {selected.contactPersonEmail}</p>}
-                  {selected.contactPersonPhone && <p>Phone: {selected.contactPersonPhone}</p>}
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><User size={13} /> Contact person</p>
+                <div className="space-y-1.5 rounded-xl bg-[#FFF9EF] p-4 text-sm text-[#23150F]">
+                  {selected.contactPersonName && <p className="font-semibold">{selected.contactPersonName}</p>}
+                  {selected.contactPersonEmail && <p className="flex items-center gap-1.5"><Mail size={13} className="text-[#6B5245]" /> {selected.contactPersonEmail}</p>}
+                  {selected.contactPersonPhone && <p className="flex items-center gap-1.5"><Phone size={13} className="text-[#6B5245]" /> {selected.contactPersonPhone}</p>}
                 </div>
               </div>
             )}
+
             {selected.bankName && (
               <div>
-                <span className="text-sm text-gray-500">Bank Details:</span>
-                <div className="mt-1 space-y-1 text-sm">
-                  <p>Bank: {selected.bankName}</p>
-                  <p>Account: {selected.accountName}</p>
-                  <p>Number: {selected.accountNumber}</p>
-                  <p>Sort Code: {selected.sortCode}{selected.bankCode ? ` / Bank Code: ${selected.bankCode}` : ''}</p>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><CreditCard size={13} /> Bank details</p>
+                <div className="space-y-1.5 rounded-xl bg-[#FFF9EF] p-4 text-sm text-[#23150F]">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold">{selected.bankName}</p>
+                    <p className="font-mono text-[#6B5245]">{selected.accountNumber}</p>
+                  </div>
+                  <p>Account name: {selected.accountName || '—'}</p>
+                  <p className="font-mono text-xs text-[#6B5245]">
+                    Sort: {selected.sortCode || '—'}
+                    {selected.bankCode ? ` · Bank code: ${selected.bankCode}` : ''}
+                  </p>
                 </div>
               </div>
             )}
-            <div><span className="text-sm text-gray-500">Organizations:</span>
-              <ul className="mt-1 space-y-1">
-                {selected.organizations?.length ? selected.organizations.map((org) => (
-                  <li key={org.id} className="text-sm text-gray-700 dark:text-gray-300">• {org.name}</li>
-                )) : <p className="text-sm text-gray-400">None</p>}
-              </ul>
+
+            <div>
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6B5245]"><Building2 size={13} /> Member organizations</p>
+              {selected.organizations?.length ? (
+                <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {selected.organizations.map((org) => (
+                    <li key={org.id} className="flex items-center gap-2 rounded-xl border border-[#E7DCCB] bg-white px-3 py-2 text-sm text-[#2C1B13]">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#176B5B]" />
+                      {org.name}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-xl bg-[#FFF9EF] p-4 text-sm text-[#6B5245]">No member organizations yet.</p>
+              )}
             </div>
           </div>
         )}
-      </Modal>
+      </BrandModal>
 
-      <Modal open={!!createdResult} onClose={() => setCreatedResult(null)} title="Organization Created">
+      {/* Created credentials modal */}
+      <BrandModal
+        open={!!createdResult}
+        onClose={() => setCreatedResult(null)}
+        icon={<CheckCircle2 size={20} className="text-[#176B5B]" />}
+        iconCls="bg-[#176B5B]/10"
+        title="Apex organization created"
+        subtitle="Business manager can now sign in with these credentials."
+      >
         {createdResult && (
           <div className="space-y-4">
-            <p className="text-sm text-green-600 font-medium">Apex organization created successfully!</p>
-            <p className="text-sm text-gray-500">An email and SMS have been sent with the login details below. The password is temporary — the user must change it on first login.</p>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
-              <p><span className="text-gray-500">Org Code:</span> <strong>{createdResult.code}</strong></p>
-              <p><span className="text-gray-500">BM Email:</span> <strong>{createdResult.email}</strong></p>
-              <p><span className="text-gray-500">BM Password:</span> <strong>{createdResult.password}</strong></p>
+            <p className="flex items-start gap-2 rounded-xl border border-[#176B5B]/25 bg-[#176B5B]/5 p-3.5 text-xs leading-relaxed text-[#176B5B]">
+              <ShieldCheck size={15} className="mt-0.5 shrink-0" />
+              Email and SMS were sent with these login details. The password is temporary — the business manager must change it on first login.
+            </p>
+
+            <div className="space-y-2.5 rounded-2xl border border-[#E7DCCB] bg-[#FFF9EF] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Org code</span>
+                <span className="flex items-center gap-2">
+                  <code className="font-mono text-sm font-bold text-[#176B5B]">{createdResult.code}</code>
+                  <button onClick={() => copy('code', createdResult.code)} className="rounded-md p-1 text-[#6B5245] transition hover:bg-[#F0DDAD]/50 cursor-pointer" aria-label="Copy org code">
+                    {copied === 'code' ? <Check size={14} className="text-[#176B5B]" /> : <Copy size={14} />}
+                  </button>
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">BM email</span>
+                <span className="flex items-center gap-2">
+                  <code className="font-mono text-sm font-bold text-[#2C1B13]">{createdResult.email}</code>
+                  <button onClick={() => copy('email', createdResult.email)} className="rounded-md p-1 text-[#6B5245] transition hover:bg-[#F0DDAD]/50 cursor-pointer" aria-label="Copy email">
+                    {copied === 'email' ? <Check size={14} className="text-[#176B5B]" /> : <Copy size={14} />}
+                  </button>
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-[#EDE2D3] pt-2.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">BM password</span>
+                <span className="flex items-center gap-2">
+                  <code className="font-mono text-sm font-bold text-[#9D4824]">{createdResult.password}</code>
+                  <button onClick={() => copy('password', createdResult.password)} className="rounded-md p-1 text-[#6B5245] transition hover:bg-[#F0DDAD]/50 cursor-pointer" aria-label="Copy password">
+                    {copied === 'password' ? <Check size={14} className="text-[#176B5B]" /> : <Copy size={14} />}
+                  </button>
+                </span>
+              </div>
             </div>
-            <Button onClick={() => setCreatedResult(null)} className="w-full">Done</Button>
+
+            <button
+              onClick={() => setCreatedResult(null)}
+              className="w-full rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] cursor-pointer"
+            >
+              Done
+            </button>
           </div>
         )}
-      </Modal>
+      </BrandModal>
     </div>
   )
 }

@@ -12,7 +12,7 @@ export function AppLayout() {
   useEffect(() => { if (!loaded) load() }, [loaded, load])
   useEffect(() => { if (!permsLoaded) loadPerms() }, [permsLoaded, loadPerms])
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex h-screen bg-[#FFF9EF]">
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
@@ -22,7 +22,7 @@ export function AppLayout() {
         <main id="main-content" className="flex-1 overflow-y-auto p-3 lg:p-6">
           <Outlet />
         </main>
-        <div className="shrink-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-2">
+        <div className="shrink-0 border-t border-[#EDE2D3] bg-white px-4 py-2">
           <DesignCredit className="text-center" />
         </div>
       </div>

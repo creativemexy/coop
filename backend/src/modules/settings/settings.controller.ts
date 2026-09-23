@@ -10,6 +10,12 @@ import { Role } from '../../common/enums/role.enum';
 export class SettingsController {
   constructor(private readonly service: SettingsService) {}
 
+  @Get('role-permissions')
+  async getRolePermissions() {
+    const value = await this.service.getValue('role_permissions');
+    return value ? JSON.parse(value) : {};
+  }
+
   @Get(':key')
   @Roles(Role.SUPER_ADMIN)
   async get(@Param('key') key: string) {

@@ -8,25 +8,34 @@ import {
   Logger,
   UnauthorizedException,
   UseGuards,
+  Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import type { Request } from 'express';
 import { WebhookAuthGuard } from '../../../common/guards/webhook-auth.guard';
+import { SkipCsrf } from '../../../common/guards/csrf.guard';
 import { PaymentsService } from '../payments.service';
 import { WebhookLog } from '../entities/webhook-log.entity';
-import {
-  PaymentStatus,
-  PayoutStatus,
-} from '../../../common/enums/status.enum';
+import { PaymentStatus, PayoutStatus } from '../../../common/enums/status.enum';
 import { User } from '../../users/entities/user.entity';
 import { DoubleEntryService } from '../../ledger/services/double-entry.service';
 import { FeeShareService } from '../../ledger/services/fee-share.service';
 import { AccountsService } from '../../ledger/services/accounts.service';
 
+function safeEqualHex(expected: string, provided: string): boolean {
+  const a = Buffer.from(expected.toLowerCase(), 'hex');
+  const b = Buffer.from(provided.toLowerCase(), 'hex');
+  if (a.length === 0 || a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 @Controller('api/v1/payments/webhook')
 @UseGuards(WebhookAuthGuard)
+@SkipCsrf()
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
   private readonly secretKey: string;
@@ -42,25 +51,36 @@ export class WebhooksController {
     @InjectRepository(WebhookLog)
     private readonly webhookLogRepo: Repository<WebhookLog>,
   ) {
-    this.secretKey =
-      configService.get<string>('PAYSTACK_SECRET_KEY') || '';
+    this.secretKey = configService.get<string>('PAYSTACK_SECRET_KEY') || '';
   }
 
   @Post('paystack')
   @HttpCode(HttpStatus.OK)
   async handlePaystackWebhook(
+    @Req() req: Request,
     @Body() payload: Record<string, unknown>,
     @Headers('x-paystack-signature') signature: string,
   ) {
-    if (this.secretKey) {
-      const hash = crypto
-        .createHmac('sha512', this.secretKey)
-        .update(JSON.stringify(payload))
-        .digest('hex');
+    if (!this.secretKey) {
+      // Fail closed: never process a webhook without the provider key.
+      throw new ServiceUnavailableException(
+        'Payment webhook misconfigured (Paystack secret not set)',
+      );
+    }
+    if (!signature) {
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
 
-      if (hash !== signature) {
-        throw new UnauthorizedException('Invalid webhook signature');
-      }
+    const rawBody =
+      (req as unknown as { rawBody?: string }).rawBody ??
+      JSON.stringify(payload);
+    const hash = crypto
+      .createHmac('sha512', this.secretKey)
+      .update(rawBody)
+      .digest('hex');
+
+    if (!safeEqualHex(hash, signature)) {
+      throw new UnauthorizedException('Invalid webhook signature');
     }
 
     const event = payload?.event as string | undefined;
@@ -83,7 +103,11 @@ export class WebhooksController {
     // Idempotency: deduplicate by event id (Paystack unique event identifier)
     if (existingPayment?.metadata) {
       const meta = existingPayment.metadata as Record<string, unknown>;
-      if (meta.processedEventIds && Array.isArray(meta.processedEventIds) && eventId) {
+      if (
+        meta.processedEventIds &&
+        Array.isArray(meta.processedEventIds) &&
+        eventId
+      ) {
         if ((meta.processedEventIds as string[]).includes(eventId)) {
           return { status: 'duplicate_event' };
         }
@@ -105,22 +129,43 @@ export class WebhooksController {
         // Record event id in metadata for deduplication
         if (eventId && existingPayment?.id) {
           try {
-            const existingMeta = (existingPayment.metadata as Record<string, unknown>) || {};
-            const processedIds = (existingMeta.processedEventIds as string[]) || [];
+            const existingMeta =
+              (existingPayment.metadata as Record<string, unknown>) || {};
+            const processedIds =
+              (existingMeta.processedEventIds as string[]) || [];
             processedIds.push(eventId);
-            await this.paymentsService.updateStatus(existingPayment.id, PaymentStatus.SUCCESS, {
-              ...existingMeta,
-              processedEventIds: processedIds,
-            });
-          } catch { /* non-critical */ }
+            await this.paymentsService.updateStatus(
+              existingPayment.id,
+              PaymentStatus.SUCCESS,
+              {
+                ...existingMeta,
+                processedEventIds: processedIds,
+              },
+            );
+          } catch {
+            /* non-critical */
+          }
         }
-        const paymentMeta = existingPayment?.metadata as Record<string, unknown> | null;
-        if (paymentMeta?.purpose === 'registration' && existingPayment?.userId) {
-          await this.userRepo.update(existingPayment.userId, { registrationFeePaid: true, isActive: true });
-          const user = await this.userRepo.findOne({ where: { id: existingPayment.userId } });
+        const paymentMeta = existingPayment?.metadata as Record<
+          string,
+          unknown
+        > | null;
+        if (
+          paymentMeta?.purpose === 'registration' &&
+          existingPayment?.userId
+        ) {
+          await this.userRepo.update(existingPayment.userId, {
+            registrationFeePaid: true,
+            isActive: true,
+          });
+          const user = await this.userRepo.findOne({
+            where: { id: existingPayment.userId },
+          });
           if (user) {
             const cashAccount = await this.accountsService.findByCode('1000');
-            const revenueAccount = await this.accountsService.findByCode('4200') ?? await this.accountsService.findByCode('4100');
+            const revenueAccount =
+              (await this.accountsService.findByCode('4200')) ??
+              (await this.accountsService.findByCode('4100'));
             if (cashAccount && revenueAccount) {
               try {
                 await this.doubleEntryService.postEntry({
@@ -128,12 +173,24 @@ export class WebhooksController {
                   entryDate: new Date(),
                   postedBy: 'SYSTEM',
                   lines: [
-                    { accountId: cashAccount.id, debit: existingPayment.amount, credit: 0, organizationId: user.organizationId ?? undefined },
-                    { accountId: revenueAccount.id, debit: 0, credit: existingPayment.amount, organizationId: user.organizationId ?? undefined },
+                    {
+                      accountId: cashAccount.id,
+                      debit: existingPayment.amount,
+                      credit: 0,
+                      organizationId: user.organizationId ?? undefined,
+                    },
+                    {
+                      accountId: revenueAccount.id,
+                      debit: 0,
+                      credit: existingPayment.amount,
+                      organizationId: user.organizationId ?? undefined,
+                    },
                   ],
                 });
               } catch (jeErr) {
-                this.logger.warn(`Journal entry creation failed: ${(jeErr as Error).message}`);
+                this.logger.warn(
+                  `Journal entry creation failed: ${(jeErr as Error).message}`,
+                );
               }
             }
             try {
@@ -144,10 +201,14 @@ export class WebhooksController {
                 apexOrgId: user.apexOrgId ?? undefined,
               });
             } catch (fsErr) {
-              this.logger.warn(`Fee share recording failed: ${(fsErr as Error).message}`);
+              this.logger.warn(
+                `Fee share recording failed: ${(fsErr as Error).message}`,
+              );
             }
           }
-          this.logger.log(`Registration fee paid for user: ${existingPayment.userId}`);
+          this.logger.log(
+            `Registration fee paid for user: ${existingPayment.userId}`,
+          );
         }
         this.logger.log(`Payment succeeded: ${providerReference}`);
         break;
@@ -173,7 +234,9 @@ export class WebhooksController {
         payload: payload as any,
         retryCount: 0,
       } as WebhookLog);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
 
     return { status: 'processed' };
   }

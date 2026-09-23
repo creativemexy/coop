@@ -1,11 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../api/client'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Modal } from '../../components/ui/modal'
-import { Input } from '../../components/ui/input'
+import {
+  Badge,
+  Btn,
+  EmptyRow,
+  Modal,
+  PageHeader,
+  Panel,
+  Select,
+  StatCard,
+  TabBar,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+  TextInput,
+  inputCls,
+} from '../../components/ui/warm'
 
 type Tab = 'schedule' | 'cohorts' | 'priorities' | 'exceptions'
 
@@ -56,6 +70,15 @@ const statusColor: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
   open: 'warning', investigating: 'info', resolved: 'success', escalated: 'danger',
   low: 'success', medium: 'warning', high: 'danger', critical: 'danger',
 }
+
+const tabLabels: Record<Tab, string> = {
+  schedule: 'Repayment Schedule',
+  cohorts: 'Delinquency Cohorts',
+  priorities: 'Collection Flags',
+  exceptions: 'Exception Cases',
+}
+
+const fmt = (n: number) => `₦${n.toLocaleString()}`
 
 /* ---------- component ---------- */
 export function Collections() {
@@ -215,87 +238,102 @@ export function Collections() {
   /* ---------- render ---------- */
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Repayment Management & Collections</h2>
+      <PageHeader
+        eyebrow="Collections & Recovery"
+        title="Repayment Management"
+        subtitle="Schedules, delinquency cohorts, collection flags and exception cases."
+      />
 
-      {/* tabs */}
-      <div className="flex gap-2 border-b dark:border-gray-700 pb-2">
-        {(['schedule', 'cohorts', 'priorities', 'exceptions'] as Tab[]).map((t) => (
-          <Button key={t} variant={tab === t ? 'primary' : 'ghost'} size="sm" onClick={() => setTab(t)}>
-            {t === 'schedule' ? 'Repayment Schedule'
-             : t === 'cohorts' ? 'Delinquency Cohorts'
-             : t === 'priorities' ? 'Collection Flags'
-             : 'Exception Cases'}
-          </Button>
-        ))}
-      </div>
+      <TabBar
+        tabs={(['schedule', 'cohorts', 'priorities', 'exceptions'] as Tab[]).map((t) => ({ key: t, label: tabLabels[t] }))}
+        active={tab}
+        onChange={setTab}
+      />
 
       {/* ---- Tab: Repayment Schedule ---- */}
       {tab === 'schedule' && (
         <div className="space-y-4">
-          <div className="flex gap-2 items-end">
-            <Input id="order-search" label="Order / Subscription ID" value={orderId} onChange={(e) => setOrderId(e.target.value)} />
-            <Button onClick={loadSchedule} disabled={!orderId || schedLoading}>Load Schedule</Button>
-          </div>
+          <Panel title="Look up a schedule" subtitle="Enter an order or subscription ID to inspect its repayment plan">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-[240px] flex-1">
+                <TextInput label="Order / Subscription ID" value={orderId} onChange={(e) => setOrderId(e.target.value)} placeholder="e.g. ord_… or sub_…" />
+              </div>
+              <Btn onClick={loadSchedule} disabled={!orderId || schedLoading}>
+                {schedLoading ? 'Loading…' : 'Load Schedule'}
+              </Btn>
+            </div>
+            {!schedule && orderId && !schedLoading && (
+              <p className="mt-3 text-xs font-semibold text-[#B3261E]">No schedule found for that ID.</p>
+            )}
+          </Panel>
 
           {schedule && (
-            <Card>
-              <CardTitle>Schedule — {schedule.catalogItem || schedule.orderId.slice(0, 8)}</CardTitle>
-              <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
-                <div><span className="text-gray-500">Total</span><p className="font-semibold">₦{schedule.totalAmount.toLocaleString()}</p></div>
-                <div><span className="text-gray-500">Paid</span><p className="font-semibold text-green-600">₦{schedule.amountPaid.toLocaleString()}</p></div>
-                <div><span className="text-gray-500">Outstanding</span><p className="font-semibold text-red-600">₦{schedule.outstanding.toLocaleString()}</p></div>
-                <div><span className="text-gray-500">Status</span><Badge variant={statusColor[schedule.status] || 'warning'}>{schedule.status}</Badge></div>
+            <Panel title={`Schedule — ${schedule.catalogItem || schedule.orderId.slice(0, 8)}`} subtitle={`Order ${schedule.orderId.slice(0, 8)}…`}>
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard label="Total" value={fmt(schedule.totalAmount)} icon="🧾" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
+                <StatCard label="Paid" value={fmt(schedule.amountPaid)} valueCls="text-[#176B5B]" icon="✅" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
+                <StatCard label="Outstanding" value={fmt(schedule.outstanding)} valueCls="text-[#B3261E]" icon="📊" iconCls="bg-[#B3261E]/10 text-[#B3261E]" />
+                <StatCard label="Status" value={<Badge variant={statusColor[schedule.status] || 'warning'} dot>{schedule.status}</Badge>} icon="🏷️" iconCls="bg-[#E4A42A]/15 text-[#8A5A00]" />
               </div>
 
-              <h4 className="text-sm font-semibold mb-2 dark:text-gray-200">Installments</h4>
-              <Table>
-                <THead><THeadRow>
-                  <THeadCell>#</THeadCell>
-                  <THeadCell>Due Date</THeadCell>
-                  <THeadCell>Amount</THeadCell>
-                  <THeadCell>Status</THeadCell>
-                  <THeadCell>Days Late</THeadCell>
-                  <THeadCell>Reference</THeadCell>
-                  <THeadCell />
-                </THeadRow></THead>
-                <TBody>
-                  {schedule.installments.map((inst, idx) => (
-                    <TBodyRow key={inst.id}>
-                      <TBodyCell>{idx + 1}</TBodyCell>
-                      <TBodyCell>{new Date(inst.dueDate).toLocaleDateString()}</TBodyCell>
-                      <TBodyCell className="font-medium">₦{inst.amount.toLocaleString()}{inst.lateFee > 0 && <span className="text-red-500 text-xs ml-1">+₦{inst.lateFee}</span>}</TBodyCell>
-                      <TBodyCell>
-                        <Badge variant={inst.isOverdue ? 'danger' : statusColor[inst.status] || 'warning'}>
-                          {inst.isOverdue ? 'late' : inst.status}
-                        </Badge>
-                      </TBodyCell>
-                      <TBodyCell>{inst.isOverdue ? `${inst.daysLate}d` : '—'}</TBodyCell>
-                      <TBodyCell className="text-xs font-mono">{inst.paymentReference || '—'}</TBodyCell>
-                      <TBodyCell>
-                        <div className="flex gap-1">
-                          {inst.status === 'pending' && (
-                            <>
-                              <Button variant="ghost" size="sm" onClick={() => { setPartialInst(inst); setPartialAmt(String(inst.amount)); setPartialRef('') }}>Partial</Button>
-                              <Button variant="ghost" size="sm" onClick={() => { setReconcileInst(inst); setRecStatus('paid'); setRecRef(''); setRecNote('') }}>Reconcile</Button>
-                              <Button variant="ghost" size="sm" onClick={() => { setMetaInst(inst); setMetaFields(JSON.stringify({ lateFeeAmount: inst.lateFee, gracePeriodEnd: inst.gracePeriodEnd || '' }, null, 2)) }}>Meta</Button>
-                            </>
-                          )}
-                          {inst.isOverdue && (
-                            <Button variant="primary" size="sm" onClick={async () => {
-                              try { await api.post(`/api/v1/bnpl/repayments/${inst.id}/retry`); loadSchedule() } catch (e: any) { alert(e.response?.data?.message || 'Retry failed') }
-                            }}>Retry</Button>
-                          )}
-                        </div>
-                      </TBodyCell>
-                    </TBodyRow>
-                  ))}
-                  {schedule.installments.length === 0 && <TBodyRow><TBodyCell colSpan={7} className="text-center py-4 text-gray-400">No installments</TBodyCell></TBodyRow>}
-                </TBody>
-              </Table>
+              <div className="mt-6 overflow-hidden rounded-xl border border-[#E7DCCB]">
+                <div className="border-b border-[#EDE2D3] bg-[#FFF9EF] px-5 py-3">
+                  <p className="text-sm font-black tracking-[-0.01em] text-[#2C1B13]">Installments</p>
+                </div>
+                <Table>
+                  <THead><THeadRow>
+                    <THeadCell>#</THeadCell>
+                    <THeadCell>Due Date</THeadCell>
+                    <THeadCell>Amount</THeadCell>
+                    <THeadCell>Status</THeadCell>
+                    <THeadCell>Days Late</THeadCell>
+                    <THeadCell>Reference</THeadCell>
+                    <THeadCell />
+                  </THeadRow></THead>
+                  <TBody>
+                    {schedule.installments.map((inst, idx) => (
+                      <TBodyRow key={inst.id}>
+                        <TBodyCell>{idx + 1}</TBodyCell>
+                        <TBodyCell>{new Date(inst.dueDate).toLocaleDateString()}</TBodyCell>
+                        <TBodyCell className="font-semibold text-[#2C1B13]">
+                          {fmt(inst.amount)}
+                          {inst.lateFee > 0 && <span className="ml-1 text-xs font-medium text-[#B3261E]">+{fmt(inst.lateFee)}</span>}
+                        </TBodyCell>
+                        <TBodyCell>
+                          <Badge variant={inst.isOverdue ? 'danger' : statusColor[inst.status] || 'warning'} dot>
+                            {inst.isOverdue ? 'late' : inst.status}
+                          </Badge>
+                        </TBodyCell>
+                        <TBodyCell>{inst.isOverdue ? `${inst.daysLate}d` : '—'}</TBodyCell>
+                        <TBodyCell className="font-mono text-xs">{inst.paymentReference || '—'}</TBodyCell>
+                        <TBodyCell>
+                          <div className="flex flex-wrap gap-1">
+                            {inst.status === 'pending' && (
+                              <>
+                                <Btn variant="ghost" size="sm" onClick={() => { setPartialInst(inst); setPartialAmt(String(inst.amount)); setPartialRef('') }}>Partial</Btn>
+                                <Btn variant="ghost" size="sm" onClick={() => { setReconcileInst(inst); setRecStatus('paid'); setRecRef(''); setRecNote('') }}>Reconcile</Btn>
+                                <Btn variant="ghost" size="sm" onClick={() => { setMetaInst(inst); setMetaFields(JSON.stringify({ lateFeeAmount: inst.lateFee, gracePeriodEnd: inst.gracePeriodEnd || '' }, null, 2)) }}>Meta</Btn>
+                              </>
+                            )}
+                            {inst.isOverdue && (
+                              <Btn size="sm" onClick={async () => {
+                                try { await api.post(`/api/v1/bnpl/repayments/${inst.id}/retry`); loadSchedule() } catch (e: any) { alert(e.response?.data?.message || 'Retry failed') }
+                              }}>Retry</Btn>
+                            )}
+                          </div>
+                        </TBodyCell>
+                      </TBodyRow>
+                    ))}
+                    {schedule.installments.length === 0 && <EmptyRow colSpan={7}>No installments</EmptyRow>}
+                  </TBody>
+                </Table>
+              </div>
 
               {schedule.paymentAttempts.length > 0 && (
-                <>
-                  <h4 className="text-sm font-semibold mt-4 mb-2 dark:text-gray-200">Payment Attempts</h4>
+                <div className="mt-6 overflow-hidden rounded-xl border border-[#E7DCCB]">
+                  <div className="border-b border-[#EDE2D3] bg-[#FFF9EF] px-5 py-3">
+                    <p className="text-sm font-black tracking-[-0.01em] text-[#2C1B13]">Payment Attempts</p>
+                  </div>
                   <Table>
                     <THead><THeadRow>
                       <THeadCell>Date</THeadCell>
@@ -308,17 +346,17 @@ export function Collections() {
                       {schedule.paymentAttempts.map((p) => (
                         <TBodyRow key={p.id}>
                           <TBodyCell>{new Date(p.createdAt).toLocaleString()}</TBodyCell>
-                          <TBodyCell>₦{p.amount.toLocaleString()}</TBodyCell>
+                          <TBodyCell className="font-semibold text-[#2C1B13]">{fmt(p.amount)}</TBodyCell>
                           <TBodyCell>{p.provider}</TBodyCell>
-                          <TBodyCell className="text-xs font-mono">{p.providerReference}</TBodyCell>
-                          <TBodyCell><Badge variant={statusColor[p.status] || 'warning'}>{p.status}</Badge></TBodyCell>
+                          <TBodyCell className="font-mono text-xs">{p.providerReference}</TBodyCell>
+                          <TBodyCell><Badge variant={statusColor[p.status] || 'warning'} dot>{p.status}</Badge></TBodyCell>
                         </TBodyRow>
                       ))}
                     </TBody>
                   </Table>
-                </>
+                </div>
               )}
-            </Card>
+            </Panel>
           )}
         </div>
       )}
@@ -326,33 +364,35 @@ export function Collections() {
       {/* ---- Tab: Delinquency Cohorts ---- */}
       {tab === 'cohorts' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">
-              As of {cohorts ? new Date(cohorts.asOf).toLocaleString() : '…'}
-            </p>
-            <div className="flex gap-4 text-sm">
-              <span>Delinquent: <strong className="text-red-600">₦{cohorts?.totalDelinquentAmount.toLocaleString() || '…'}</strong></span>
-              <span>Rate: <strong>{cohorts ? (cohorts.delinquencyRate * 100).toFixed(1) : '…'}%</strong></span>
+          <Panel>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-[#6B5245]">
+                As of {cohorts ? new Date(cohorts.asOf).toLocaleString() : '…'}
+              </p>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-[#6B5245]">
+                <span>Delinquent: <strong className="text-[#B3261E]">{fmt(cohorts?.totalDelinquentAmount ?? 0)}</strong></span>
+                <span>Rate: <strong className="text-[#2C1B13]">{cohorts ? `${(cohorts.delinquencyRate * 100).toFixed(1)}%` : '…'}</strong></span>
+              </div>
             </div>
-          </div>
+          </Panel>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {cohorts?.cohorts.map((bucket) => (
-              <Card key={bucket.label}>
-                <CardTitle className="text-sm">{bucket.label}</CardTitle>
-                <p className="text-2xl font-bold">{bucket.count}</p>
-                <p className="text-xs text-gray-500">₦{bucket.totalAmount.toLocaleString()}</p>
-              </Card>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {cohorts?.cohorts.map((bucket, i) => (
+              <StatCard
+                key={bucket.label}
+                label={bucket.label}
+                value={bucket.count}
+                sub={fmt(bucket.totalAmount)}
+                icon="⏱️"
+                iconCls={i >= 2 ? 'bg-[#B3261E]/10 text-[#B3261E]' : 'bg-[#E4A42A]/15 text-[#8A5A00]'}
+              />
             ))}
           </div>
 
           {cohorts?.cohorts.filter((b) => b.count > 0).map((bucket) => (
-            <Card key={bucket.label}>
-              <CardTitle className="text-sm">{bucket.label} Detail</CardTitle>
+            <Panel key={bucket.label} title={`${bucket.label} Detail`} subtitle={`${bucket.count} installments in this bucket`} padded={false}>
               {cohortDetailLoading === bucket.label ? (
-                <div className="flex items-center justify-between px-4 py-6 text-sm text-gray-400">
-                  <span>Loading…</span>
-                </div>
+                <div className="px-5 py-6 text-sm text-[#C9B89F]">Loading…</div>
               ) : cohortDetail[bucket.label] ? (
                 <>
                   <Table>
@@ -365,32 +405,30 @@ export function Collections() {
                     <TBody>
                       {cohortDetail[bucket.label].items.map((inst) => (
                         <TBodyRow key={inst.id}>
-                          <TBodyCell className="text-xs font-mono">{inst.subscriptionId.slice(0, 8)}…</TBodyCell>
+                          <TBodyCell className="font-mono text-xs">{inst.subscriptionId.slice(0, 8)}…</TBodyCell>
                           <TBodyCell>{new Date(inst.dueDate).toLocaleDateString()}</TBodyCell>
-                          <TBodyCell>₦{inst.amount.toLocaleString()}</TBodyCell>
-                          <TBodyCell><Badge variant="danger">{inst.daysLate}d</Badge></TBodyCell>
+                          <TBodyCell className="font-semibold text-[#2C1B13]">{fmt(inst.amount)}</TBodyCell>
+                          <TBodyCell><Badge variant="danger" dot>{inst.daysLate}d</Badge></TBodyCell>
                         </TBodyRow>
                       ))}
-                      {cohortDetail[bucket.label].items.length === 0 && (
-                        <TBodyRow><TBodyCell colSpan={4} className="text-center py-4 text-gray-400">None</TBodyCell></TBodyRow>
-                      )}
+                      {cohortDetail[bucket.label].items.length === 0 && <EmptyRow colSpan={4}>None</EmptyRow>}
                     </TBody>
                   </Table>
                   {cohortDetail[bucket.label].total > cohortDetail[bucket.label].page * cohortDetail[bucket.label].pageSize && (
-                    <div className="p-3">
-                      <Button size="sm" variant="secondary" onClick={() => loadCohortDetail(bucket.label, cohortDetail[bucket.label].page + 1)}>
+                    <div className="px-5 py-3">
+                      <Btn size="sm" variant="secondary" onClick={() => loadCohortDetail(bucket.label, cohortDetail[bucket.label].page + 1)}>
                         Load more
-                      </Button>
+                      </Btn>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="flex items-center justify-between px-4 py-4 text-sm text-gray-500">
-                  <span>{bucket.count} installment{bucket.count === 1 ? '' : 's'}</span>
-                  <Button size="sm" variant="secondary" onClick={() => loadCohortDetail(bucket.label)}>View</Button>
+                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                  <span className="text-sm text-[#6B5245]">{bucket.count} installment{bucket.count === 1 ? '' : 's'}</span>
+                  <Btn size="sm" variant="secondary" onClick={() => loadCohortDetail(bucket.label)}>View</Btn>
                 </div>
               )}
-            </Card>
+            </Panel>
           ))}
         </div>
       )}
@@ -399,79 +437,83 @@ export function Collections() {
       {tab === 'priorities' && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => setPrioModal(true)}>Assign Priority</Button>
+            <Btn onClick={() => setPrioModal(true)}>Assign Priority</Btn>
           </div>
 
-          <Table>
-            <THead><THeadRow>
-              <THeadCell>Type</THeadCell>
-              <THeadCell>Entity ID</THeadCell>
-              <THeadCell>Priority</THeadCell>
-              <THeadCell>Reason</THeadCell>
-              <THeadCell>Assigned</THeadCell>
-              <THeadCell>Date</THeadCell>
-            </THeadRow></THead>
-            <TBody>
-              {priorities.map((p) => (
-                <TBodyRow key={p.id}>
-                  <TBodyCell><Badge variant="info">{p.entityType}</Badge></TBodyCell>
-                  <TBodyCell className="text-xs font-mono">{p.entityId.slice(0, 12)}…</TBodyCell>
-                  <TBodyCell><Badge variant={statusColor[p.priority] || 'warning'}>{p.priority}</Badge></TBodyCell>
-                  <TBodyCell>{p.reason || '—'}</TBodyCell>
-                  <TBodyCell className="text-xs font-mono">{p.assignedBy.slice(0, 8)}…</TBodyCell>
-                  <TBodyCell>{new Date(p.createdAt).toLocaleDateString()}</TBodyCell>
-                </TBodyRow>
-              ))}
-              {priorities.length === 0 && <TBodyRow><TBodyCell colSpan={6} className="text-center py-4 text-gray-400">No priorities assigned</TBodyCell></TBodyRow>}
-            </TBody>
-          </Table>
+          <Panel padded={false}>
+            <Table>
+              <THead><THeadRow>
+                <THeadCell>Type</THeadCell>
+                <THeadCell>Entity ID</THeadCell>
+                <THeadCell>Priority</THeadCell>
+                <THeadCell>Reason</THeadCell>
+                <THeadCell>Assigned</THeadCell>
+                <THeadCell>Date</THeadCell>
+              </THeadRow></THead>
+              <TBody>
+                {priorities.map((p) => (
+                  <TBodyRow key={p.id}>
+                    <TBodyCell><Badge variant="info">{p.entityType}</Badge></TBodyCell>
+                    <TBodyCell className="font-mono text-xs">{p.entityId.slice(0, 12)}…</TBodyCell>
+                    <TBodyCell><Badge variant={statusColor[p.priority] || 'warning'} dot>{p.priority}</Badge></TBodyCell>
+                    <TBodyCell>{p.reason || '—'}</TBodyCell>
+                    <TBodyCell className="font-mono text-xs">{p.assignedBy.slice(0, 8)}…</TBodyCell>
+                    <TBodyCell>{new Date(p.createdAt).toLocaleDateString()}</TBodyCell>
+                  </TBodyRow>
+                ))}
+                {priorities.length === 0 && <EmptyRow colSpan={6}>No priorities assigned</EmptyRow>}
+              </TBody>
+            </Table>
+          </Panel>
         </div>
       )}
 
       {/* ---- Tab: Exception Cases ---- */}
       {tab === 'exceptions' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
               {['', 'open', 'investigating', 'resolved', 'escalated'].map((s) => (
-                <Button key={s} variant={excFilter === s ? 'primary' : 'ghost'} size="sm" onClick={() => setExcFilter(s)}>
+                <Btn key={s} variant={excFilter === s ? 'primary' : 'secondary'} size="sm" onClick={() => setExcFilter(s)}>
                   {s || 'All'}
-                </Button>
+                </Btn>
               ))}
             </div>
-            <Button onClick={() => setExcModal(true)}>New Exception Case</Button>
+            <Btn onClick={() => setExcModal(true)}>New Exception Case</Btn>
           </div>
 
-          <Table>
-            <THead><THeadRow>
-              <THeadCell>Subscription</THeadCell>
-              <THeadCell>Reason</THeadCell>
-              <THeadCell>Status</THeadCell>
-              <THeadCell>Description</THeadCell>
-              <THeadCell>Created</THeadCell>
-              <THeadCell />
-            </THeadRow></THead>
-            <TBody>
-              {exceptionCases.map((ec) => {
-                const reason = exceptionReasons.find((r) => r.id === ec.reasonId)
-                return (
-                  <TBodyRow key={ec.id}>
-                    <TBodyCell className="text-xs font-mono">{ec.subscriptionId.slice(0, 8)}…</TBodyCell>
-                    <TBodyCell>{reason?.title || ec.reasonId.slice(0, 8)}</TBodyCell>
-                    <TBodyCell><Badge variant={statusColor[ec.status] || 'warning'}>{ec.status}</Badge></TBodyCell>
-                    <TBodyCell className="max-w-xs truncate">{ec.description || '—'}</TBodyCell>
-                    <TBodyCell>{new Date(ec.createdAt).toLocaleDateString()}</TBodyCell>
-                    <TBodyCell>
-                      {ec.status !== 'resolved' && (
-                        <Button variant="ghost" size="sm" onClick={() => handleResolveException(ec.id)}>Resolve</Button>
-                      )}
-                    </TBodyCell>
-                  </TBodyRow>
-                )
-              })}
-              {exceptionCases.length === 0 && <TBodyRow><TBodyCell colSpan={6} className="text-center py-4 text-gray-400">No exception cases</TBodyCell></TBodyRow>}
-            </TBody>
-          </Table>
+          <Panel padded={false}>
+            <Table>
+              <THead><THeadRow>
+                <THeadCell>Subscription</THeadCell>
+                <THeadCell>Reason</THeadCell>
+                <THeadCell>Status</THeadCell>
+                <THeadCell>Description</THeadCell>
+                <THeadCell>Created</THeadCell>
+                <THeadCell />
+              </THeadRow></THead>
+              <TBody>
+                {exceptionCases.map((ec) => {
+                  const reason = exceptionReasons.find((r) => r.id === ec.reasonId)
+                  return (
+                    <TBodyRow key={ec.id}>
+                      <TBodyCell className="font-mono text-xs">{ec.subscriptionId.slice(0, 8)}…</TBodyCell>
+                      <TBodyCell className="font-semibold text-[#2C1B13]">{reason?.title || ec.reasonId.slice(0, 8)}</TBodyCell>
+                      <TBodyCell><Badge variant={statusColor[ec.status] || 'warning'} dot>{ec.status}</Badge></TBodyCell>
+                      <TBodyCell className="max-w-xs truncate">{ec.description || '—'}</TBodyCell>
+                      <TBodyCell>{new Date(ec.createdAt).toLocaleDateString()}</TBodyCell>
+                      <TBodyCell>
+                        {ec.status !== 'resolved' && (
+                          <Btn variant="ghost" size="sm" onClick={() => handleResolveException(ec.id)}>Resolve</Btn>
+                        )}
+                      </TBodyCell>
+                    </TBodyRow>
+                  )
+                })}
+                {exceptionCases.length === 0 && <EmptyRow colSpan={6}>No exception cases</EmptyRow>}
+              </TBody>
+            </Table>
+          </Panel>
         </div>
       )}
 
@@ -480,71 +522,67 @@ export function Collections() {
       {/* Modal: Reconcile */}
       <Modal open={!!reconcileInst} onClose={() => setReconcileInst(null)} title="Reconcile Installment">
         <div className="space-y-4">
-          <Input id="rec-status" label="New Status" value={recStatus} onChange={(e) => setRecStatus(e.target.value)} placeholder="paid / pending" />
-          <Input id="rec-ref" label="Payment Reference" value={recRef} onChange={(e) => setRecRef(e.target.value)} />
-          <Input id="rec-note" label="Note (audit trail)" value={recNote} onChange={(e) => setRecNote(e.target.value)} />
-          <Button onClick={handleReconcile} className="w-full" disabled={saving}>Confirm</Button>
+          <TextInput label="New Status" value={recStatus} onChange={(e) => setRecStatus(e.target.value)} placeholder="paid / pending" />
+          <TextInput label="Payment Reference" value={recRef} onChange={(e) => setRecRef(e.target.value)} />
+          <TextInput label="Note (audit trail)" value={recNote} onChange={(e) => setRecNote(e.target.value)} />
+          <Btn onClick={handleReconcile} className="w-full" disabled={saving}>Confirm</Btn>
         </div>
       </Modal>
 
       {/* Modal: Partial Payment */}
       <Modal open={!!partialInst} onClose={() => setPartialInst(null)} title="Partial Payment">
         <div className="space-y-4">
-          <Input id="pp-amt" label="Amount (₦)" type="number" value={partialAmt} onChange={(e) => setPartialAmt(e.target.value)} />
-          <Input id="pp-ref" label="Payment Reference" value={partialRef} onChange={(e) => setPartialRef(e.target.value)} />
-          <Button onClick={handlePartialPayment} className="w-full" disabled={saving || !partialAmt || !partialRef}>Apply</Button>
+          <TextInput label="Amount (₦)" type="number" value={partialAmt} onChange={(e) => setPartialAmt(e.target.value)} />
+          <TextInput label="Payment Reference" value={partialRef} onChange={(e) => setPartialRef(e.target.value)} />
+          <Btn onClick={handlePartialPayment} className="w-full" disabled={saving || !partialAmt || !partialRef}>Apply</Btn>
         </div>
       </Modal>
 
       {/* Modal: Metadata Correction */}
       <Modal open={!!metaInst} onClose={() => setMetaInst(null)} title="Metadata Correction (safe fields only)">
         <div className="space-y-4">
-          <p className="text-xs text-gray-500">Only <code>lateFeeAmount</code> and <code>gracePeriodEnd</code> can be modified.</p>
+          <p className="text-xs text-[#6B5245]">
+            Only <code className="rounded bg-[#EDE2D3] px-1 py-0.5 text-[0.8em] font-semibold">lateFeeAmount</code> and <code className="rounded bg-[#EDE2D3] px-1 py-0.5 text-[0.8em] font-semibold">gracePeriodEnd</code> can be modified.
+          </p>
           <textarea
             value={metaFields}
             onChange={(e) => setMetaFields(e.target.value)}
             rows={5}
-            className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm font-mono"
+            className={inputCls + ' resize-none font-mono'}
           />
-          <Button onClick={handleUpdateMetadata} className="w-full" disabled={saving}>Update</Button>
+          <Btn onClick={handleUpdateMetadata} className="w-full" disabled={saving}>Update</Btn>
         </div>
       </Modal>
 
       {/* Modal: Assign Priority */}
       <Modal open={prioModal} onClose={() => setPrioModal(false)} title="Assign Collection Priority">
         <div className="space-y-4">
-          <label className="block text-xs font-medium text-gray-500">Entity Type</label>
-          <select value={prioEntityType} onChange={(e) => setPrioEntityType(e.target.value as any)}
-            className="block w-full rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm">
+          <Select label="Entity Type" value={prioEntityType} onChange={(e) => setPrioEntityType(e.target.value as any)}>
             <option value="subscription">Subscription</option>
             <option value="user">User</option>
-          </select>
-          <Input id="prio-eid" label="Entity ID" value={prioEntityId} onChange={(e) => setPrioEntityId(e.target.value)} />
-          <label className="block text-xs font-medium text-gray-500">Priority</label>
-          <select value={prioLevel} onChange={(e) => setPrioLevel(e.target.value)}
-            className="block w-full rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm">
+          </Select>
+          <TextInput label="Entity ID" value={prioEntityId} onChange={(e) => setPrioEntityId(e.target.value)} />
+          <Select label="Priority" value={prioLevel} onChange={(e) => setPrioLevel(e.target.value)}>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
             <option value="critical">Critical</option>
-          </select>
-          <Input id="prio-reason" label="Reason" value={prioReason} onChange={(e) => setPrioReason(e.target.value)} />
-          <Button onClick={handleAssignPriority} className="w-full" disabled={saving || !prioEntityId}>Assign</Button>
+          </Select>
+          <TextInput label="Reason" value={prioReason} onChange={(e) => setPrioReason(e.target.value)} />
+          <Btn onClick={handleAssignPriority} className="w-full" disabled={saving || !prioEntityId}>Assign</Btn>
         </div>
       </Modal>
 
       {/* Modal: New Exception Case */}
       <Modal open={excModal} onClose={() => setExcModal(false)} title="Create Exception Case">
         <div className="space-y-4">
-          <Input id="exc-sub" label="Subscription ID" value={excSubId} onChange={(e) => setExcSubId(e.target.value)} />
-          <label className="block text-xs font-medium text-gray-500">Exception Reason</label>
-          <select value={excReasonId} onChange={(e) => setExcReasonId(e.target.value)}
-            className="block w-full rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm">
+          <TextInput label="Subscription ID" value={excSubId} onChange={(e) => setExcSubId(e.target.value)} />
+          <Select label="Exception Reason" value={excReasonId} onChange={(e) => setExcReasonId(e.target.value)}>
             <option value="">— Select —</option>
             {exceptionReasons.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-          </select>
-          <Input id="exc-desc" label="Description (optional)" value={excDesc} onChange={(e) => setExcDesc(e.target.value)} />
-          <Button onClick={handleCreateException} className="w-full" disabled={saving || !excSubId || !excReasonId}>Create</Button>
+          </Select>
+          <TextInput label="Description (optional)" value={excDesc} onChange={(e) => setExcDesc(e.target.value)} />
+          <Btn onClick={handleCreateException} className="w-full" disabled={saving || !excSubId || !excReasonId}>Create</Btn>
         </div>
       </Modal>
     </div>

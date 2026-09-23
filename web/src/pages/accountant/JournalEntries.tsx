@@ -1,11 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../../api/client'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Badge } from '../../components/ui/badge'
-import { Modal } from '../../components/ui/modal'
-import { Card, CardTitle } from '../../components/ui/card'
+import {
+  Badge,
+  Btn,
+  EmptyRow,
+  Modal,
+  PageHeader,
+  Panel,
+  StatCard,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+  TextInput,
+  inputCls,
+} from './ui'
 
 interface JournalLine {
   id: string
@@ -106,168 +118,172 @@ export function JournalEntries() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">Journal Entries</h2>
-        <Button onClick={() => { setError(''); setCreateOpen(true) }}>Post Entry</Button>
-      </div>
+      <PageHeader
+        eyebrow="General Ledger"
+        title="Journal Entries"
+        subtitle="Double-entry records posted to the ledger."
+        actions={<Btn onClick={() => { setError(''); setCreateOpen(true) }}>Post Entry</Btn>}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-indigo-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Total Entries</CardTitle>
-          <p className="mt-2 text-3xl font-bold">{entries.length}</p>
-        </Card>
-        <Card className="border-red-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Total Debits</CardTitle>
-          <p className="mt-2 text-3xl font-bold">{fmt(totalDebitsAll)}</p>
-        </Card>
-        <Card className="border-emerald-500">
-          <CardTitle className="text-sm font-medium text-gray-500">Total Credits</CardTitle>
-          <p className="mt-2 text-3xl font-bold">{fmt(totalCreditsAll)}</p>
-          {Math.abs(totalDebitsAll - totalCreditsAll) > 0.01 && (
-            <p className="text-xs text-red-500 mt-1">Ledger out of balance!</p>
-          )}
-        </Card>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <Input placeholder="Search by description..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <select className="border rounded-lg px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          <option value="posted">Posted</option>
-          <option value="draft">Draft</option>
-          <option value="voided">Voided</option>
-        </select>
-      </div>
-
-      <Table>
-        <THead>
-          <THeadRow>
-            <THeadCell>Date</THeadCell>
-            <THeadCell>Description</THeadCell>
-            <THeadCell>Lines</THeadCell>
-            <THeadCell>Debit</THeadCell>
-            <THeadCell>Credit</THeadCell>
-            <THeadCell>Status</THeadCell>
-            <THeadCell>Posted At</THeadCell>
-            <THeadCell />
-          </THeadRow>
-        </THead>
-        <TBody>
-          {filtered.map((e) => {
-            const d = e.lines.reduce((s, l) => s + Number(l.debit), 0)
-            const c = e.lines.reduce((s, l) => s + Number(l.credit), 0)
-            const balanced = Math.abs(d - c) < 0.01
-            return (
-              <TBodyRow key={e.id}>
-                <TBodyCell>{new Date(e.entryDate).toLocaleDateString()}</TBodyCell>
-                <TBodyCell className="max-w-xs truncate font-medium">{e.description || '—'}</TBodyCell>
-                <TBodyCell>{e.lines?.length ?? 0}</TBodyCell>
-                <TBodyCell className="text-right">{d > 0 ? fmt(d) : '—'}</TBodyCell>
-                <TBodyCell className="text-right">{c > 0 ? fmt(c) : '—'}</TBodyCell>
-                <TBodyCell>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={balanced ? 'success' : 'danger'}>{balanced ? 'Balanced' : 'Unbalanced'}</Badge>
-                    <Badge variant={e.status === 'posted' ? 'info' : 'warning'}>{e.status}</Badge>
-                  </div>
-                </TBodyCell>
-                <TBodyCell>{e.postedAt ? new Date(e.postedAt).toLocaleString() : '—'}</TBodyCell>
-                <TBodyCell>
-                  <Button variant="ghost" size="sm" onClick={() => setSelected(e)}>View</Button>
-                </TBodyCell>
-              </TBodyRow>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard label="Total Entries" value={entries.length} sub="all statuses" icon="🧾" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
+        <StatCard label="Total Debits" value={fmt(totalDebitsAll)} sub="across all entries" icon="➖" iconCls="bg-[#9D4824]/10 text-[#9D4824]" />
+        <StatCard
+          label="Total Credits"
+          value={fmt(totalCreditsAll)}
+          sub={
+            Math.abs(totalDebitsAll - totalCreditsAll) > 0.01 ? (
+              <span className="font-semibold text-[#B3261E]">Ledger out of balance!</span>
+            ) : (
+              <span className="text-[#176B5B]">Balanced ✓</span>
             )
-          })}
-          {filtered.length === 0 && (
-            <TBodyRow>
-              <TBodyCell colSpan={8} className="text-center text-gray-400 py-8">No entries found. Post your first entry to get started.</TBodyCell>
-            </TBodyRow>
-          )}
-        </TBody>
-      </Table>
+          }
+          icon="➕"
+          iconCls="bg-[#176B5B]/10 text-[#176B5B]"
+        />
+      </div>
+
+      <Panel padded={false}>
+        <div className="flex flex-wrap gap-3 p-5">
+          <div className="min-w-[200px] flex-1">
+            <TextInput placeholder="Search by description..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <select className={inputCls + ' w-auto cursor-pointer'} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="">All Statuses</option>
+            <option value="posted">Posted</option>
+            <option value="draft">Draft</option>
+            <option value="voided">Voided</option>
+          </select>
+        </div>
+
+        <Table>
+          <THead>
+            <THeadRow>
+              <THeadCell>Date</THeadCell>
+              <THeadCell>Description</THeadCell>
+              <THeadCell>Lines</THeadCell>
+              <THeadCell>Debit</THeadCell>
+              <THeadCell>Credit</THeadCell>
+              <THeadCell>Status</THeadCell>
+              <THeadCell>Posted At</THeadCell>
+              <THeadCell />
+            </THeadRow>
+          </THead>
+          <TBody>
+            {filtered.map((e) => {
+              const d = e.lines.reduce((s, l) => s + Number(l.debit), 0)
+              const c = e.lines.reduce((s, l) => s + Number(l.credit), 0)
+              const balanced = Math.abs(d - c) < 0.01
+              return (
+                <TBodyRow key={e.id}>
+                  <TBodyCell>{new Date(e.entryDate).toLocaleDateString()}</TBodyCell>
+                  <TBodyCell className="max-w-xs truncate font-semibold text-[#2C1B13]">{e.description || '—'}</TBodyCell>
+                  <TBodyCell>{e.lines?.length ?? 0}</TBodyCell>
+                  <TBodyCell className="text-right">{d > 0 ? fmt(d) : '—'}</TBodyCell>
+                  <TBodyCell className="text-right">{c > 0 ? fmt(c) : '—'}</TBodyCell>
+                  <TBodyCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={balanced ? 'success' : 'danger'}>{balanced ? 'Balanced' : 'Unbalanced'}</Badge>
+                      <Badge variant={e.status === 'posted' ? 'info' : 'warning'}>{e.status}</Badge>
+                    </div>
+                  </TBodyCell>
+                  <TBodyCell>{e.postedAt ? new Date(e.postedAt).toLocaleString() : '—'}</TBodyCell>
+                  <TBodyCell>
+                    <Btn variant="ghost" size="sm" onClick={() => setSelected(e)}>View</Btn>
+                  </TBodyCell>
+                </TBodyRow>
+              )
+            })}
+            {filtered.length === 0 && (
+              <EmptyRow colSpan={8}>No entries found. Post your first entry to get started.</EmptyRow>
+            )}
+          </TBody>
+        </Table>
+      </Panel>
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title={`Entry: ${selected?.id?.slice(0, 8)}...`}>
         {selected && (
           <div className="space-y-4">
-            <div className="text-sm space-y-1">
-              <p><span className="text-gray-500">Date:</span> {new Date(selected.entryDate).toLocaleDateString()}</p>
-              <p><span className="text-gray-500">Description:</span> {selected.description || '—'}</p>
-              <p>
-                <span className="text-gray-500">Status:</span>{' '}
+            <div className="space-y-1 text-sm text-[#6B5245]">
+              <p><span className="text-[#B79B6B]">Date:</span> <span className="text-[#2C1B13]">{new Date(selected.entryDate).toLocaleDateString()}</span></p>
+              <p><span className="text-[#B79B6B]">Description:</span> <span className="text-[#2C1B13]">{selected.description || '—'}</span></p>
+              <p className="flex items-center gap-2">
+                <span className="text-[#B79B6B]">Status:</span>
                 <Badge variant={selected.status === 'posted' ? 'success' : 'warning'}>{selected.status}</Badge>
               </p>
-              {selected.postedBy && <p><span className="text-gray-500">Posted By:</span> {selected.postedBy.slice(0, 8)}</p>}
+              {selected.postedBy && <p><span className="text-[#B79B6B]">Posted By:</span> <span className="text-[#2C1B13]">{selected.postedBy.slice(0, 8)}</span></p>}
             </div>
-            <Table>
-              <THead>
-                <THeadRow>
-                  <THeadCell>Account</THeadCell>
-                  <THeadCell>Debit</THeadCell>
-                  <THeadCell>Credit</THeadCell>
-                </THeadRow>
-              </THead>
-              <TBody>
-                {selected.lines.map((l) => {
-                  const acc = accountName(l.accountId)
-                  return (
-                    <TBodyRow key={l.id}>
-                      <TBodyCell>{acc ? `${acc.code} — ${acc.name}` : l.accountId.slice(0, 8)}</TBodyCell>
-                      <TBodyCell>{Number(l.debit) > 0 ? fmt(l.debit) : '—'}</TBodyCell>
-                      <TBodyCell>{Number(l.credit) > 0 ? fmt(l.credit) : '—'}</TBodyCell>
-                    </TBodyRow>
-                  )
-                })}
-              </TBody>
-            </Table>
+            <div className="overflow-hidden rounded-xl border border-[#E7DCCB]">
+              <Table>
+                <THead>
+                  <THeadRow>
+                    <THeadCell>Account</THeadCell>
+                    <THeadCell>Debit</THeadCell>
+                    <THeadCell>Credit</THeadCell>
+                  </THeadRow>
+                </THead>
+                <TBody>
+                  {selected.lines.map((l) => {
+                    const acc = accountName(l.accountId)
+                    return (
+                      <TBodyRow key={l.id}>
+                        <TBodyCell className="text-[#2C1B13]">{acc ? `${acc.code} — ${acc.name}` : l.accountId.slice(0, 8)}</TBodyCell>
+                        <TBodyCell>{Number(l.debit) > 0 ? fmt(l.debit) : '—'}</TBodyCell>
+                        <TBodyCell>{Number(l.credit) > 0 ? fmt(l.credit) : '—'}</TBodyCell>
+                      </TBodyRow>
+                    )
+                  })}
+                </TBody>
+              </Table>
+            </div>
           </div>
         )}
       </Modal>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Post Journal Entry" className="max-w-2xl">
         <div className="space-y-4">
-          <Input id="entry-desc" label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Registration fee received from new member" />
-          <Input id="entry-date" label="Entry Date" type="date" value={form.entryDate} onChange={(e) => setForm({ ...form, entryDate: e.target.value })} />
+          <TextInput id="entry-desc" label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Registration fee received from new member" />
+          <TextInput id="entry-date" label="Entry Date" type="date" value={form.entryDate} onChange={(e) => setForm({ ...form, entryDate: e.target.value })} />
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Lines</label>
-              <Button variant="ghost" size="sm" onClick={addLine}>+ Add Line</Button>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5245]">Lines</span>
+              <Btn variant="ghost" size="sm" onClick={addLine}>+ Add Line</Btn>
             </div>
             <div className="space-y-2">
               {form.lines.map((line, i) => (
-                <div key={i} className="flex gap-2 items-start">
+                <div key={i} className="flex items-start gap-2">
                   <select
                     value={line.accountId}
                     onChange={(e) => updateLine(i, 'accountId', e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
+                    className={inputCls + ' flex-1 cursor-pointer'}
                   >
                     <option value="">Select account</option>
                     {accounts.filter((a) => a.isActive !== false).map((a) => (
                       <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
                     ))}
                   </select>
-                  <Input type="number" placeholder="Debit" value={line.debit} onChange={(e) => updateLine(i, 'debit', Number(e.target.value))} className="w-28" />
-                  <Input type="number" placeholder="Credit" value={line.credit} onChange={(e) => updateLine(i, 'credit', Number(e.target.value))} className="w-28" />
+                  <input type="number" placeholder="Debit" value={line.debit} onChange={(e) => updateLine(i, 'debit', Number(e.target.value))} className={inputCls + ' w-28'} />
+                  <input type="number" placeholder="Credit" value={line.credit} onChange={(e) => updateLine(i, 'credit', Number(e.target.value))} className={inputCls + ' w-28'} />
                   {form.lines.length > 1 && (
-                    <button onClick={() => removeLine(i)} className="text-red-500 hover:text-red-700 mt-2 cursor-pointer">✕</button>
+                    <button onClick={() => removeLine(i)} className="mt-2 cursor-pointer text-[#B3261E] transition-colors hover:text-[#9A2019]">✕</button>
                   )}
                 </div>
               ))}
             </div>
-            <div className="mt-2 flex flex-wrap gap-4 text-sm">
-              <span>Total Debits: <strong>{fmt(totalDebits)}</strong></span>
-              <span>Total Credits: <strong>{fmt(totalCredits)}</strong></span>
-              {!isBalanced && <span className="text-red-600 font-medium">Not balanced</span>}
-              {isBalanced && totalDebits > 0 && <span className="text-green-600 font-medium">Balanced ✓</span>}
+            <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#6B5245]">
+              <span>Total Debits: <strong className="text-[#2C1B13]">{fmt(totalDebits)}</strong></span>
+              <span>Total Credits: <strong className="text-[#2C1B13]">{fmt(totalCredits)}</strong></span>
+              {!isBalanced && <span className="font-semibold text-[#B3261E]">Not balanced</span>}
+              {isBalanced && totalDebits > 0 && <span className="font-semibold text-[#176B5B]">Balanced ✓</span>}
             </div>
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs font-medium text-[#B3261E]">{error}</p>}
 
-          <Button onClick={handlePost} className="w-full" disabled={!isBalanced || !linesValid}>
+          <Btn onClick={handlePost} className="w-full" disabled={!isBalanced || !linesValid}>
             Post Entry
-          </Button>
+          </Btn>
         </div>
       </Modal>
     </div>

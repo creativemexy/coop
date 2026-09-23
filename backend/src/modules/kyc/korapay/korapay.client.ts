@@ -80,21 +80,27 @@ export class KorapayClient {
 
       return data.data;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Korapay identity verification failed: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Korapay identity verification failed: ${errorMessage}`,
+      );
       throw error;
     }
   }
 
   verifyWebhookSignature(rawBody: string, signature: string): boolean {
-    if (!this.secretKey) return true;
+    if (!this.secretKey) return false;
     if (!signature) return false;
     const expected = crypto
       .createHmac('sha256', this.secretKey)
       .update(rawBody)
       .digest('hex');
     try {
-      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expected),
+      );
     } catch {
       return signature === expected;
     }

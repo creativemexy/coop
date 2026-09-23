@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
+import {
+  FileText, Download, CalendarClock, ChevronLeft, ChevronRight, UserRound, ShieldCheck,
+  TrendingDown, PiggyBank, HandCoins, Wallet, CheckCircle2, XCircle, Hourglass,
+} from 'lucide-react'
 
 interface AccountSummary {
   name: string
@@ -60,19 +60,30 @@ interface StatementData {
   loans: Loan[]
 }
 
-const statusColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-  success: 'success',
-  paid: 'success',
-  completed: 'success',
-  pending: 'warning',
-  failed: 'danger',
-  active_repayment: 'success',
-  disbursed: 'info',
-  active: 'info',
-  settled: 'info',
+const statusMeta = (s: string) => {
+  if (s === 'success' || s === 'paid' || s === 'completed' || s === 'active_repayment') {
+    return { cls: 'bg-[#176B5B]/10 text-[#176B5B]', dot: 'bg-[#176B5B]' }
+  }
+  if (s === 'pending') {
+    return { cls: 'bg-[#E4A42A]/15 text-[#8A5A00]', dot: 'bg-[#E4A42A]' }
+  }
+  if (s === 'failed') {
+    return { cls: 'bg-[#B3261E]/10 text-[#B3261E]', dot: 'bg-[#B3261E]' }
+  }
+  return { cls: 'bg-[#9D4824]/10 text-[#9D4824]', dot: 'bg-[#9D4824]' }
+}
+
+const kycMeta = (s: string) => {
+  if (s === 'approved') return { label: 'Approved', Icon: CheckCircle2, cls: 'bg-[#176B5B]/10 text-[#176B5B]' }
+  if (s === 'pending') return { label: 'Pending', Icon: Hourglass, cls: 'bg-[#E4A42A]/15 text-[#8A5A00]' }
+  if (s === 'rejected') return { label: 'Rejected', Icon: XCircle, cls: 'bg-[#B3261E]/10 text-[#B3261E]' }
+  return { label: s || '—', Icon: ShieldCheck, cls: 'bg-[#EDE2D3] text-[#6B5245]' }
 }
 
 const PAGE_SIZE = 10
+
+const pagerCls =
+  'inline-flex h-8 items-center justify-center gap-1 rounded-full border border-[#E7DCCB] bg-white px-3 text-xs font-semibold text-[#6B5245] transition hover:bg-[#FFF9EF] hover:text-[#2C1B13] disabled:opacity-40 disabled:pointer-events-none cursor-pointer'
 
 interface PaginationBarProps {
   page: number
@@ -85,37 +96,52 @@ function PaginationBar({ page, totalPages, total, onPage }: PaginationBarProps) 
   if (totalPages <= 1) return null
   const safe = Math.min(page, totalPages)
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-      <span className="text-xs text-gray-400">
-        Showing {(safe - 1) * PAGE_SIZE + 1}-{Math.min(safe * PAGE_SIZE, total)} of {total}
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDE2D3] px-5 py-3.5">
+      <span className="text-xs font-medium text-[#6B5245]">
+        Showing <span className="font-bold text-[#2C1B13]">{(safe - 1) * PAGE_SIZE + 1}</span>
+        –<span className="font-bold text-[#2C1B13]">{Math.min(safe * PAGE_SIZE, total)}</span> of{' '}
+        <span className="font-bold text-[#2C1B13]">{total}</span>
       </span>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPage(safe - 1)}
-          disabled={safe <= 1}
-          className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer disabled:cursor-not-allowed"
-        >
-          Previous
+      <div className="flex items-center gap-1.5">
+        <button onClick={() => onPage(safe - 1)} disabled={safe <= 1} className={pagerCls}>
+          <ChevronLeft size={14} /> Previous
         </button>
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
           <button
             key={p}
             onClick={() => onPage(p)}
-            className={`px-3 py-1.5 text-sm rounded-lg border cursor-pointer ${
-              p === safe ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition cursor-pointer ${
+              p === safe ? 'bg-[#176B5B] text-[#FFF9EF] shadow-sm' : 'border border-[#E7DCCB] bg-white text-[#6B5245] hover:bg-[#FFF9EF] hover:text-[#2C1B13]'
             }`}
           >
             {p}
           </button>
         ))}
-        <button
-          onClick={() => onPage(safe + 1)}
-          disabled={safe >= totalPages}
-          className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer disabled:cursor-not-allowed"
-        >
-          Next
+        <button onClick={() => onPage(safe + 1)} disabled={safe >= totalPages} className={pagerCls}>
+          Next <ChevronRight size={14} />
         </button>
       </div>
+    </div>
+  )
+}
+
+const thCls = 'px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5245]'
+const tdCls = 'px-5 py-3.5 text-sm text-[#2C1B13]'
+
+function StatusPill({ status }: { status: string }) {
+  const meta = statusMeta(status)
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${meta.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {status}
+    </span>
+  )
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#F0DDAD]/80">{label}</p>
+      <p className="mt-0.5 font-semibold text-[#FFF9EF]">{value}</p>
     </div>
   )
 }
@@ -143,200 +169,243 @@ export function Statements() {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(n)
 
-  if (loading) return <div className="py-12 text-center text-gray-500">Loading statement...</div>
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-32 w-full animate-pulse rounded-2xl bg-[#F0DDAD]/30" />
+        <div className="h-40 w-full animate-pulse rounded-2xl bg-[#F0DDAD]/30" />
+        <div className="h-40 w-full animate-pulse rounded-2xl bg-[#F0DDAD]/30" />
+      </div>
+    )
+  }
+
+  const acc = data?.accountSummary
+  const kyc = kycMeta(acc?.kycStatus ?? '')
+  const KycIcon = kyc.Icon
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">My Statements</h2>
-        <Button onClick={() => window.open('/api/v1/dashboard/individual/statement/export', '_blank')}>
-          Export CSV
-        </Button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B79B6B]">Financial</p>
+          <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">My Statements</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+            A full snapshot of your co-op accounts, balances, and payment history.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.open('/api/v1/dashboard/individual/statement/export', '_blank')}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E7DCCB] bg-white px-4 py-2.5 text-sm font-semibold text-[#8A5A00] shadow-sm transition hover:bg-[#FFF9EF] cursor-pointer"
+          >
+            <Download size={14} /> Export CSV
+          </button>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+            <FileText size={22} className="text-[#176B5B]" />
+          </div>
+        </div>
       </div>
 
-      <Card className="border-indigo-500">
-        <CardTitle>Account Summary</CardTitle>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-sm text-gray-500">Name</p>
-            <p className="font-medium">{data?.accountSummary.name}</p>
+      {/* Account summary */}
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#176B5B] to-[#0F4A3F] shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#F0DDAD]">
+            <UserRound size={14} /> Account Summary
+          </p>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${kyc.cls}`}>
+            <KycIcon size={13} /> {kyc.label}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 border-t border-white/10 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
+          <InfoRow label="Name" value={acc?.name ?? '—'} />
+          <InfoRow label="Email" value={acc?.email ?? '—'} />
+          <InfoRow label="KYC" value={kyc.label} />
+          <InfoRow label="Member Since" value={acc?.memberSince ? new Date(acc.memberSince).toLocaleDateString() : '—'} />
+        </div>
+        <div className="grid grid-cols-1 gap-3 border-t border-white/10 px-6 py-5 md:grid-cols-3">
+          <div className="rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#F0DDAD]/80">
+              <TrendingDown size={12} /> BNPL Balance
+            </p>
+            <p className={`mt-1 text-xl font-black tracking-[-0.02em] ${(acc?.bnplBalance ?? 0) > 0 ? 'text-[#F7D674]' : 'text-[#A8E6CF]'}`}>
+              {formatCurrency(acc?.bnplBalance ?? 0)}
+            </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Email</p>
-            <p className="font-medium">{data?.accountSummary.email}</p>
+          <div className="rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#F0DDAD]/80">
+              <PiggyBank size={12} /> Savings Balance
+            </p>
+            <p className="mt-1 text-xl font-black tracking-[-0.02em] text-[#A8E6CF]">
+              {formatCurrency(acc?.savingsBalance ?? 0)}
+            </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">KYC</p>
-            <Badge variant={
-              data?.accountSummary.kycStatus === 'approved' ? 'success'
-              : data?.accountSummary.kycStatus === 'pending' ? 'warning'
-              : data?.accountSummary.kycStatus === 'rejected' ? 'danger'
-              : 'default'
-            }>
-              {data?.accountSummary.kycStatus ?? '—'}
-            </Badge>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Member Since</p>
-            <p className="font-medium">
-              {data?.accountSummary.memberSince
-                ? new Date(data.accountSummary.memberSince).toLocaleDateString()
-                : '—'}
+          <div className="rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#F0DDAD]/80">
+              <HandCoins size={12} /> Loan Balance
+            </p>
+            <p className={`mt-1 text-xl font-black tracking-[-0.02em] ${(acc?.loanBalance ?? 0) > 0 ? 'text-[#F7D674]' : 'text-[#A8E6CF]'}`}>
+              {formatCurrency(acc?.loanBalance ?? 0)}
             </p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t dark:border-gray-700">
-          <div>
-            <p className="text-sm text-gray-500">BNPL Balance</p>
-            <p className={`text-xl font-bold ${(data?.accountSummary.bnplBalance ?? 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {formatCurrency(data?.accountSummary.bnplBalance ?? 0)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Savings Balance</p>
-            <p className="text-xl font-bold text-green-600">
-              {formatCurrency(data?.accountSummary.savingsBalance ?? 0)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Loan Balance</p>
-            <p className={`text-xl font-bold ${(data?.accountSummary.loanBalance ?? 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {formatCurrency(data?.accountSummary.loanBalance ?? 0)}
-            </p>
-          </div>
-        </div>
-      </Card>
+      </div>
 
-      <Card className="border-blue-500">
-        <CardTitle>Upcoming Payments</CardTitle>
+      {/* Upcoming payments */}
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <CalendarClock size={16} className="text-[#9D4824]" />
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Upcoming Payments</p>
+        </div>
         {!data?.upcomingPayments?.length ? (
-          <p className="text-sm text-gray-400 mt-4">No upcoming payments</p>
+          <p className="px-6 py-8 text-center text-sm text-[#6B5245]">No upcoming payments</p>
         ) : (
-          <div className="mt-4 space-y-2">
-            {slicePage(data.upcomingPayments, upcomingPage).map((p, i) => {
-              const isOverdue = new Date(p.dueDate) < new Date()
-              return (
-                <div key={p.id} className={`flex items-center justify-between rounded-lg border dark:border-gray-700 px-4 py-3 text-sm ${
-                  [
-                    'bg-sky-50/40 dark:bg-sky-950/10',
-                    'bg-emerald-50/40 dark:bg-emerald-950/10',
-                    'bg-amber-50/40 dark:bg-amber-950/10',
-                    'bg-fuchsia-50/40 dark:bg-fuchsia-950/10',
-                    'bg-violet-50/40 dark:bg-violet-950/10',
-                  ][i % 5]
-                }`}>
-                  <div>
-                    <p className="font-medium">{p.itemName}</p>
-                    <p className="text-gray-500 text-xs">due {new Date(p.dueDate).toLocaleDateString()}</p>
+          <>
+            <div className="divide-y divide-[#EDE2D3]">
+              {slicePage(data.upcomingPayments, upcomingPage).map((p) => {
+                const isOverdue = new Date(p.dueDate) < new Date()
+                return (
+                  <div key={p.id} className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-[#FFF9EF]/70">
+                    <div>
+                      <p className="font-bold text-[#2C1B13]">{p.itemName}</p>
+                      <p className="mt-0.5 text-xs text-[#6B5245]">due {new Date(p.dueDate).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <p className="font-black tracking-[-0.02em] text-[#2C1B13]">{formatCurrency(p.amount)}</p>
+                      {p.lateFee > 0 && (
+                        <p className="text-xs font-semibold text-[#B3261E]">+{formatCurrency(p.lateFee)} late fee</p>
+                      )}
+                      {isOverdue && (
+                        <span className="rounded-full bg-[#B3261E]/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#B3261E]">Overdue</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">{formatCurrency(p.amount)}</p>
-                    {p.lateFee > 0 && <p className="text-xs text-red-500">+{formatCurrency(p.lateFee)} late fee</p>}
-                    {isOverdue && <Badge variant="danger">Overdue</Badge>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+            <PaginationBar page={upcomingPage} totalPages={pageCount(data?.upcomingPayments?.length)} total={data?.upcomingPayments?.length ?? 0} onPage={setUpcomingPage} />
+          </>
         )}
-        <PaginationBar page={upcomingPage} totalPages={pageCount(data?.upcomingPayments?.length)} total={data?.upcomingPayments?.length ?? 0} onPage={setUpcomingPage} />
-      </Card>
+      </div>
 
-      <Card className="border-emerald-500">
-        <CardTitle>Payment History</CardTitle>
+      {/* Payment history */}
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <Wallet size={16} className="text-[#176B5B]" />
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Payment History</p>
+        </div>
         {!data?.paymentHistory?.length ? (
-          <p className="text-sm text-gray-400 mt-4">No payments yet</p>
+          <p className="px-6 py-8 text-center text-sm text-[#6B5245]">No payments yet</p>
         ) : (
-          <Table>
-            <THead>
-              <THeadRow>
-                <THeadCell>Date</THeadCell>
-                <THeadCell>Amount</THeadCell>
-                <THeadCell>Status</THeadCell>
-                <THeadCell>Provider</THeadCell>
-                <THeadCell>Reference</THeadCell>
-              </THeadRow>
-            </THead>
-            <TBody>
-              {slicePage(data.paymentHistory, historyPage).map((p) => (
-                <TBodyRow key={p.id}>
-                  <TBodyCell>{new Date(p.date).toLocaleDateString()}</TBodyCell>
-                  <TBodyCell>{formatCurrency(p.amount)}</TBodyCell>
-                  <TBodyCell><Badge variant={statusColors[p.status] ?? 'default'}>{p.status}</Badge></TBodyCell>
-                  <TBodyCell>{p.provider}</TBodyCell>
-                  <TBodyCell className="max-w-[120px] truncate text-xs">{p.reference || '—'}</TBodyCell>
-                </TBodyRow>
-              ))}
-            </TBody>
-          </Table>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-[#EDE2D3] bg-[#FFF9EF]">
+                    <th className={thCls}>Date</th>
+                    <th className={thCls}>Amount</th>
+                    <th className={thCls}>Status</th>
+                    <th className={thCls}>Provider</th>
+                    <th className={thCls}>Reference</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EDE2D3]">
+                  {slicePage(data.paymentHistory, historyPage).map((p) => (
+                    <tr key={p.id} className="transition hover:bg-[#FFF9EF]/70">
+                      <td className={tdCls}>{new Date(p.date).toLocaleDateString()}</td>
+                      <td className={`${tdCls} font-semibold`}>{formatCurrency(p.amount)}</td>
+                      <td className={tdCls}><StatusPill status={p.status} /></td>
+                      <td className={tdCls}>{p.provider}</td>
+                      <td className={`${tdCls} max-w-[140px] truncate text-xs text-[#6B5245]`}>{p.reference || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationBar page={historyPage} totalPages={pageCount(data?.paymentHistory?.length)} total={data?.paymentHistory?.length ?? 0} onPage={setHistoryPage} />
+          </>
         )}
-        <PaginationBar page={historyPage} totalPages={pageCount(data?.paymentHistory?.length)} total={data?.paymentHistory?.length ?? 0} onPage={setHistoryPage} />
-      </Card>
+      </div>
 
-      <Card className="border-amber-500">
-        <CardTitle>Active Subscriptions</CardTitle>
+      {/* Active subscriptions */}
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+          <FileText size={16} className="text-[#8A5A00]" />
+          <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Active Subscriptions</p>
+        </div>
         {!data?.subscriptions?.length ? (
-          <p className="text-sm text-gray-400 mt-4">No subscriptions</p>
+          <p className="px-6 py-8 text-center text-sm text-[#6B5245]">No subscriptions</p>
         ) : (
-          <Table>
-            <THead>
-              <THeadRow>
-                <THeadCell>Item</THeadCell>
-                <THeadCell>Total</THeadCell>
-                <THeadCell>Paid</THeadCell>
-                <THeadCell>Balance</THeadCell>
-                <THeadCell>Status</THeadCell>
-              </THeadRow>
-            </THead>
-            <TBody>
-              {slicePage(data.subscriptions, subsPage).map((s) => (
-                <TBodyRow key={s.id}>
-                  <TBodyCell className="font-medium">{s.itemName}</TBodyCell>
-                  <TBodyCell>{formatCurrency(s.totalAmount)}</TBodyCell>
-                  <TBodyCell>{formatCurrency(s.amountPaid)}</TBodyCell>
-                  <TBodyCell className={s.balance > 0 ? 'text-red-600 font-medium' : ''}>
-                    {formatCurrency(s.balance)}
-                  </TBodyCell>
-                  <TBodyCell><Badge variant={statusColors[s.status] ?? 'default'}>{s.status}</Badge></TBodyCell>
-                </TBodyRow>
-              ))}
-            </TBody>
-          </Table>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px]">
+                <thead>
+                  <tr className="border-b border-[#EDE2D3] bg-[#FFF9EF]">
+                    <th className={thCls}>Item</th>
+                    <th className={thCls}>Total</th>
+                    <th className={thCls}>Paid</th>
+                    <th className={thCls}>Balance</th>
+                    <th className={thCls}>Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EDE2D3]">
+                  {slicePage(data.subscriptions, subsPage).map((s) => (
+                    <tr key={s.id} className="transition hover:bg-[#FFF9EF]/70">
+                      <td className={`${tdCls} font-semibold`}>{s.itemName}</td>
+                      <td className={tdCls}>{formatCurrency(s.totalAmount)}</td>
+                      <td className={tdCls}>{formatCurrency(s.amountPaid)}</td>
+                      <td className={`${tdCls} font-semibold ${s.balance > 0 ? 'text-[#B3261E]' : 'text-[#176B5B]'}`}>
+                        {formatCurrency(s.balance)}
+                      </td>
+                      <td className={tdCls}><StatusPill status={s.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationBar page={subsPage} totalPages={pageCount(data?.subscriptions?.length)} total={data?.subscriptions?.length ?? 0} onPage={setSubsPage} />
+          </>
         )}
-        <PaginationBar page={subsPage} totalPages={pageCount(data?.subscriptions?.length)} total={data?.subscriptions?.length ?? 0} onPage={setSubsPage} />
-      </Card>
+      </div>
 
+      {/* Loans */}
       {data?.loans?.length ? (
-        <Card className="border-purple-500">
-          <CardTitle>Loans</CardTitle>
-          <Table>
-            <THead>
-              <THeadRow>
-                <THeadCell>Amount</THeadCell>
-                <THeadCell>Total Repayment</THeadCell>
-                <THeadCell>Paid</THeadCell>
-                <THeadCell>Balance</THeadCell>
-                <THeadCell>Monthly</THeadCell>
-                <THeadCell>Status</THeadCell>
-              </THeadRow>
-            </THead>
-            <TBody>
-              {slicePage(data.loans, loansPage).map((l) => (
-                <TBodyRow key={l.id}>
-                  <TBodyCell>{formatCurrency(l.amount)}</TBodyCell>
-                  <TBodyCell>{formatCurrency(l.totalRepayment)}</TBodyCell>
-                  <TBodyCell>{formatCurrency(l.amountPaid)}</TBodyCell>
-                  <TBodyCell className={l.balance > 0 ? 'text-red-600 font-medium' : ''}>
-                    {formatCurrency(l.balance)}
-                  </TBodyCell>
-                  <TBodyCell>{formatCurrency(l.monthlyPayment)}</TBodyCell>
-                  <TBodyCell><Badge variant={statusColors[l.status] ?? 'default'}>{l.status}</Badge></TBodyCell>
-                </TBodyRow>
-              ))}
-            </TBody>
-          </Table>
+        <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-[#EDE2D3] px-6 py-4">
+            <HandCoins size={16} className="text-[#9D4824]" />
+            <p className="font-black tracking-[-0.02em] text-[#2C1B13]">Loans</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px]">
+              <thead>
+                <tr className="border-b border-[#EDE2D3] bg-[#FFF9EF]">
+                  <th className={thCls}>Amount</th>
+                  <th className={thCls}>Total Repayment</th>
+                  <th className={thCls}>Paid</th>
+                  <th className={thCls}>Balance</th>
+                  <th className={thCls}>Monthly</th>
+                  <th className={thCls}>Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EDE2D3]">
+                {slicePage(data.loans, loansPage).map((l) => (
+                  <tr key={l.id} className="transition hover:bg-[#FFF9EF]/70">
+                    <td className={`${tdCls} font-semibold`}>{formatCurrency(l.amount)}</td>
+                    <td className={tdCls}>{formatCurrency(l.totalRepayment)}</td>
+                    <td className={tdCls}>{formatCurrency(l.amountPaid)}</td>
+                    <td className={`${tdCls} font-semibold ${l.balance > 0 ? 'text-[#B3261E]' : 'text-[#176B5B]'}`}>
+                      {formatCurrency(l.balance)}
+                    </td>
+                    <td className={tdCls}>{formatCurrency(l.monthlyPayment)}</td>
+                    <td className={tdCls}><StatusPill status={l.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <PaginationBar page={loansPage} totalPages={pageCount(data.loans?.length)} total={data.loans?.length ?? 0} onPage={setLoansPage} />
-        </Card>
+        </div>
       ) : null}
     </div>
   )

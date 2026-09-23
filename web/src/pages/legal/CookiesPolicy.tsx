@@ -11,7 +11,7 @@ const sections = [
     items: [
       'csrf-secret — strictly necessary security cookie set by our API to protect you from cross-site request forgery (CSRF) attacks. It is HTTP-only, SameSite=Strict, and contains no personal information. It cannot be disabled without weakening your account security.',
       'coop_consent — records your privacy/cookie consent choice so we do not repeatedly ask. It stores only your choice, a version number, and a timestamp.',
-      'Local storage (access_token / refresh_token) — keeps you signed in to your member or admin portal. These are cleared when you log out.',
+      'refresh_token — strictly necessary security cookie set by our API that keeps you signed in to your member or admin portal. It is HTTP-only, SameSite=Strict, and is cleared when you log out.',
       'Session storage (csrf_token) — a mirror of the CSRF token for the current browser tab, cleared when the tab closes.',
     ],
   },

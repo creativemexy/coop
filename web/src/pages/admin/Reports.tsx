@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { api } from '../../api/client'
+import { api, getAccessToken } from '../../api/client'
 import { Card, CardTitle, CardHeader } from '../../components/ui/card'
 import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
 
@@ -39,7 +39,7 @@ export function AdminReports() {
 
   const exportCsv = () => {
     if (!selectedId) return
-    const token = localStorage.getItem('access_token')
+    const token = getAccessToken()
     fetch(`${api.defaults.baseURL || ''}/admin/tenants/${selectedId}/reports/export`, {
       headers: { Authorization: `Bearer ${token}` },
     })

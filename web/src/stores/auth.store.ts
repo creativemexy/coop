@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, fetchCsrfToken } from '../api/client'
+import { api, fetchCsrfToken, setAccessToken, refreshAccessToken } from '../api/client'
 
 export type Role =
   | 'super_admin'
@@ -62,8 +62,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (data.passwordChangeRequired) {
       return { ...data.user, passwordChangeRequired: true }
     }
-    localStorage.setItem('access_token', data.accessToken)
-    localStorage.setItem('refresh_token', data.refreshToken)
+    setAccessToken(data.accessToken)
     await fetchCsrfToken()
     set({ user: data.user, isAuthenticated: true })
     return data.user
@@ -74,9 +73,8 @@ export const useAuth = create<AuthState>((set, get) => ({
     return get().login(emailOrPhone, newPassword)
   },
 
-  loginWithToken: async (accessToken, refreshToken) => {
-    localStorage.setItem('access_token', accessToken)
-    localStorage.setItem('refresh_token', refreshToken)
+  loginWithToken: async (accessToken) => {
+    setAccessToken(accessToken)
     await fetchCsrfToken()
     const { data } = await api.get('/users/me')
     set({ user: data, isAuthenticated: true })
@@ -86,8 +84,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   register: async (payload) => {
     const { data } = await api.post('/auth/register', payload)
     if (data.accessToken) {
-      localStorage.setItem('access_token', data.accessToken)
-      localStorage.setItem('refresh_token', data.refreshToken)
+      setAccessToken(data.accessToken)
       await fetchCsrfToken()
       set({ user: data.user, isAuthenticated: true })
     }
@@ -98,22 +95,21 @@ export const useAuth = create<AuthState>((set, get) => ({
     try {
       await api.post('/auth/logout')
     } catch { /* ignore */ }
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    setAccessToken(null)
     sessionStorage.removeItem('csrf_token')
     set({ user: null, isAuthenticated: false })
   },
 
   restoreSession: async () => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     try {
       await fetchCsrfToken()
+      const refreshed = await refreshAccessToken()
+      if (!refreshed) throw new Error('no session')
       const { data } = await api.get('/users/me')
       set({ user: data, isAuthenticated: true })
     } catch {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      setAccessToken(null)
+      sessionStorage.removeItem('csrf_token')
       set({ user: null, isAuthenticated: false })
     }
   },

@@ -1,9 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../../api/client'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Card, CardTitle } from '../../components/ui/card'
+import {
+  Badge,
+  Btn,
+  EmptyRow,
+  Modal,
+  PageHeader,
+  Panel,
+  Select,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+  TextInput,
+  inputCls,
+} from '../../components/ui/warm'
 
 interface Plan {
   id: string
@@ -83,6 +97,21 @@ const payoutColors: Record<string, 'success' | 'warning' | 'danger' | 'default'>
   failed: 'danger',
 }
 
+const fmt = (n: number) => `₦${n.toLocaleString()}`
+
+function titleCase(s: string) {
+  return s.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+function InfoField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#B79B6B]">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-[#2C1B13]">{children}</p>
+    </div>
+  )
+}
+
 export function Orders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [statusFilter, setStatusFilter] = useState('')
@@ -105,10 +134,6 @@ export function Orders() {
       setPayments(res.data)
     } catch { setPayments([]) }
     setPaymentsLoading(false)
-  }
-
-  function formatOrderStatus(s: string) {
-    return s.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   }
 
   const fetch = useCallback(() => {
@@ -157,347 +182,262 @@ export function Orders() {
   const statusOptions: string[] = ['created', 'pending_payment', 'disbursed', 'active_repayment', 'settled', 'defaulted']
   const payoutOptions: string[] = ['pending', 'completed', 'failed']
 
+  const totals = orders.reduce(
+    (acc, o) => ({ total: acc.total + Number(o.totalAmount || 0), paid: acc.paid + Number(o.amountPaid || 0), balance: acc.balance + (Number(o.totalAmount || 0) - Number(o.amountPaid || 0)) }),
+    { total: 0, paid: 0, balance: 0 },
+  )
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">Orders Management</h2>
-      </div>
+      <PageHeader
+        eyebrow="BNPL Operations"
+        title="Orders Management"
+        subtitle="Every buy-now-pay-later order, from deposit to settlement."
+      />
 
-      <div className="flex flex-wrap gap-2 items-center">
-        <input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-          placeholder="Search product…"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-        >
-          <option value="">All statuses</option>
-          {statusOptions.map((s) => (
-            <option key={s} value={s}>{s.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</option>
-          ))}
-        </select>
-
-        <select
-          value={payoutFilter}
-          onChange={(e) => setPayoutFilter(e.target.value)}
-          className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-        >
-          <option value="">All settlement</option>
-          {payoutOptions.map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-
-        <select
-          value={tenorFilter}
-          onChange={(e) => setTenorFilter(e.target.value)}
-          className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-        >
-          <option value="">All tenors</option>
-          <option value="3">3 months</option>
-          <option value="6">6 months</option>
-          <option value="12">12 months</option>
-        </select>
-
-        <input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-          placeholder="From"
-        />
-        <input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-          placeholder="To"
-        />
-      </div>
-
-      <Table>
-        <THead>
-          <THeadRow>
-            <THeadCell>Order ID</THeadCell>
-            <THeadCell>Item / Tenor</THeadCell>
-            <THeadCell>Risk</THeadCell>
-            <THeadCell>Total</THeadCell>
-            <THeadCell>Paid</THeadCell>
-            <THeadCell>Status</THeadCell>
-            <THeadCell>Payout</THeadCell>
-            <THeadCell>Created</THeadCell>
-            <THeadCell />
-          </THeadRow>
-        </THead>
-        <TBody>
-          {orders.map((o) => {
-            const tenorLabel = o.plan ? `${o.plan.installmentCount}m ${o.plan.installmentFrequency}` : '—'
-            return (
-              <TBodyRow key={o.id}>
-                <TBodyCell className="font-mono text-xs">{o.id.slice(0, 8)}…</TBodyCell>
-                <TBodyCell>
-                  <div className="font-medium">{o.plan?.catalogItem?.name ?? '—'}</div>
-                  <div className="text-xs text-gray-500">{tenorLabel}</div>
-                </TBodyCell>
-                <TBodyCell>
-                  <Badge variant={riskColors[o.riskLevel ?? 'low']}>
-                    {o.riskLevel ?? 'low'}
-                    {(o.openRiskFlagCount ?? 0) > 0 && ` (${o.openRiskFlagCount})`}
-                  </Badge>
-                </TBodyCell>
-                <TBodyCell>₦{o.totalAmount.toLocaleString()}</TBodyCell>
-                <TBodyCell>₦{o.amountPaid.toLocaleString()}</TBodyCell>
-                <TBodyCell>
-                  <Badge variant={statusColors[o.status] ?? 'default'}>{formatOrderStatus(o.status)}</Badge>
-                </TBodyCell>
-                <TBodyCell><Badge variant={payoutColors[o.payoutStatus] ?? 'default'}>{o.payoutStatus}</Badge></TBodyCell>
-                <TBodyCell className="text-xs">{new Date(o.createdAt).toLocaleDateString()}</TBodyCell>
-                <TBodyCell>
-                  <Button variant="ghost" size="sm" onClick={() => { setSelected(o); loadPayments(o.id) }}>View</Button>
-                </TBodyCell>
-              </TBodyRow>
-            )
-          })}
-          {orders.length === 0 && (
-            <TBodyRow>
-              <TBodyCell colSpan={9} className="text-center text-gray-400 py-8">No orders found</TBodyCell>
-            </TBodyRow>
-          )}
-        </TBody>
-      </Table>
-
-      {selected && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => { setSelected(null); setPayments([]) }}>
-          <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <CardTitle className="text-lg font-bold mb-4 dark:text-gray-100">
-              Order — {selected.id.slice(0, 8)}…
-            </CardTitle>
-
-            <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs">Item</p>
-                  <p className="font-medium">{selected.plan?.catalogItem?.name ?? '—'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs">Status</p>
-                  <Badge variant={statusColors[selected.status] ?? 'default'}>{selected.status}</Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs">Total Amount</p>
-                  <p className="font-medium">₦{selected.totalAmount.toLocaleString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs">Amount Paid</p>
-                  <p className="font-medium">₦{selected.amountPaid.toLocaleString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs">Down Payment</p>
-                  <p className="font-medium">₦{selected.downPayment.toLocaleString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500 text-xs">Balance</p>
-                  <p className="font-medium text-red-600">₦{(selected.totalAmount - selected.amountPaid).toLocaleString()}</p>
-                </div>
-              </div>
-
-              <div className="border-t dark:border-gray-700 pt-4">
-                <h4 className="text-sm font-semibold mb-2 dark:text-gray-200">Settlement & References</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Payout Status</p>
-                    <Badge variant={payoutColors[selected.payoutStatus] ?? 'default'}>{selected.payoutStatus}</Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Risk Level</p>
-                    <Badge variant={riskColors[selected.riskLevel ?? 'low']}>
-                      {selected.riskLevel ?? 'low'}
-                      {selected.openRiskFlagCount ? ` (${selected.openRiskFlagCount} flags)` : ''}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Disbursement Ref</p>
-                    <p className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{selected.disbursementReference || '—'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Disbursed At</p>
-                    <p>{selected.disbursedAt ? new Date(selected.disbursedAt).toLocaleString() : '—'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Settled At</p>
-                    <p>{selected.settledAt ? new Date(selected.settledAt).toLocaleString() : '—'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Approved At</p>
-                    <p>{selected.approvedAt ? new Date(selected.approvedAt).toLocaleString() : '—'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Provider Ref</p>
-                    <p className="font-mono text-xs">{selected.providerReference || '—'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500 text-xs">Installments</p>
-                    <p>{selected.paidInstallmentCount ?? 0} / {selected.totalInstallmentCount ?? 0} paid</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t dark:border-gray-700 pt-4">
-                <h4 className="text-sm font-semibold mb-2 dark:text-gray-200">Installments</h4>
-                <div className="space-y-2">
-                  {selected.installments?.map((inst) => {
-                    const isOverdue = inst.status === 'pending' && new Date(inst.dueDate) < new Date()
-                    return (
-                      <div key={inst.id} className="flex items-center justify-between rounded-lg border dark:border-gray-700 px-3 py-2 text-sm">
-                        <div>
-                          <span className="font-medium">₦{inst.amount.toLocaleString()}</span>
-                          <span className="text-gray-500 ml-2">due {new Date(inst.dueDate).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {inst.paymentReference && (
-                            <span className="text-xs font-mono text-gray-400">{inst.paymentReference}</span>
-                          )}
-                          <Badge
-                            variant={
-                              inst.status === 'paid' ? 'success'
-                              : isOverdue ? 'danger'
-                              : 'warning'
-                            }
-                          >
-                            {isOverdue && inst.status === 'pending' ? 'overdue' : inst.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {(!selected.installments || selected.installments.length === 0) && (
-                    <p className="text-sm text-gray-400">No installments</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Payment History & Webhook Status */}
-              <div className="border-t dark:border-gray-700 pt-4">
-                <h4 className="text-sm font-semibold mb-2 dark:text-gray-200">Payment History & Webhook Status</h4>
-                {paymentsLoading ? (
-                  <p className="text-xs text-gray-400">Loading payments…</p>
-                ) : payments.length > 0 ? (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {payments.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between rounded border dark:border-gray-700 px-3 py-1.5 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={p.status === 'success' ? 'success' : p.status === 'failed' ? 'danger' : 'warning'}>{p.status}</Badge>
-                          <span className="font-mono">{p.providerReference || '—'}</span>
-                          <span className="text-gray-500">₦{p.amount.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-400">{p.provider}</span>
-                          <span className="text-gray-400">{new Date(p.createdAt).toLocaleDateString()}</span>
-                          {p.status === 'failed' && (
-                            <Button size="sm" variant="ghost" onClick={async () => {
-                              try {
-                                await api.post(`/api/v1/business-manager/webhooks/resubmit/${p.id}`)
-                                alert('Webhook resubmission prepared. Use the reference to re-trigger on the provider dashboard.')
-                              } catch { alert('Failed to resubmit webhook') }
-                            }}>Retry</Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400">No payment records</p>
-                )}
-              </div>
-
-              <div className="border-t dark:border-gray-700 pt-4 space-y-3">
-                <h4 className="text-sm font-semibold dark:text-gray-200">Actions</h4>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Reason (for audit trail)</label>
-                  <input
-                    value={actionReason}
-                    onChange={(e) => setActionReason(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
-                    placeholder="Why is this change being made?"
-                  />
-                </div>
-
-                {selected.status === 'created' && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="primary" onClick={() => handleStatus(selected.id, 'pending_payment')} disabled={saving}>
-                      Approve → Pending Payment
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleStatus(selected.id, 'defaulted')} disabled={saving}>
-                      Reject
-                    </Button>
-                  </div>
-                )}
-
-                {selected.status === 'pending_payment' && (
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Disbursement Reference</label>
-                      <input
-                        value={disburseRef}
-                        onChange={(e) => setDisburseRef(e.target.value)}
-                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
-                        placeholder="e.g. REF-001"
-                      />
-                    </div>
-                    <Button size="sm" variant="primary" onClick={handleDisburse} disabled={saving || !disburseRef}>
-                      Disburse (Generate Installments)
-                    </Button>
-                  </div>
-                )}
-
-                {selected.status === 'disbursed' && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="primary" onClick={() => handleStatus(selected.id, 'active_repayment')} disabled={saving}>
-                      Activate Repayment
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleStatus(selected.id, 'defaulted')} disabled={saving}>
-                      Mark Defaulted
-                    </Button>
-                  </div>
-                )}
-
-                {selected.status === 'active_repayment' && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="primary" onClick={() => handleStatus(selected.id, 'settled')} disabled={saving}>
-                      Mark Settled
-                    </Button>
-                    <div className="w-full flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={async () => { await api.post('/bnpl/approvals', { requestType: 'write_off', requestData: { subscriptionId: selected.id }, reason: actionReason || 'Write-off requested' }); alert('Write-off request submitted for approval'); fetch() }} disabled={saving}>
-                        Request Write-Off
-                      </Button>
-                      <Button size="sm" variant="secondary" onClick={() => handleStatus(selected.id, 'defaulted')} disabled={saving}>
-                        Mark Defaulted
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {selected.status === 'defaulted' && (
-                  <Button size="sm" variant="primary" onClick={() => handleStatus(selected.id, 'pending_payment')} disabled={saving}>
-                    Reactivate
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <Button variant="ghost" className="w-full" onClick={() => { setSelected(null); setDisburseRef(''); setActionReason(''); setPayments([]) }}>
-                Close
-              </Button>
-            </div>
-          </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Orders</p>
+          <p className="mt-3 text-2xl font-black tracking-[-0.02em] text-[#2C1B13]">{orders.length}</p>
+          <p className="mt-1 text-sm text-[#6B5245]">matching filters</p>
         </div>
-      )}
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Total Volume</p>
+          <p className="mt-3 text-2xl font-black tracking-[-0.02em] text-[#2C1B13]">{fmt(totals.total)}</p>
+          <p className="mt-1 text-sm text-[#6B5245]">ordered goods</p>
+        </div>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Collected</p>
+          <p className="mt-3 text-2xl font-black tracking-[-0.02em] text-[#176B5B]">{fmt(totals.paid)}</p>
+          <p className="mt-1 text-sm text-[#6B5245]">repaid to date</p>
+        </div>
+        <div className="rounded-2xl border border-[#E7DCCB] bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Outstanding</p>
+          <p className="mt-3 text-2xl font-black tracking-[-0.02em] text-[#B3261E]">{fmt(totals.balance)}</p>
+          <p className="mt-1 text-sm text-[#6B5245]">still to be repaid</p>
+        </div>
+      </div>
+
+      <Panel title="Filters" subtitle="Narrow the order list" bodyClassName="p-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <TextInput placeholder="Search product…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="md:col-span-2" />
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">All statuses</option>
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>{titleCase(s)}</option>
+            ))}
+          </Select>
+          <Select value={payoutFilter} onChange={(e) => setPayoutFilter(e.target.value)}>
+            <option value="">All settlement</option>
+            {payoutOptions.map((s) => (
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </Select>
+          <Select value={tenorFilter} onChange={(e) => setTenorFilter(e.target.value)}>
+            <option value="">All tenors</option>
+            <option value="3">3 months</option>
+            <option value="6">6 months</option>
+            <option value="12">12 months</option>
+          </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} aria-label="From date" />
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} aria-label="To date" />
+          </div>
+        </div>
+      </Panel>
+
+      <Panel padded={false}>
+        <Table>
+          <THead>
+            <THeadRow>
+              <THeadCell>Order ID</THeadCell>
+              <THeadCell>Item / Tenor</THeadCell>
+              <THeadCell>Risk</THeadCell>
+              <THeadCell>Total</THeadCell>
+              <THeadCell>Paid</THeadCell>
+              <THeadCell>Status</THeadCell>
+              <THeadCell>Payout</THeadCell>
+              <THeadCell>Created</THeadCell>
+              <THeadCell />
+            </THeadRow>
+          </THead>
+          <TBody>
+            {orders.map((o) => {
+              const tenorLabel = o.plan ? `${o.plan.installmentCount}m ${o.plan.installmentFrequency}` : '—'
+              return (
+                <TBodyRow key={o.id}>
+                  <TBodyCell className="font-mono text-xs">{o.id.slice(0, 8)}…</TBodyCell>
+                  <TBodyCell>
+                    <div className="font-semibold text-[#2C1B13]">{o.plan?.catalogItem?.name ?? '—'}</div>
+                    <div className="text-xs text-[#6B5245]">{tenorLabel}</div>
+                  </TBodyCell>
+                  <TBodyCell>
+                    <Badge variant={riskColors[o.riskLevel ?? 'low']} dot>
+                      {o.riskLevel ?? 'low'}
+                      {(o.openRiskFlagCount ?? 0) > 0 && ` (${o.openRiskFlagCount})`}
+                    </Badge>
+                  </TBodyCell>
+                  <TBodyCell className="font-semibold text-[#2C1B13]">{fmt(o.totalAmount)}</TBodyCell>
+                  <TBodyCell>{fmt(o.amountPaid)}</TBodyCell>
+                  <TBodyCell>
+                    <Badge variant={statusColors[o.status] ?? 'default'} dot>{titleCase(o.status)}</Badge>
+                  </TBodyCell>
+                  <TBodyCell><Badge variant={payoutColors[o.payoutStatus] ?? 'default'} dot>{o.payoutStatus}</Badge></TBodyCell>
+                  <TBodyCell className="text-xs">{new Date(o.createdAt).toLocaleDateString()}</TBodyCell>
+                  <TBodyCell>
+                    <Btn variant="ghost" size="sm" onClick={() => { setSelected(o); loadPayments(o.id) }}>View</Btn>
+                  </TBodyCell>
+                </TBodyRow>
+              )
+            })}
+            {orders.length === 0 && <EmptyRow colSpan={9}>No orders found</EmptyRow>}
+          </TBody>
+        </Table>
+      </Panel>
+
+      <Modal open={!!selected} onClose={() => { setSelected(null); setPayments([]); setDisburseRef(''); setActionReason('') }} title={selected ? `Order — ${selected.id.slice(0, 8)}…` : ''} className="max-w-3xl">
+        {selected && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-black text-[#2C1B13]">{selected.plan?.catalogItem?.name ?? '—'}</p>
+              <Badge variant={statusColors[selected.status] ?? 'default'} dot>{titleCase(selected.status)}</Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+              <InfoField label="Total Amount">{fmt(selected.totalAmount)}</InfoField>
+              <InfoField label="Amount Paid"><span className="text-[#176B5B]">{fmt(selected.amountPaid)}</span></InfoField>
+              <InfoField label="Balance"><span className="text-[#B3261E]">{fmt(selected.totalAmount - selected.amountPaid)}</span></InfoField>
+              <InfoField label="Down Payment">{fmt(selected.downPayment)}</InfoField>
+              <InfoField label="Payout Status"><Badge variant={payoutColors[selected.payoutStatus] ?? 'default'}>{selected.payoutStatus}</Badge></InfoField>
+              <InfoField label="Risk Level">
+                <Badge variant={riskColors[selected.riskLevel ?? 'low']}>
+                  {selected.riskLevel ?? 'low'}
+                  {selected.openRiskFlagCount ? ` (${selected.openRiskFlagCount} flags)` : ''}
+                </Badge>
+              </InfoField>
+              <InfoField label="Disbursement Ref">
+                <code className="rounded-md bg-[#FFF9EF] px-1.5 py-0.5 text-xs font-mono text-[#6B5245]">{selected.disbursementReference || '—'}</code>
+              </InfoField>
+              <InfoField label="Provider Ref">
+                <span className="font-mono text-xs text-[#6B5245]">{selected.providerReference || '—'}</span>
+              </InfoField>
+              <InfoField label="Installments">{selected.paidInstallmentCount ?? 0} / {selected.totalInstallmentCount ?? 0} paid</InfoField>
+              <InfoField label="Disbursed At">{selected.disbursedAt ? new Date(selected.disbursedAt).toLocaleString() : '—'}</InfoField>
+              <InfoField label="Settled At">{selected.settledAt ? new Date(selected.settledAt).toLocaleString() : '—'}</InfoField>
+              <InfoField label="Approved At">{selected.approvedAt ? new Date(selected.approvedAt).toLocaleString() : '—'}</InfoField>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-[#E7DCCB]">
+              <div className="border-b border-[#EDE2D3] bg-[#FFF9EF] px-5 py-3">
+                <p className="text-sm font-black tracking-[-0.01em] text-[#2C1B13]">Installments</p>
+              </div>
+              <div className="space-y-2 p-4">
+                {selected.installments?.map((inst) => {
+                  const isOverdue = inst.status === 'pending' && new Date(inst.dueDate) < new Date()
+                  return (
+                    <div key={inst.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#EDE2D3] bg-[#FFF9EF] px-4 py-3 text-sm">
+                      <div>
+                        <span className="font-bold text-[#2C1B13]">{fmt(inst.amount)}</span>
+                        <span className="ml-2 text-[#6B5245]">due {new Date(inst.dueDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {inst.paymentReference && (
+                          <span className="font-mono text-xs text-[#6B5245]">{inst.paymentReference}</span>
+                        )}
+                        <Badge variant={inst.status === 'paid' ? 'success' : isOverdue ? 'danger' : 'warning'} dot>
+                          {isOverdue && inst.status === 'pending' ? 'overdue' : inst.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  )
+                })}
+                {(!selected.installments || selected.installments.length === 0) && (
+                  <p className="text-sm text-[#C9B89F]">No installments</p>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-[#E7DCCB]">
+              <div className="border-b border-[#EDE2D3] bg-[#FFF9EF] px-5 py-3">
+                <p className="text-sm font-black tracking-[-0.01em] text-[#2C1B13]">Payment History & Webhook Status</p>
+              </div>
+              <div className="max-h-48 space-y-1.5 overflow-y-auto p-4">
+                {paymentsLoading ? (
+                  <p className="text-xs text-[#C9B89F]">Loading payments…</p>
+                ) : payments.length > 0 ? (
+                  payments.map((p) => (
+                    <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#EDE2D3] px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={p.status === 'success' ? 'success' : p.status === 'failed' ? 'danger' : 'warning'} dot>{p.status}</Badge>
+                        <span className="font-mono text-[#6B5245]">{p.providerReference || '—'}</span>
+                        <span className="text-[#6B5245]">{fmt(p.amount)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#C9B89F]">{p.provider}</span>
+                        <span className="text-[#C9B89F]">{new Date(p.createdAt).toLocaleDateString()}</span>
+                        {p.status === 'failed' && (
+                          <Btn size="sm" variant="secondary" onClick={async () => {
+                            try {
+                              await api.post(`/api/v1/business-manager/webhooks/resubmit/${p.id}`)
+                              alert('Webhook resubmission prepared. Use the reference to re-trigger on the provider dashboard.')
+                            } catch { alert('Failed to resubmit webhook') }
+                          }}>Retry</Btn>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-[#C9B89F]">No payment records</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5245]">Reason (for audit trail)</p>
+                <TextInput value={actionReason} onChange={(e) => setActionReason(e.target.value)} placeholder="Why is this change being made?" />
+              </div>
+
+              {selected.status === 'created' && (
+                <div className="flex flex-wrap gap-2">
+                  <Btn size="sm" onClick={() => handleStatus(selected.id, 'pending_payment')} disabled={saving}>Approve → Pending Payment</Btn>
+                  <Btn size="sm" variant="secondary" onClick={() => handleStatus(selected.id, 'defaulted')} disabled={saving}>Reject</Btn>
+                </div>
+              )}
+
+              {selected.status === 'pending_payment' && (
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="min-w-[200px] flex-1">
+                    <TextInput label="Disbursement Reference" value={disburseRef} onChange={(e) => setDisburseRef(e.target.value)} placeholder="e.g. REF-001" />
+                  </div>
+                  <Btn size="sm" onClick={handleDisburse} disabled={saving || !disburseRef}>Disburse (Generate Installments)</Btn>
+                </div>
+              )}
+
+              {selected.status === 'disbursed' && (
+                <div className="flex flex-wrap gap-2">
+                  <Btn size="sm" onClick={() => handleStatus(selected.id, 'active_repayment')} disabled={saving}>Activate Repayment</Btn>
+                  <Btn size="sm" variant="secondary" onClick={() => handleStatus(selected.id, 'defaulted')} disabled={saving}>Mark Defaulted</Btn>
+                </div>
+              )}
+
+              {selected.status === 'active_repayment' && (
+                <div className="flex flex-wrap gap-2">
+                  <Btn size="sm" onClick={() => handleStatus(selected.id, 'settled')} disabled={saving}>Mark Settled</Btn>
+                  <Btn size="sm" variant="secondary" onClick={async () => { await api.post('/bnpl/approvals', { requestType: 'write_off', requestData: { subscriptionId: selected.id }, reason: actionReason || 'Write-off requested' }); alert('Write-off request submitted for approval'); fetch() }} disabled={saving}>
+                    Request Write-Off
+                  </Btn>
+                  <Btn size="sm" variant="secondary" onClick={() => handleStatus(selected.id, 'defaulted')} disabled={saving}>Mark Defaulted</Btn>
+                </div>
+              )}
+
+              {selected.status === 'defaulted' && (
+                <Btn size="sm" onClick={() => handleStatus(selected.id, 'pending_payment')} disabled={saving}>Reactivate</Btn>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -17,10 +17,26 @@ import { KycService } from './kyc.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipCsrf } from '../../common/guards/csrf.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { KycStatus } from '../../common/enums/status.enum';
 import { KorapayIdentityType } from './korapay/korapay.types';
+import type { Response } from 'express';
+
+/**
+ * CSV cell escaping against formula (CSV-cell) injection: Excel/Sheets evaluate
+ * cells beginning with `= + - @` `;`, tab or CR. Quoting alone is insufficient
+ * (a leading `"` can be smuggled), so guard-char cells are prefixed with `'`
+ * and embedded quotes doubled. Newlines are normalized so no cell can inject a
+ * synthetic row.
+ */
+function csvCell(value: string | number | null | undefined): string {
+  const raw = value == null ? '' : String(value);
+  const needsGuard = /^[=+\-@\t\r;]/.test(raw);
+  const protectedValue = (needsGuard ? "'" : '') + raw.replace(/\r?\n/gu, ' ');
+  return `"${protectedValue.replace(/"/gu, '""')}"`;
+}
 
 @Controller('api/v1/kyc')
 export class KycController {
@@ -36,6 +52,7 @@ export class KycController {
   }
 
   @Post('webhook')
+  @SkipCsrf()
   async webhook(
     @Req() req: any,
     @Headers('x-korapay-signature') signature: string,
@@ -56,7 +73,13 @@ export class KycController {
 
   @Get('submissions')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.BUSINESS_MANAGER, Role.BNPL_MANAGER, Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN, Role.OPERATIONAL_ADMIN)
+  @Roles(
+    Role.BUSINESS_MANAGER,
+    Role.BNPL_MANAGER,
+    Role.SUPER_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+  )
   async listSubmissions(
     @Query('status') status?: string,
     @Query('search') search?: string,
@@ -66,7 +89,13 @@ export class KycController {
 
   @Patch('submissions/:id/review')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.BUSINESS_MANAGER, Role.BNPL_MANAGER, Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN, Role.OPERATIONAL_ADMIN)
+  @Roles(
+    Role.BUSINESS_MANAGER,
+    Role.BNPL_MANAGER,
+    Role.SUPER_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+  )
   async reviewSubmission(
     @Param('id') id: string,
     @Body() dto: { status: KycStatus; rejectionReason?: string },
@@ -77,17 +106,30 @@ export class KycController {
   @Get('export')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.BUSINESS_MANAGER, Role.BNPL_MANAGER, Role.SUPER_ADMIN)
-  async export(@Res() res: any) {
+  async export(@Res() res: Response) {
     const submissions = await this.service.listSubmissions();
-    const header = 'ID,User ID,Provider,Reference,Status,Rejection Reason,Submitted At,Processed At\n';
+    const header =
+      'ID,User ID,Provider,Reference,Status,Rejection Reason,Submitted At,Processed At\n';
     const rows = submissions
-      .map(
-        (s) =>
-          `${s.id},${s.userId},${s.provider},${s.reference},${s.status},${s.rejectionReason || ''},${s.submittedAt?.toISOString() || ''},${s.processedAt?.toISOString() || ''}`,
+      .map((s) =>
+        [
+          csvCell(s.id),
+          csvCell(s.userId),
+          csvCell(s.provider),
+          csvCell(s.reference),
+          csvCell(s.status),
+          csvCell(s.rejectionReason),
+          csvCell(s.submittedAt?.toISOString()),
+          csvCell(s.processedAt?.toISOString()),
+        ].join(','),
       )
       .join('\n');
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="kyc-submissions.csv"');
-    res.send(header + rows);
+    // UTF-8 BOM: Excel otherwise mangles accented characters.
+    res.type('csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="kyc-submissions.csv"',
+    );
+    res.send('\uFEFF' + header + rows);
   }
 }

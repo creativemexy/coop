@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Modal } from '../../components/ui/modal'
+import {
+  TrendingUp, X, CheckCircle2, XCircle, Banknote, Copy, Check,
+  Loader2, Lock, Hash, PieChart, ShieldAlert, Sparkles,
+} from 'lucide-react'
 
 interface InvestmentProduct {
   id: string
@@ -26,34 +25,6 @@ interface InvestmentProduct {
   isOpen: boolean
 }
 
-const typeColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-  shares: 'info',
-  fixed_income: 'success',
-  pooled: 'warning',
-}
-
-const riskColors: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-  low: 'success',
-  medium: 'warning',
-  high: 'danger',
-}
-
-const freqLabels: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  annually: 'Annually',
-  maturity: 'At Maturity',
-}
-
-const productBorders = [
-  'border-indigo-500',
-  'border-emerald-500',
-  'border-blue-500',
-  'border-amber-500',
-  'border-fuchsia-500',
-  'border-cyan-500',
-]
-
 interface PaymentInstruction {
   id: string
   amount: number
@@ -72,6 +43,117 @@ interface Compliance {
   kycApproved: boolean
   eligible: boolean
   requirements: Array<{ key: string; label: string; met: boolean; status: string }>
+}
+
+const typeMeta = (t: string) => {
+  switch (t) {
+    case 'shares':
+      return { label: 'Shares', cls: 'bg-[#6B5245]/10 text-[#6B5245]' }
+    case 'fixed_income':
+      return { label: 'Fixed Income', cls: 'bg-[#176B5B]/10 text-[#176B5B]' }
+    case 'pooled':
+      return { label: 'Pooled Investment', cls: 'bg-[#9D4824]/10 text-[#9D4824]' }
+    default:
+      return { label: t.replace('_', ' '), cls: 'bg-[#EDE2D3] text-[#6B5245]' }
+  }
+}
+
+const riskMeta = (r: string) => {
+  switch (r) {
+    case 'low':
+      return { label: 'Low risk', cls: 'bg-[#176B5B]/10 text-[#176B5B]', dot: 'bg-[#176B5B]' }
+    case 'medium':
+      return { label: 'Medium risk', cls: 'bg-[#E4A42A]/15 text-[#8A5A00]', dot: 'bg-[#E4A42A]' }
+    case 'high':
+      return { label: 'High risk', cls: 'bg-[#B3261E]/10 text-[#B3261E]', dot: 'bg-[#B3261E]' }
+    default:
+      return { label: r, cls: 'bg-[#EDE2D3] text-[#6B5245]', dot: 'bg-[#C9B89F]' }
+  }
+}
+
+const freqLabels: Record<string, string> = {
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  annually: 'Annually',
+  maturity: 'At Maturity',
+}
+
+const solidGreen =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#176B5B] px-4 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const solidGold =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-[#E4A42A] px-4 py-2.5 text-sm font-semibold text-[#2C1B13] shadow-sm transition hover:bg-[#B9891F] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const ghost =
+  'inline-flex items-center justify-center gap-2 rounded-full border border-[#E7DCCB] bg-white px-4 py-2.5 text-sm font-semibold text-[#6B5245] transition hover:bg-[#FFF9EF] disabled:opacity-60 disabled:pointer-events-none cursor-pointer'
+const fieldCls =
+  'w-full rounded-xl border border-[#E7DCCB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#23150F] outline-none transition placeholder:text-[#C9B89F] hover:border-[#D8C9A9] focus:border-[#176B5B] focus:ring-2 focus:ring-[#176B5B]/20'
+
+const formatCurrency = (n: number) =>
+  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(n)
+
+function BrandModal({
+  open,
+  onClose,
+  icon,
+  iconCls,
+  title,
+  subtitle,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  icon: ReactNode
+  iconCls: string
+  title: string
+  subtitle?: string
+  children: ReactNode
+}) {
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-[#23150F]/50 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#EDE2D3] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconCls}`}>{icon}</div>
+            <div>
+              <h2 className="text-xl font-black tracking-[-0.02em] text-[#2C1B13]">{title}</h2>
+              {subtitle && <p className="text-xs text-[#6B5245]">{subtitle}</p>}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-[#6B5245] transition hover:bg-[#FFF9EF] hover:text-[#2C1B13] cursor-pointer"
+            aria-label="Close"
+          >
+            <X size={17} />
+          </button>
+        </div>
+        <div className="max-h-[calc(92vh-76px)] overflow-y-auto px-6 py-5">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function SummaryRow({ label, value, valueCls }: { label: string; value: ReactNode; valueCls?: string }) {
+  return (
+    <div className="flex justify-between gap-3 text-sm">
+      <span className="text-[#6B5245]">{label}</span>
+      <span className={`font-semibold text-[#2C1B13] ${valueCls ?? ''}`}>{value}</span>
+    </div>
+  )
 }
 
 export function Investments() {
@@ -98,9 +180,6 @@ export function Investments() {
       api.get('/investments/compliance').then((r) => setCompliance(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false))
   }, [filterType, filterRisk])
-
-  const formatCurrency = (n: number) =>
-    new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(n)
 
   const handleInvest = async () => {
     if (!selected || !investAmount) return
@@ -215,278 +294,324 @@ export function Investments() {
   const filtered = products.filter((p) => p.isOpen)
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Investment Opportunities</h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B79B6B]">Investment Products</p>
+          <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Investment Opportunities</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+            Grow beyond savings with co-op investment products.
+          </p>
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+          <TrendingUp size={22} className="text-[#176B5B]" />
+        </div>
+      </div>
 
+      {/* Compliance */}
       {compliance && !compliance.eligible && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-4 flex items-start gap-3">
-          <div className="text-amber-500 text-lg shrink-0">⚠</div>
-          <div>
-            <p className="font-medium text-amber-800 dark:text-amber-300">KYC verification required</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-              Your KYC status is <strong>{compliance.kycStatus}</strong>. You must complete KYC verification before you can invest.
-            </p>
-            {compliance.requirements.map((r) => !r.met && (
-              <p key={r.key} className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                {r.label}: {r.status}
+        <div className="flex flex-col gap-3 rounded-2xl border border-[#E4A42A]/30 bg-gradient-to-br from-[#F7D674]/25 to-[#FFF9EF] p-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E4A42A]/20">
+              <ShieldAlert size={17} className="text-[#8A5A00]" />
+            </span>
+            <div>
+              <p className="font-bold text-[#2C1B13]">KYC verification required</p>
+              <p className="mt-0.5 text-sm text-[#6B5245]">
+                Your KYC status is <strong className="capitalize">{compliance.kycStatus}</strong>. You must complete KYC verification before you can invest.
               </p>
-            ))}
-            <Button size="sm" className="mt-2" onClick={() => window.location.href = '/individual/kyc'}>
-              Complete KYC
-            </Button>
+              {compliance.requirements.map((r) => !r.met && (
+                <p key={r.key} className="mt-0.5 text-xs text-[#B3261E]">
+                  {r.label}: {r.status}
+                </p>
+              ))}
+            </div>
           </div>
+          <a href="/individual/kyc" className={`${solidGold} shrink-0`}>Complete KYC</a>
         </div>
       )}
 
+      {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="border rounded px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-        >
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className={`${fieldCls} w-auto appearance-none`}>
           <option value="">All Types</option>
           <option value="shares">Shares</option>
           <option value="fixed_income">Fixed Income</option>
           <option value="pooled">Pooled Investment</option>
         </select>
-        <select
-          value={filterRisk}
-          onChange={(e) => setFilterRisk(e.target.value)}
-          className="border rounded px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-        >
+        <select value={filterRisk} onChange={(e) => setFilterRisk(e.target.value)} className={`${fieldCls} w-auto appearance-none`}>
           <option value="">All Risk Tiers</option>
           <option value="low">Low</option>
           <option value="medium">Medium</option>
           <option value="high">High</option>
         </select>
+        {!loading && (
+          <span className="ml-auto self-center text-xs font-medium text-[#B79B6B]">{filtered.length} product{filtered.length !== 1 ? 's' : ''}</span>
+        )}
       </div>
 
+      {/* Grid */}
       {loading ? (
-        <div className="py-12 text-center text-gray-500">Loading...</div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <div className="py-12 text-center text-gray-400">No investment opportunities available</div>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((p) => (
-            <Card key={p.id} className={`flex flex-col ${productBorders[filtered.indexOf(p) % productBorders.length]}`}>
-              <div className="flex items-start justify-between mb-2">
-                <CardTitle className="text-base">{p.name}</CardTitle>
-                <Badge variant={riskColors[p.riskTier] ?? 'default'}>{p.riskTier}</Badge>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
+              <div className="space-y-2.5 p-5">
+                <div className="h-4 w-1/2 animate-pulse rounded-full bg-[#F0DDAD]/50" />
+                <div className="h-3 w-full animate-pulse rounded-full bg-[#F0DDAD]/30" />
+                <div className="h-3 w-2/3 animate-pulse rounded-full bg-[#F0DDAD]/30" />
+                <div className="h-9 w-full animate-pulse rounded-full bg-[#F0DDAD]/40" />
               </div>
-              <Badge variant={typeColors[p.type] ?? 'default'} className="self-start mb-2">
-                {p.type.replace('_', ' ')}
-              </Badge>
-              {p.description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">{p.description}</p>
-              )}
-              <div className="space-y-1 text-sm mt-auto">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Min investment</span>
-                  <span className="font-medium">{formatCurrency(p.minimumInvestment)}</span>
-                </div>
-                {p.expectedReturnRate > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Expected return</span>
-                    <span className="font-medium text-green-600">{p.expectedReturnRate}%</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Distribution</span>
-                  <span className="font-medium">{freqLabels[p.distributionFrequency] || p.distributionFrequency}</span>
-                </div>
-                {p.lockInDays > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Lock-in</span>
-                    <span className="font-medium">{p.lockInDays} days</span>
-                  </div>
-                )}
-              </div>
-              <Button className="w-full mt-4" disabled={!compliance?.eligible} onClick={() => { setSelected(p); setInvestAmount(''); setOrderResult(null) }}>
-                {compliance?.eligible ? 'Invest Now' : 'KYC Required'}
-              </Button>
-            </Card>
+            </div>
           ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#E7DCCB] bg-white/60 px-6 py-16 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E4A42A]/15">
+            <PieChart size={26} className="text-[#8A5A00]" />
+          </div>
+          <p className="font-bold text-[#2C1B13]">No investment opportunities available</p>
+          <p className="max-w-sm text-sm text-[#6B5245]">Check back soon — new products open up regularly.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((p) => {
+            const risk = riskMeta(p.riskTier)
+            const type = typeMeta(p.type)
+            return (
+              <div key={p.id} className="group flex flex-col overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#E4A42A]/50 hover:shadow-lg">
+                <div className="border-b border-[#EDE2D3] bg-gradient-to-br from-[#FFF9EF] to-[#F0DDAD]/30 px-5 py-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-lg font-black tracking-[-0.02em] text-[#2C1B13]">{p.name}</h3>
+                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${risk.cls}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${risk.dot}`} /> {risk.label}
+                    </span>
+                  </div>
+                  <span className={`mt-2 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${type.cls}`}>{type.label}</span>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  {p.description && (
+                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-[#6B5245]">{p.description}</p>
+                  )}
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[#6B5245]">Min investment</span>
+                      <span className="font-semibold text-[#2C1B13]">{formatCurrency(p.minimumInvestment)}</span>
+                    </div>
+                    {p.expectedReturnRate > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#6B5245]">Expected return</span>
+                        <span className="flex items-center gap-1 font-bold text-[#176B5B]"><TrendingUp size={13} /> {p.expectedReturnRate}%</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-[#6B5245]">Distribution</span>
+                      <span className="font-semibold text-[#2C1B13]">{freqLabels[p.distributionFrequency] || p.distributionFrequency}</span>
+                    </div>
+                    {p.lockInDays > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#6B5245]">Lock-in</span>
+                        <span className="font-semibold text-[#2C1B13]">{p.lockInDays} days</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!compliance?.eligible}
+                    onClick={() => { setSelected(p); setInvestAmount(''); setOrderResult(null) }}
+                    className={`${compliance?.eligible ? solidGold : 'inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#EDE2D3] px-4 py-2.5 text-sm font-semibold text-[#6B5245] cursor-not-allowed'} mt-4`}
+                  >
+                    {compliance?.eligible ? (<><Sparkles size={15} /> Invest Now</>) : (<><Lock size={14} /> KYC Required</>)}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
-      <Modal open={!!selected && !orderResult} onClose={() => setSelected(null)} title={selected?.name || ''}>
+      {/* Invest modal */}
+      <BrandModal
+        open={!!selected && !orderResult}
+        onClose={() => setSelected(null)}
+        icon={<Banknote size={18} className="text-[#176B5B]" />}
+        iconCls="bg-[#176B5B]/10"
+        title={selected?.name ?? ''}
+        subtitle="Review the product before placing your order"
+      >
         {selected && (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Type</span>
-                <span className="font-medium capitalize">{selected.type.replace('_', ' ')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Risk tier</span>
-                <Badge variant={riskColors[selected.riskTier] ?? 'default'}>{selected.riskTier}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Min / Max</span>
-                <span className="font-medium">{formatCurrency(selected.minimumInvestment)} {selected.maximumInvestment ? `- ${formatCurrency(selected.maximumInvestment)}` : '+'}</span>
-              </div>
-              {selected.unitPrice && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Unit price</span>
-                  <span className="font-medium">{formatCurrency(selected.unitPrice)}</span>
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-[#EDE2D3] bg-[#FFF9EF] p-4 text-sm">
+              <div className="space-y-2">
+                <SummaryRow label="Type" value={typeMeta(selected.type).label} />
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className="text-[#6B5245]">Risk tier</span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${riskMeta(selected.riskTier).cls}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${riskMeta(selected.riskTier).dot}`} /> {riskMeta(selected.riskTier).label}
+                  </span>
                 </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-gray-500">Management fee</span>
-                <span className="font-medium">{selected.managementFeeRate}%</span>
+                <SummaryRow label="Min / Max" value={formatCurrency(selected.minimumInvestment) + (selected.maximumInvestment ? ` - ${formatCurrency(selected.maximumInvestment)}` : ' +')} />
+                {selected.unitPrice && <SummaryRow label="Unit price" value={formatCurrency(selected.unitPrice)} />}
+                <SummaryRow label="Management fee" value={`${selected.managementFeeRate}%`} />
+                <SummaryRow label="Expected return" value={`${selected.expectedReturnRate}%`} valueCls="text-[#176B5B]" />
+                <SummaryRow label="Distribution" value={freqLabels[selected.distributionFrequency] || selected.distributionFrequency} />
+                {selected.lockInDays > 0 && <SummaryRow label="Lock-in period" value={`${selected.lockInDays} days`} />}
+                {selected.tenorDays && <SummaryRow label="Tenor" value={`${selected.tenorDays} days`} />}
+                {selected.availableUnits !== null && <SummaryRow label="Available units" value={`${selected.availableUnits} / ${selected.totalUnits}`} />}
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Expected return</span>
-                <span className="font-medium text-green-600">{selected.expectedReturnRate}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Distribution</span>
-                <span className="font-medium">{freqLabels[selected.distributionFrequency]}</span>
-              </div>
-              {selected.lockInDays > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Lock-in period</span>
-                  <span className="font-medium">{selected.lockInDays} days</span>
-                </div>
-              )}
-              {selected.tenorDays && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tenor</span>
-                  <span className="font-medium">{selected.tenorDays} days</span>
-                </div>
-              )}
-              {selected.availableUnits !== null && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Available units</span>
-                  <span className="font-medium">{selected.availableUnits} / {selected.totalUnits}</span>
-                </div>
-              )}
             </div>
 
-            <Input
-              label="Investment amount"
-              type="number"
-              value={investAmount}
-              onChange={(e) => setInvestAmount(e.target.value)}
-              placeholder={`Min ${formatCurrency(selected.minimumInvestment)}${selected.maximumInvestment ? ` - Max ${formatCurrency(selected.maximumInvestment)}` : ''}`}
-            />
-
-            <p className="text-xs text-gray-500">
-              Range: {formatCurrency(selected.minimumInvestment)}
-              {selected.maximumInvestment ? ` - ${formatCurrency(selected.maximumInvestment)}` : ' or more'}
-            </p>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-[0.12em] text-[#6B5245]">Investment amount</label>
+              <input
+                type="number"
+                value={investAmount}
+                onChange={(e) => setInvestAmount(e.target.value)}
+                placeholder={`Min ${formatCurrency(selected.minimumInvestment)}${selected.maximumInvestment ? ` - Max ${formatCurrency(selected.maximumInvestment)}` : ''}`}
+                className={fieldCls}
+              />
+              <p className="mt-1.5 text-xs text-[#6B5245]">
+                Range: {formatCurrency(selected.minimumInvestment)}
+                {selected.maximumInvestment ? ` - ${formatCurrency(selected.maximumInvestment)}` : ' or more'}
+              </p>
+            </div>
 
             {investAmount && !Number.isNaN(Number(investAmount)) && Number(investAmount) >= selected.minimumInvestment && (selected.maximumInvestment == null || Number(investAmount) <= selected.maximumInvestment) && (
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm space-y-1">
-                <div className="flex justify-between">
-                  <span>Amount</span>
-                  <span className="font-medium">{formatCurrency(Number(investAmount))}</span>
+              <div className="rounded-2xl border border-[#E7DCCB] bg-white p-4 text-sm shadow-sm">
+                <p className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#8A5A00]">
+                  <Hash size={13} /> Order estimate
+                </p>
+                <div className="space-y-2">
+                  <SummaryRow label="Amount" value={formatCurrency(Number(investAmount))} />
+                  <SummaryRow label={`Fee (${selected.managementFeeRate}%)`} value={formatCurrency(Number(investAmount) * selected.managementFeeRate / 100)} />
+                  <SummaryRow label="Net investment" value={formatCurrency(Number(investAmount) * (1 - selected.managementFeeRate / 100))} />
+                  {selected.unitPrice && (
+                    <SummaryRow label="Est. units" value={String(Math.floor(Number(investAmount) * (1 - selected.managementFeeRate / 100) / selected.unitPrice))} />
+                  )}
                 </div>
-                <div className="flex justify-between">
-                  <span>Fee ({selected.managementFeeRate}%)</span>
-                  <span className="font-medium">{formatCurrency(Number(investAmount) * selected.managementFeeRate / 100)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Net investment</span>
-                  <span className="font-medium">{formatCurrency(Number(investAmount) * (1 - selected.managementFeeRate / 100))}</span>
-                </div>
-                {selected.unitPrice && (
-                  <div className="flex justify-between">
-                    <span>Est. units</span>
-                    <span className="font-medium">{Math.floor(Number(investAmount) * (1 - selected.managementFeeRate / 100) / selected.unitPrice)}</span>
-                  </div>
-                )}
               </div>
             )}
 
-            <Button
-              className="w-full"
+            <button
+              type="button"
               onClick={handleInvest}
               disabled={submitting || !investAmount || Number.isNaN(Number(investAmount)) || Number(investAmount) < selected.minimumInvestment || (selected.maximumInvestment != null && Number(investAmount) > selected.maximumInvestment)}
+              className={`${solidGreen} w-full`}
             >
-              {submitting ? 'Processing...' : 'Place Order'}
-            </Button>
+              {submitting ? (<><Loader2 size={15} className="animate-spin" /> Processing...</>) : 'Place Order'}
+            </button>
+
             {investAmount && !Number.isNaN(Number(investAmount)) && Number(investAmount) < selected.minimumInvestment && (
-              <p className="text-xs text-red-500 text-center">Minimum investment is {formatCurrency(selected.minimumInvestment)}</p>
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-[#B3261E]">
+                <XCircle size={13} /> Minimum investment is {formatCurrency(selected.minimumInvestment)}
+              </p>
             )}
             {investAmount && !Number.isNaN(Number(investAmount)) && selected.maximumInvestment != null && Number(investAmount) > selected.maximumInvestment && (
-              <p className="text-xs text-red-500 text-center">Maximum investment is {formatCurrency(selected.maximumInvestment)}</p>
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-[#B3261E]">
+                <XCircle size={13} /> Maximum investment is {formatCurrency(selected.maximumInvestment)}
+              </p>
             )}
           </div>
         )}
-      </Modal>
+      </BrandModal>
 
-      <Modal open={!!orderResult && !pay} onClose={() => { setOrderResult(null); setSelected(null) }} title="Order Placed">
+      {/* Order placed modal */}
+      <BrandModal
+        open={!!orderResult && !pay}
+        onClose={() => { setOrderResult(null); setSelected(null) }}
+        icon={<CheckCircle2 size={18} className="text-[#176B5B]" />}
+        iconCls="bg-[#176B5B]/10"
+        title="Order Placed"
+      >
         {orderResult && (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-center">
-              <p className="text-green-600 font-medium text-lg">Order placed successfully</p>
-              <p className="text-sm text-green-600 mt-1">Order #{orderResult.id.slice(0, 8)}</p>
+          <div className="space-y-5">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-[#176B5B]/20 bg-gradient-to-b from-[#176B5B]/10 to-[#FFF9EF] px-4 py-6 text-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#176B5B]">
+                <CheckCircle2 size={22} className="text-[#FFF9EF]" />
+              </span>
+              <p className="text-lg font-black text-[#176B5B]">Order placed successfully</p>
+              <p className="text-sm font-medium text-[#6B5245]">Order #<span className="font-black text-[#2C1B13]">{orderResult.id.slice(0, 8)}</span></p>
             </div>
-            <div className="text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Amount</span>
-                <span className="font-medium">{formatCurrency(orderResult.amount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Units</span>
-                <span className="font-medium">{orderResult.units}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Fee</span>
-                <span className="font-medium">{formatCurrency(orderResult.fee)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Status</span>
-                <Badge variant="warning">{orderResult.status}</Badge>
+            <div className="space-y-2 rounded-2xl border border-[#EDE2D3] bg-[#FFF9EF] p-4 text-sm">
+              <SummaryRow label="Amount" value={formatCurrency(orderResult.amount)} />
+              <SummaryRow label="Units" value={String(orderResult.units)} />
+              <SummaryRow label="Fee" value={formatCurrency(orderResult.fee)} />
+              <div className="flex justify-between gap-3 text-sm">
+                <span className="text-[#6B5245]">Status</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E4A42A]/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-[#8A5A00]">
+                  {orderResult.status}
+                </span>
               </div>
             </div>
-            <Button className="w-full" onClick={() => handleStartPayment(orderResult.id)}>
-              Pay Now with Bank Transfer
-            </Button>
+            <button type="button" onClick={() => handleStartPayment(orderResult.id)} className={`${solidGold} w-full`}>
+              <Banknote size={15} /> Pay Now with Bank Transfer
+            </button>
           </div>
         )}
-      </Modal>
+      </BrandModal>
 
-      <Modal open={!!pay} onClose={() => { setPay(null); setOrderResult(null); setSelected(null) }} title="Pay via Bank Transfer">
+      {/* Pay via bank transfer modal */}
+      <BrandModal
+        open={!!pay}
+        onClose={() => { setPay(null); setOrderResult(null); setSelected(null) }}
+        icon={<Banknote size={18} className="text-[#8A5A00]" />}
+        iconCls="bg-[#E4A42A]/15"
+        title="Pay via Bank Transfer"
+        subtitle="Your order is confirmed once the transfer is verified"
+      >
         {pay && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Transfer <strong className="text-gray-900 dark:text-gray-100">{formatCurrency(pay.instruction.amount)}</strong>{' '}
-              to the account below using your bank app. Your investment order will be confirmed once the payment is verified.
+          <div className="space-y-5">
+            <p className="text-sm leading-relaxed text-[#6B5245]">
+              Transfer <strong className="text-[#2C1B13]">{formatCurrency(pay.instruction.amount)}</strong> to the account below using your bank app. Your investment order will be confirmed once the payment is verified.
             </p>
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 text-sm">
-              <p className="text-xs text-gray-500">{pay.instruction.bankName}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-2xl font-bold tracking-wider text-gray-900 dark:text-gray-100">
-                  {pay.instruction.accountNumber}
-                </p>
-                <button onClick={copyAccount} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
+
+            <div className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-[#FFF9EF]">
+              <div className="flex items-center justify-between bg-[#2C1B13] px-4 py-2">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#F0DDAD]">{pay.instruction.bankName}</p>
+                <span className="rounded-full bg-[#E4A42A]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#F0DDAD]">Account</span>
               </div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{pay.instruction.accountName}</p>
-              <p className="text-xs text-gray-400 mt-2">Ref: {pay.instruction.reference}</p>
+              <div className="p-4">
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-black tracking-[0.08em] text-[#2C1B13]">{pay.instruction.accountNumber}</p>
+                  <button
+                    type="button"
+                    onClick={copyAccount}
+                    className="inline-flex items-center gap-1 rounded-full border border-[#E7DCCB] bg-white px-2.5 py-1 text-xs font-semibold text-[#176B5B] transition hover:bg-[#176B5B]/5 cursor-pointer"
+                  >
+                    {copied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
+                  </button>
+                </div>
+                <p className="mt-1 text-sm font-semibold text-[#2C1B13]">{pay.instruction.accountName}</p>
+                <p className="mt-2 flex items-center gap-1 border-t border-[#EDE2D3] pt-2 text-xs text-[#6B5245]">
+                  <Hash size={11} /> Ref: <span className="font-semibold text-[#2C1B13]">{pay.instruction.reference}</span>
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 text-center">
-              Status: {pay.instruction.status}{' · '}
-              {pay.instruction.status === 'credited' ? 'Credited'
-                : pay.instruction.status === 'expired' ? 'Expired'
-                  : pay.instruction.expiresAt
+
+            <div className="flex items-center justify-center gap-2 text-xs text-[#6B5245]">
+              <span>Status:</span>
+              {pay.instruction.status === 'credited' ? (
+                <span className="inline-flex items-center gap-1 font-bold text-[#176B5B]"><CheckCircle2 size={13} /> Credited</span>
+              ) : pay.instruction.status === 'expired' ? (
+                <span className="inline-flex items-center gap-1 font-bold text-[#B3261E]"><XCircle size={13} /> Expired</span>
+              ) : (
+                <span>
+                  {pay.instruction.expiresAt
                     ? `Transfers expire ${new Date(pay.instruction.expiresAt).toLocaleTimeString()}`
                     : 'Awaiting transfer'}
-            </p>
-            <Button className="w-full" disabled={checking} onClick={checkPayment}>
-              {checking ? 'Checking...' : "I've transferred · Check"}
-            </Button>
-            <Button variant="ghost" className="w-full" onClick={() => { setPay(null); setOrderResult(null); setSelected(null) }}>
+                </span>
+              )}
+            </div>
+
+            <button type="button" disabled={checking} onClick={checkPayment} className={`${solidGreen} w-full`}>
+              {checking ? (<><Loader2 size={15} className="animate-spin" /> Checking...</>) : "I've transferred · Check"}
+            </button>
+            <button type="button" onClick={() => { setPay(null); setOrderResult(null); setSelected(null) }} className={`${ghost} w-full`}>
               Close
-            </Button>
+            </button>
           </div>
         )}
-      </Modal>
+      </BrandModal>
     </div>
   )
 }

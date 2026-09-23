@@ -23,7 +23,7 @@ export const useRolePermissions = create<RolePermissionsState>((set, get) => ({
     if (get().loaded || get().loading) return
     set({ loading: true })
     try {
-      const { data } = await api.get('/admin/super/role-permissions')
+      const { data } = await api.get('/settings/role-permissions')
       set({ config: data ?? {}, loaded: true, loading: false })
     } catch {
       set({ loaded: true, loading: false })

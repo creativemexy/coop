@@ -2,12 +2,14 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User } from '../users/entities/user.entity';
@@ -36,6 +38,13 @@ interface LoginDeviceInfo {
   deviceType?: string;
   os?: string;
   browser?: string;
+}
+
+function safeEqualTokens(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 @Injectable()
@@ -94,37 +103,15 @@ export class AuthService {
       ],
     });
 
-    // Fallback for users without hashes (pre-encryption migration)
-    const legacy = await this.userRepository.find({
-      where: { emailHash: IsNull() },
-    });
-
-    // An "stale/incomplete" registration is an INACTIVE user who never paid the
+    // "stale/incomplete" registrations: an INACTIVE user who never paid the
     // registration fee. Those must NOT block a fresh registration with the same
     // email/phone — the account was never completed, so it is reset and reused
     // so the member can pay the fee and finish registering.
     const isStalePending = (u?: User) =>
       !!u && !u.isActive && !u.registrationFeePaid;
 
-    const legacyMatch = ((): User | undefined => {
-      if (dto.email) {
-        const u = legacy.find(
-          (x) => x.email?.toLowerCase() === dto.email!.toLowerCase(),
-        );
-        if (u) return u;
-      }
-      if (phone) {
-        const u = legacy.find((x) => x.phone === phone);
-        if (u) return u;
-      }
-      return undefined;
-    })();
-
     const isEmailMatch = (u: User) =>
-      dto.email
-        ? u.emailHash === hashForLookup(email) ||
-          u.email?.toLowerCase() === dto.email.toLowerCase()
-        : false;
+      dto.email ? u.emailHash === hashForLookup(email) : false;
 
     if (existing && !isStalePending(existing)) {
       throw new BadRequestException(
@@ -133,14 +120,9 @@ export class AuthService {
           : 'Phone number already registered',
       );
     }
-    if (legacyMatch && !isStalePending(legacyMatch)) {
-      throw new BadRequestException(
-        dto.email &&
-          legacyMatch.email?.toLowerCase() === dto.email.toLowerCase()
-          ? 'Email already registered'
-          : 'Phone number already registered',
-      );
-    }
+
+    const legacyMatch =
+      existing && isStalePending(existing) ? existing : undefined;
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const registrationFeeAmount = await this.settingsService.getNumber(
@@ -164,7 +146,7 @@ export class AuthService {
     }
 
     // Reuse the previously incomplete (unpaid) registration, or create a fresh one.
-    const reuse = existing && isStalePending(existing) ? existing : legacyMatch;
+    const reuse = legacyMatch;
 
     const user = reuse
       ? Object.assign(reuse, {
@@ -277,7 +259,7 @@ export class AuthService {
       : emailOrPhone;
     const phoneLookupHash =
       normalizedPhone !== emailOrPhone ? hashForLookup(normalizedPhone) : null;
-    let user = await this.userRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: [
         { emailHash: lookupHash, isActive: true },
         { phoneHash: lookupHash, isActive: true },
@@ -286,17 +268,6 @@ export class AuthService {
           : []),
       ],
     });
-    // Fallback for users without a hash (pre-encryption migration)
-    if (!user) {
-      const all = await this.userRepository.find({ where: { isActive: true } });
-      user =
-        all.find(
-          (u) =>
-            u.email?.toLowerCase() === emailOrPhone.toLowerCase() ||
-            (u.phone &&
-              (u.phone === emailOrPhone || u.phone === normalizedPhone)),
-        ) ?? null;
-    }
     if (!user) {
       await this.loginHistoryRepo.save({
         userId: 'unknown',
@@ -531,21 +502,22 @@ export class AuthService {
     newPassword: string,
   ): Promise<{ message: string }> {
     const lookupHash = hashForLookup(emailOrPhone);
-    let user = await this.userRepository.findOne({
+    const normalizedPhone = emailOrPhone.includes('@')
+      ? null
+      : normalizePhoneForSms(emailOrPhone);
+    const phoneLookupHash =
+      normalizedPhone && normalizedPhone !== emailOrPhone
+        ? hashForLookup(normalizedPhone)
+        : null;
+    const user = await this.userRepository.findOne({
       where: [
         { emailHash: lookupHash, isActive: true },
         { phoneHash: lookupHash, isActive: true },
+        ...(phoneLookupHash
+          ? [{ phoneHash: phoneLookupHash, isActive: true }]
+          : []),
       ],
     });
-    if (!user) {
-      const all = await this.userRepository.find({ where: { isActive: true } });
-      user =
-        all.find(
-          (u) =>
-            u.email?.toLowerCase() === emailOrPhone.toLowerCase() ||
-            u.phone === emailOrPhone,
-        ) ?? null;
-    }
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -622,21 +594,52 @@ export class AuthService {
       return { message: 'If that account exists, a reset code has been sent' };
     }
 
-    const token = crypto.randomBytes(3).toString('hex').toUpperCase();
-    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+    // Per-account rate limiting (independent of IP throttling): max 1 code per
+    // 60s and max 5 per rolling hour, so an attacker cannot SMS-bomb a victim
+    // or rotate out a legitimate pending reset code.
+    const now = Date.now();
+    const HOUR = 60 * 60 * 1000;
+    const lastResetAt = user.lastResetAt ? Number(user.lastResetAt) : 0;
+    if (now - lastResetAt < 60 * 1000) {
+      throw new HttpException(
+        'Please wait a minute before requesting another reset code.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    const sameHour =
+      lastResetAt > 0 &&
+      Math.floor(lastResetAt / HOUR) === Math.floor(now / HOUR);
+    const hourlyCount = sameHour ? Number(user.resetHourlyCount ?? 0) : 0;
+    if (hourlyCount >= 5) {
+      throw new HttpException(
+        'Too many reset codes requested. Please try again later.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const token = crypto.randomInt(0, 100000000).toString().padStart(8, '0');
+    const expiry = new Date(now + 15 * 60 * 1000);
 
     await this.userRepository.update(user.id, {
       resetToken: token,
       resetTokenExpiry: expiry,
+      resetAttempts: 0,
+      lastResetAt: new Date(now),
+      resetHourlyCount: hourlyCount + 1,
     });
 
     await this.deliverResetCode(user, token);
 
-    // Development convenience only — never return the code over the API in production.
-    return {
-      message: 'If that account exists, a reset code has been sent',
-      ...(process.env.NODE_ENV === 'production' ? {} : { token }),
-    };
+    // Development convenience only — never return the code over the API. Gated
+    // behind an explicit opt-in flag rather than NODE_ENV so a mislabeled
+    // staging/development instance can never leak live reset codes.
+    if (process.env.ENABLE_DEV_RESET_CODE === '1') {
+      return {
+        message: 'If that account exists, a reset code has been sent',
+        token,
+      };
+    }
+    return { message: 'If that account exists, a reset code has been sent' };
   }
 
   /**
@@ -665,19 +668,6 @@ export class AuthService {
       if (byHash) return byHash;
     }
 
-    // Fallback for accounts created before encrypted hashes were backfilled.
-    const all = await this.userRepository.find();
-    if (email) {
-      return all.find((u) => u.email?.toLowerCase() === email) ?? null;
-    }
-    if (phone) {
-      const normalized = normalizePhoneForSms(phone);
-      return (
-        all.find(
-          (u) => u.phone && normalizePhoneForSms(u.phone) === normalized,
-        ) ?? null
-      );
-    }
     return null;
   }
 
@@ -728,13 +718,31 @@ export class AuthService {
     newPassword: string,
   ): Promise<{ message: string }> {
     const user = await this.findUserByIdentifier(emailOrPhone);
-    if (
-      !user ||
-      !user.resetToken ||
-      !user.resetTokenExpiry ||
-      user.resetToken !== token ||
-      user.resetTokenExpiry < new Date()
-    ) {
+    const codeIsValid = Boolean(
+      user &&
+      user.resetToken &&
+      user.resetTokenExpiry &&
+      user.resetTokenExpiry >= new Date() &&
+      safeEqualTokens(user.resetToken, token),
+    );
+
+    if (!codeIsValid) {
+      if (user?.resetToken) {
+        const attempts = Number(user.resetAttempts ?? 0) + 1;
+        const update: Partial<User> = { resetAttempts: attempts };
+        if (attempts >= 5) {
+          // Burn the code after repeated failures so the attacker cannot keep guessing.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          update.resetToken = null as any;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          update.resetTokenExpiry = null as any;
+        }
+        await this.userRepository.update(user.id, update);
+      }
+      throw new BadRequestException('Invalid or expired reset code');
+    }
+
+    if (!user) {
       throw new BadRequestException('Invalid or expired reset code');
     }
 
@@ -745,6 +753,7 @@ export class AuthService {
       resetToken: null as any,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       resetTokenExpiry: null as any,
+      resetAttempts: 0,
     });
 
     return { message: 'Password reset successfully' };

@@ -7,7 +7,7 @@ import {
   Percent, AlertTriangle, Coins, SlidersHorizontal, Scale, BellRing, Monitor,
   ScrollText, BadgeCheck, ArrowLeftRight, ReceiptText, UserCircle, Send,
   NotepadText, CalendarClock, Palette, KeyRound, Library, Layers, DownloadCloud,
-  Rocket, X, Menu, type LucideIcon,
+  Rocket, X, Menu, Gauge, ShieldCheck, LogOut, type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../../stores/auth.store'
 import { useSidebar } from '../../stores/sidebar.store'
@@ -91,6 +91,17 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 const fallbackIcon: LucideIcon = CircleCheck
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: 'Super Admin',
+  operational_admin: 'Operational Admin',
+  customer_care: 'Customer Care',
+  accountant: 'Accountant',
+  business_manager: 'Business Manager',
+  apex_business_manager: 'Apex BM',
+  bnpl_manager: 'BNPL Manager',
+  individual: 'Member',
+}
 
 const navItems: Record<string, { label: string; path: string }[]> = {
   super_admin: [
@@ -201,8 +212,165 @@ const navItems: Record<string, { label: string; path: string }[]> = {
   ],
 }
 
+const INDIVIDUAL_SECTIONS: Record<string, string> = {
+  'Dashboard': 'Overview',
+  'Investments': 'Money',
+  'Portfolio': 'Money',
+  'Distributions': 'Money',
+  'Redemptions': 'Money',
+  'Savings': 'Money',
+  'Investment Statements': 'Money',
+  'Loans': 'Borrowing',
+  'Repayments': 'Borrowing',
+  'Catalog': 'Shopping',
+  'My Subscriptions': 'Shopping',
+  'Profile': 'Account',
+  'KYC': 'Account',
+  'Payment Methods': 'Account',
+  'Statements': 'Account',
+  'Transactions': 'Account',
+  'Notifications': 'Account',
+  'Activity Log': 'Account',
+  'Support': 'Support',
+}
+
+const SUPER_ADMIN_SECTIONS: Record<string, string> = {
+  'System Overview': 'Overview',
+  'Apex Orgs': 'Organizations',
+  'Tenants': 'Organizations',
+  'Users': 'Organizations',
+  'Catalog': 'Organizations',
+  'Plans': 'Organizations',
+  'Plan Config': 'Organizations',
+  'Investment Governance': 'Governance',
+  'Security & Policies': 'Governance',
+  'Role Permissions': 'Governance',
+  'Loan Approvals': 'Operations',
+  'Disputes': 'Operations',
+  'Fee Pots': 'Financial',
+  'Financial Reports': 'Financial',
+  'Payment Transactions': 'Financial',
+  'Financial Config': 'Financial',
+  'Incidents': 'Risk & Monitoring',
+  'Monitoring': 'Risk & Monitoring',
+  'Audit Logs': 'Risk & Monitoring',
+  'KYC Compliance': 'Risk & Monitoring',
+  'Risk Config': 'Risk & Monitoring',
+  'Releases': 'Product & Growth',
+  'Branding': 'Product & Growth',
+  'Notification Templates': 'Product & Growth',
+  'System Config': 'System',
+  'Support': 'System',
+  'Settings': 'System',
+}
+
+const SECTION_META: { label: string; icon: LucideIcon }[] = [
+  { label: 'Overview', icon: Gauge },
+  { label: 'Organizations', icon: Building2 },
+  { label: 'Governance', icon: Scale },
+  { label: 'Operations', icon: ListChecks },
+  { label: 'Financial', icon: Coins },
+  { label: 'Risk & Monitoring', icon: ShieldCheck },
+  { label: 'Product & Growth', icon: Rocket },
+  { label: 'System', icon: Settings },
+  { label: 'Support', icon: LifeBuoy },
+  { label: 'Workspace', icon: LayoutDashboard },
+]
+
+const INDIVIDUAL_SECTION_META: { label: string; icon: LucideIcon }[] = [
+  { label: 'Overview', icon: Gauge },
+  { label: 'Money', icon: PiggyBank },
+  { label: 'Borrowing', icon: Landmark },
+  { label: 'Shopping', icon: ShoppingCart },
+  { label: 'Account', icon: UserCircle },
+  { label: 'Support', icon: LifeBuoy },
+]
+
+const ROLE_SECTION_META: Record<string, { label: string; icon: LucideIcon }[]> = {
+  individual: INDIVIDUAL_SECTION_META,
+  super_admin: SECTION_META,
+  operational_admin: SECTION_META,
+  accountant: SECTION_META,
+  business_manager: SECTION_META,
+  apex_business_manager: SECTION_META,
+  bnpl_manager: SECTION_META,
+  customer_care: SECTION_META,
+}
+
+const OPERATIONAL_ADMIN_SECTIONS: Record<string, string> = {
+  'Dashboard': 'Overview',
+  'Users & Roles': 'Operations',
+  'KYC Review': 'Risk & Monitoring',
+  'Disputes': 'Operations',
+  'Member Statements': 'Financial',
+  'Reports': 'Financial',
+  'Audit Logs': 'Risk & Monitoring',
+  'Approvals': 'Operations',
+  'Loan Approvals': 'Operations',
+  'Config & Toggles': 'System',
+  'Monitoring': 'Risk & Monitoring',
+}
+
+const ACCOUNTANT_SECTIONS: Record<string, string> = {
+  'Dashboard': 'Overview',
+  'Accounts': 'Financial',
+  'Journal Entries': 'Financial',
+  'Fee Pots': 'Financial',
+  'BNPL Financials': 'Financial',
+  'Reconciliation': 'Financial',
+  'Transaction Register': 'Financial',
+  'Reports': 'Financial',
+  'Loan Disbursements': 'Operations',
+}
+
+const BUSINESS_MANAGER_SECTIONS: Record<string, string> = {
+  'Dashboard': 'Overview',
+  'Approvals': 'Operations',
+  'Loan Approvals': 'Operations',
+  'Users': 'Organizations',
+  'Orders': 'Operations',
+  'Collections': 'Operations',
+  'Reports': 'Financial',
+}
+
+const APEX_BM_SECTIONS: Record<string, string> = {
+  'Apex Dashboard': 'Overview',
+  'Users': 'Organizations',
+  'Loan Approvals': 'Operations',
+  'Withdraw Share': 'Financial',
+}
+
+const BNPL_MANAGER_SECTIONS: Record<string, string> = {
+  'Dashboard': 'Overview',
+  'Approvals': 'Operations',
+  'Catalog': 'Organizations',
+  'Plans': 'Organizations',
+  'Orders': 'Operations',
+  'Collections': 'Operations',
+  'Risk Console': 'Risk & Monitoring',
+  'Reports': 'Financial',
+  'Audit Logs': 'Risk & Monitoring',
+  'Subscriptions': 'Operations',
+  'Installments': 'Operations',
+  'KYC Review': 'Risk & Monitoring',
+}
+
+const ROLE_SECTIONS: Record<string, Record<string, string>> = {
+  super_admin: SUPER_ADMIN_SECTIONS,
+  individual: INDIVIDUAL_SECTIONS,
+  operational_admin: OPERATIONAL_ADMIN_SECTIONS,
+  accountant: ACCOUNTANT_SECTIONS,
+  business_manager: BUSINESS_MANAGER_SECTIONS,
+  apex_business_manager: APEX_BM_SECTIONS,
+  bnpl_manager: BNPL_MANAGER_SECTIONS,
+  customer_care: { 'Support Tickets': 'Support' },
+}
+
+const sectionOf = (label: string, role: string) =>
+  ROLE_SECTIONS[role]?.[label] ?? 'Workspace'
+
 export function Sidebar() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const { collapsed, toggle, mobileOpen, setMobileOpen } = useSidebar()
   const { branding } = useBranding()
   const { isMenuDisabled } = useRolePermissions()
@@ -214,69 +382,176 @@ export function Sidebar() {
 
   const items = navItems[user.role] ?? []
   const visibleItems = items.filter(item => !isMenuDisabled(user.role, item.label))
+  const isMember = user.role === 'individual'
+  const sectionMeta = ROLE_SECTION_META[user.role] ?? SECTION_META
+  const groups = sectionMeta
+    .map((section) => ({
+      ...section,
+      items: visibleItems.filter((item) => sectionOf(item.label, user.role) === section.label),
+    }))
+    .filter((g) => g.items.length > 0)
+
+  const initials = `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}`.toUpperCase() || '•'
+  const displayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+
+  const itemCls = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'group relative flex items-center rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 outline-none cursor-pointer',
+      collapsed ? 'lg:justify-center lg:px-0' : 'px-3.5',
+      isActive
+        ? 'bg-[#176B5B] text-white shadow-[0_10px_24px_-10px_rgba(23,107,91,0.55)]'
+        : 'text-[#6B5245] hover:bg-white hover:text-[#23150F] hover:shadow-sm',
+    )
 
   return (
     <>
       <aside className={cn(
-        'flex flex-col border-r bg-[#FFF9EF] transition-all duration-300 z-30',
+        'flex flex-col border-r border-[#EDE2D3] bg-[#FFF9EF] transition-all duration-300 z-30',
         'fixed inset-y-0 left-0 lg:relative lg:inset-auto',
         collapsed ? 'lg:w-20' : 'lg:w-72',
         mobileOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full lg:translate-x-0',
       )}>
-        <div className="flex h-16 items-center justify-between px-4 border-b border-[#EDE2D3] shrink-0">
-          {!collapsed && (
-            <div className="flex items-center gap-3 overflow-hidden">
-              {branding.logoUrl ? (
-                <img src={branding.logoUrl} alt={branding.organizationName} className="h-9 w-9 rounded-xl object-contain" />
-              ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl text-lg font-bold text-[#FFF9EF]" style={{ backgroundColor: branding.primaryColor }}>
-                  {(branding.organizationName || 'F').charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span className="font-bold text-base truncate text-[#2C1B13]">{branding.organizationName}</span>
-            </div>
-          )}
+        {/* Brand header */}
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-[#EDE2D3] px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.organizationName} className="h-10 w-10 rounded-2xl object-contain ring-1 ring-[#E7DCCB]" />
+            ) : (
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-lg font-black text-[#FFF9EF] shadow-sm ring-1 ring-[#E7DCCB]/60"
+                style={{ backgroundColor: branding.primaryColor }}
+              >
+                {(branding.organizationName || 'F').charAt(0).toUpperCase()}
+              </div>
+            )}
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-base font-black tracking-[-0.02em] text-[#2C1B13]">
+                  {isMember ? branding.organizationName : (ROLE_LABELS[user.role] ?? user.role.replace(/_/g, ' '))}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#B79B6B]">
+                  {isMember ? 'Member portal' : branding.organizationName}
+                </p>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => { toggle(); setMobileOpen(false) }}
-            className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] cursor-pointer hidden lg:block transition-colors"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label="Toggle sidebar"
+            className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B5245] transition-colors hover:bg-[#EDE2D3] hover:text-[#23150F] cursor-pointer lg:inline-flex"
           >
-            {collapsed ? <Menu size={20} /> : <X size={20} />}
+            {collapsed ? <Menu size={18} /> : <X size={18} />}
           </button>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-2 rounded-xl text-[#6B5245] hover:bg-[#EDE2D3] cursor-pointer lg:hidden transition-colors"
+            aria-label="Close menu"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B5245] transition-colors hover:bg-[#EDE2D3] cursor-pointer lg:hidden"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto space-y-1 p-3">
-          {visibleItems.map((item) => {
-            const Icon = iconMap[item.label] ?? fallbackIcon
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-                    collapsed && 'lg:justify-center lg:px-3',
-                    isActive
-                      ? 'bg-[#176B5B] text-[#FFF9EF] shadow-sm'
-                      : 'text-[#6B5245] hover:bg-white hover:shadow-sm',
+
+        {/* Member greeting card */}
+        {isMember && !collapsed && (
+          <div className="border-b border-[#EDE2D3] px-4 py-4">
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#EDE2D3]">
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-black text-[#FFF9EF]"
+                  style={{ backgroundColor: branding.primaryColor }}
+                >
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black leading-tight text-[#2C1B13]">
+                    Welcome back, {displayName || user.email}
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-semibold text-[#176B5B]">
+                    {user.kycStatus === 'verified' ? 'Verified member' : 'Member'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          {groups.map((group, gi) => (
+            <div key={group.label} className={cn(gi < groups.length - 1 && 'mb-4')}>
+              <div className={cn('flex items-center gap-1.5 px-3', collapsed ? 'mb-0' : 'mb-1.5', gi !== 0 && !collapsed && 'mt-2')}>
+                {collapsed ? (
+                  <div className="mx-auto my-1.5 h-px w-8 bg-[#EDE2D3]" />
+                ) : (
+                  <>
+                    <group.icon size={12} className="text-[#B79B6B]" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#B79B6B]">{group.label}</span>
+                  </>
+                )}
+              </div>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = iconMap[item.label] ?? fallbackIcon
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end
+                      title={collapsed ? item.label : undefined}
+                      className={itemCls}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && !collapsed && (
+                            <span className="absolute left-1.5 top-1/2 hidden h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#F7D674] lg:block" />
+                          )}
+                          <Icon size={18} className={cn('shrink-0 transition-colors mr-3 lg:mr-3', collapsed && 'lg:mr-0')} />
+                          <span className={cn('block', collapsed && 'lg:hidden')}>{item.label}</span>
+                        </>
+                      )}
+                    </NavLink>
                   )
-                }
-              >
-                <Icon size={18} className={cn('shrink-0', collapsed ? 'lg:mx-0' : 'lg:mr-3', 'mr-3 lg:mr-0', !collapsed && 'lg:mr-3')} />
-                <span className={cn(collapsed ? 'lg:hidden' : '', 'block')}>{item.label}</span>
-              </NavLink>
-            )
-          })}
+                })}
+              </div>
+            </div>
+          ))}
+          {groups.length === 0 && (
+            <div className="px-4 py-10 text-center text-xs text-[#6B5245]">
+              No sections are available for your role.
+            </div>
+          )}
         </nav>
+
+        {/* User footer */}
+        <div className="shrink-0 border-t border-[#EDE2D3] p-3">
+          <div className={cn('flex items-center gap-3 rounded-xl px-2 py-2', collapsed && 'lg:justify-center')}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#176B5B] text-sm font-black text-[#FFF9EF] shadow-sm">
+              {initials}
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold leading-tight text-[#2C1B13]">{displayName || user.email}</p>
+                <p className="truncate text-xs leading-tight text-[#6B5245]">{user.role.replace('_', ' ')}</p>
+              </div>
+            )}
+            <button
+              onClick={() => logout()}
+              title="Sign out"
+              aria-label="Sign out"
+              className={cn(
+                'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B5245] transition-colors hover:bg-[#B3261E]/10 hover:text-[#B3261E] cursor-pointer',
+                !collapsed && 'ml-1',
+              )}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
       </aside>
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-[#23150F]/50 z-20 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-20 bg-[#23150F]/50 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}

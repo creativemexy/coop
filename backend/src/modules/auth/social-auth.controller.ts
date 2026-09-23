@@ -13,7 +13,16 @@ import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { SkipCsrf } from '../../common/guards/csrf.guard';
-import type { Request } from 'express';
+import { setRefreshCookie } from '../../common/refresh-cookie.util';
+import type { Request, Response } from 'express';
+
+type SocialProfile = {
+  socialId: string;
+  provider: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
 
 @Controller('api/v1/auth')
 export class SocialAuthController {
@@ -38,29 +47,33 @@ export class SocialAuthController {
       firstName?: string;
       lastName?: string;
     },
+    @Res({ passthrough: true }) res: Response,
   ) {
     const ip = req.ip || req.socket?.remoteAddress;
     const userAgent = req.headers['user-agent'] || '';
-    return this.authService.socialExchange(dto.provider, dto.idToken, {
-      ip,
-      userAgent,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-    });
+    const result = await this.authService.socialExchange(
+      dto.provider,
+      dto.idToken,
+      {
+        ip,
+        userAgent,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+      },
+    );
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
+    return result;
   }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(@Req() req: any, @Res() res: any) {
-    const profile = req.user as {
-      socialId: string;
-      provider: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-    };
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const profile = (req as unknown as { user: SocialProfile }).user;
 
     const result = await this.findOrCreateUser(profile);
+    setRefreshCookie(res, result.refreshToken);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     return res.redirect(
       `${frontendUrl}/auth/social-callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`,
@@ -73,16 +86,11 @@ export class SocialAuthController {
 
   @Get('apple/callback')
   @UseGuards(AuthGuard('apple'))
-  async appleCallback(@Req() req: any, @Res() res: any) {
-    const profile = req.user as {
-      socialId: string;
-      provider: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-    };
+  async appleCallback(@Req() req: Request, @Res() res: Response) {
+    const profile = (req as unknown as { user: SocialProfile }).user;
 
     const result = await this.findOrCreateUser(profile);
+    setRefreshCookie(res, result.refreshToken);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     return res.redirect(
       `${frontendUrl}/auth/social-callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`,

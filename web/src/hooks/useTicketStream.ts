@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { refreshAccessToken } from '../api/client'
+import { getAccessToken, refreshAccessToken } from '../api/client'
 
 export interface TicketStreamEvent {
   ticketId: string
@@ -10,7 +10,7 @@ export interface TicketStreamEvent {
 }
 
 function getToken(): string {
-  return localStorage.getItem('access_token') ?? ''
+  return getAccessToken() ?? ''
 }
 
 /**

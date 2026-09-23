@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../app.module';
+import { backfillEncryptionHashes } from './backfill-encryption-hashes';
 import { seedBusinessManager } from './seed-business-manager';
 import { seedChartOfAccounts } from './seed-accounts';
 import { seedDemoData } from './seed-demo-data';
@@ -25,6 +26,7 @@ async function bootstrap() {
   try {
     console.log('Starting seed...\n');
 
+    await backfillEncryptionHashes(dataSource);
     await seedBusinessManager(dataSource);
     await seedChartOfAccounts(dataSource);
     await seedDemoData(dataSource);

@@ -1,11 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../../api/client'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Badge } from '../../components/ui/badge'
-import { Modal } from '../../components/ui/modal'
-import { Card, CardTitle } from '../../components/ui/card'
+import {
+  Badge,
+  Btn,
+  Modal,
+  PageHeader,
+  Panel,
+  Select,
+  StatCard,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+  TextInput,
+  inputCls,
+} from './ui'
 
 interface Account {
   id: string
@@ -29,13 +41,12 @@ const typeLabels: Record<string, string> = {
 
 const typeOrder = ['asset', 'liability', 'equity', 'revenue', 'expense']
 
-const typeBorder: Record<string, string> = {
-  total: 'border-indigo-500',
-  asset: 'border-blue-500',
-  liability: 'border-amber-500',
-  equity: 'border-green-500',
-  revenue: 'border-purple-500',
-  expense: 'border-red-500',
+const typeDot: Record<string, string> = {
+  asset: 'bg-[#176B5B]',
+  liability: 'bg-[#E4A42A]',
+  equity: 'bg-[#9D4824]',
+  revenue: 'bg-[#B79B6B]',
+  expense: 'bg-[#B3261E]',
 }
 
 interface AccountForm {
@@ -140,57 +151,65 @@ export function Accounts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold dark:text-gray-100">Chart of Accounts</h2>
-        <Button onClick={() => { setError(''); setForm(emptyForm()); setCreateOpen(true) }}>Create</Button>
-      </div>
+      <PageHeader
+        eyebrow="General Ledger"
+        title="Chart of Accounts"
+        subtitle="Every account available to the ledger, grouped by class."
+        actions={<Btn onClick={() => { setError(''); setForm(emptyForm()); setCreateOpen(true) }}>Create Account</Btn>}
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <Card className={typeBorder.total}>
-          <CardTitle className="text-xs font-medium text-gray-500">Total Accounts</CardTitle>
-          <p className="mt-1 text-2xl font-bold">{accounts.length}</p>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Total Accounts" value={accounts.length} sub="all classes" icon="📒" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
         {summary.map((s) => (
-          <Card key={s.type} className={typeBorder[s.type]}>
-            <CardTitle className="text-xs font-medium text-gray-500">{typeLabels[s.type]}</CardTitle>
-            <p className="mt-1 text-2xl font-bold">{s.total}</p>
-            <p className="text-xs text-gray-400">{s.active} active</p>
-          </Card>
+          <StatCard
+            key={s.type}
+            label={typeLabels[s.type]}
+            value={s.total}
+            sub={`${s.active} active`}
+            icon={<span className={`inline-block h-2.5 w-2.5 rounded-full ${typeDot[s.type]}`} />}
+            iconCls="bg-[#FFF9EF]"
+          />
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <Input placeholder="Search by name or code..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <Panel>
+        <div className="flex flex-wrap gap-3">
+          <div className="min-w-[200px] flex-1">
+            <TextInput placeholder="Search by name or code..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <select className={inputCls + ' w-auto cursor-pointer'} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+            <option value="">All Types</option>
+            {typeOrder.map((t) => <option key={t} value={t}>{typeLabels[t]}</option>)}
+          </select>
+          <select className={inputCls + ' w-auto cursor-pointer'} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
-        <select className="border rounded-lg px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="">All Types</option>
-          {typeOrder.map((t) => <option key={t} value={t}>{typeLabels[t]}</option>)}
-        </select>
-        <select className="border rounded-lg px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
+      </Panel>
 
       {grouped.length === 0 && (
-        <p className="text-gray-500 text-sm py-8 text-center">No accounts found.</p>
+        <div className="rounded-2xl border border-dashed border-[#E7DCCB] bg-white py-12 text-center text-sm text-[#C9B89F]">
+          No accounts match your filters.
+        </div>
       )}
 
       {grouped.map((g) => (
-        <div key={g.type} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <section key={g.type} className="overflow-hidden rounded-2xl border border-[#E7DCCB] bg-white shadow-sm">
           <button
             type="button"
             onClick={() => setCollapsed((c) => ({ ...c, [g.type]: !c[g.type] }))}
-            className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex w-full cursor-pointer items-center justify-between border-b border-[#EDE2D3] bg-[#FFF9EF] px-5 py-3.5 transition-colors hover:bg-[#F7EFDD]"
           >
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${g.type === 'asset' ? 'bg-blue-500' : g.type === 'liability' ? 'bg-amber-500' : g.type === 'equity' ? 'bg-green-500' : g.type === 'revenue' ? 'bg-purple-500' : 'bg-red-500'}`} />
-              <span className="font-semibold text-sm dark:text-gray-100">{typeLabels[g.type]}</span>
+            <div className="flex items-center gap-2.5">
+              <span className={`h-2.5 w-2.5 rounded-full ${typeDot[g.type]}`} />
+              <span className="text-sm font-black tracking-[-0.01em] text-[#2C1B13]">{typeLabels[g.type]}</span>
               <Badge variant="default">{g.items.length}</Badge>
             </div>
-            <span className="text-gray-400 text-sm">{collapsed[g.type] ? 'Expand' : 'Collapse'}</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#B79B6B]">
+              {collapsed[g.type] ? 'Expand' : 'Collapse'}
+            </span>
           </button>
 
           {!collapsed[g.type] && (
@@ -209,19 +228,21 @@ export function Accounts() {
               <TBody>
                 {g.items.map((a) => (
                   <TBodyRow key={a.id} className={a.isActive ? '' : 'opacity-60'}>
-                    <TBodyCell><code className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{a.code}</code></TBodyCell>
-                    <TBodyCell className="font-medium">{a.name}</TBodyCell>
-                    <TBodyCell className="text-xs text-gray-500 max-w-xs">{a.description || '—'}</TBodyCell>
+                    <TBodyCell>
+                      <code className="rounded-md bg-[#FFF9EF] px-1.5 py-0.5 text-xs font-semibold text-[#6B5245]">{a.code}</code>
+                    </TBodyCell>
+                    <TBodyCell className="font-semibold text-[#2C1B13]">{a.name}</TBodyCell>
+                    <TBodyCell className="max-w-xs text-xs">{a.description || '—'}</TBodyCell>
                     <TBodyCell>
                       <Badge variant={a.isSystem ? 'info' : 'default'}>{a.isSystem ? 'System' : 'Custom'}</Badge>
                     </TBodyCell>
                     <TBodyCell>
-                      <Badge variant={a.isActive ? 'success' : 'danger'}>{a.isActive ? 'Active' : 'Inactive'}</Badge>
+                      <Badge variant={a.isActive ? 'success' : 'danger'} dot>{a.isActive ? 'Active' : 'Inactive'}</Badge>
                     </TBodyCell>
                     <TBodyCell>{new Date(a.createdAt).toLocaleDateString()}</TBodyCell>
                     <TBodyCell>
                       {!a.isSystem && (
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(a)}>Edit</Button>
+                        <Btn variant="ghost" size="sm" onClick={() => openEdit(a)}>Edit</Btn>
                       )}
                     </TBodyCell>
                   </TBodyRow>
@@ -229,59 +250,45 @@ export function Accounts() {
               </TBody>
             </Table>
           )}
-        </div>
+        </section>
       ))}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Account">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <Input id="acc-code" label="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. 5600" required />
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
-              >
-                {typeOrder.map((t) => <option key={t} value={t}>{typeLabels[t]}</option>)}
-              </select>
-            </div>
+            <TextInput id="acc-code" label="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. 5600" required />
+            <Select label="Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              {typeOrder.map((t) => <option key={t} value={t}>{typeLabels[t]}</option>)}
+            </Select>
           </div>
-          <Input id="acc-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input id="acc-desc" label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <Button onClick={handleCreate} className="w-full">Create</Button>
+          <TextInput id="acc-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <TextInput id="acc-desc" label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          {error && <p className="text-xs font-medium text-[#B3261E]">{error}</p>}
+          <Btn onClick={handleCreate} className="w-full">Create Account</Btn>
         </div>
       </Modal>
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Account">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <Input id="edit-code" label="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
-              >
-                {typeOrder.map((t) => <option key={t} value={t}>{typeLabels[t]}</option>)}
-              </select>
-            </div>
+            <TextInput id="edit-code" label="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
+            <Select label="Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              {typeOrder.map((t) => <option key={t} value={t}>{typeLabels[t]}</option>)}
+            </Select>
           </div>
-          <Input id="edit-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input id="edit-desc" label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <TextInput id="edit-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <TextInput id="edit-desc" label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <label className="flex items-center gap-2 text-sm text-[#6B5245]">
             <input
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-[#E7DCCB] accent-[#176B5B]"
             />
             Active (used for new journal entries)
           </label>
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <Button onClick={handleUpdate} className="w-full">Save</Button>
+          {error && <p className="text-xs font-medium text-[#B3261E]">{error}</p>}
+          <Btn onClick={handleUpdate} className="w-full">Save Changes</Btn>
         </div>
       </Modal>
     </div>

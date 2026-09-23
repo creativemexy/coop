@@ -3,13 +3,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const MAGIC_BYTES: Record<string, { bytes: number[]; offset: number }> = {
-  'image/png': { bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], offset: 0 },
+  'image/png': {
+    bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    offset: 0,
+  },
   'image/jpeg': { bytes: [0xff, 0xd8, 0xff], offset: 0 },
   'image/webp': { bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 },
-  'image/svg+xml': { bytes: [0x3c, 0x3f, 0x78, 0x6d, 0x6c], offset: 0 },
 };
 
-function bytesMatch(buffer: Buffer, magic: { bytes: number[]; offset: number }): boolean {
+function bytesMatch(
+  buffer: Buffer,
+  magic: { bytes: number[]; offset: number },
+): boolean {
   for (let i = 0; i < magic.bytes.length; i++) {
     if (buffer[magic.offset + i] !== magic.bytes[i]) {
       return false;
@@ -29,19 +34,20 @@ export function validateImageFile(filePath: string): void {
     }
 
     const allowedTypes = Object.values(MAGIC_BYTES);
-    const svgText = buffer.toString('utf8').trimStart();
-    const isValid = allowedTypes.some((magic) => bytesMatch(buffer, magic)) || svgText.startsWith('<svg');
+    const isValid = allowedTypes.some((magic) => bytesMatch(buffer, magic));
 
     if (!isValid) {
       fs.unlinkSync(filePath);
-      throw new BadRequestException('Invalid file type: file content does not match allowed image formats');
+      throw new BadRequestException(
+        'Invalid file type: file content does not match allowed image formats',
+      );
     }
   } finally {
     fs.closeSync(fd);
   }
 }
 
-const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.svg']);
+const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 
 export function isAllowedExtension(filename: string): boolean {
   const ext = path.extname(filename).toLowerCase();

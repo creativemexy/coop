@@ -1,34 +1,53 @@
 import { useState } from 'react'
+import { Building2, ListChecks } from 'lucide-react'
 import { Organizations } from './Organizations'
 import { TenantOnboarding } from './TenantOnboarding'
 
-const tabs = ['Tenant List', 'Onboarding Requests']
+const tabs = [
+  { key: 'list', label: 'Tenant List', icon: Building2 },
+  { key: 'onboarding', label: 'Onboarding Requests', icon: ListChecks },
+] as const
 
-type Tab = (typeof tabs)[number]
+type TabKey = (typeof tabs)[number]['key']
 
 export function Tenants() {
-  const [activeTab, setActiveTab] = useState<Tab>('Tenant List')
+  const [activeTab, setActiveTab] = useState<TabKey>('list')
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold dark:text-gray-100">Tenants</h2>
-      <div className="flex gap-1 border-b dark:border-gray-700">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-              activeTab === tab
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#176B5B]/10">
+          <Building2 size={22} className="text-[#176B5B]" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-[#2C1B13]">Tenants</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6B5245]">
+            Manage member organizations and their onboarding lifecycle.
+          </p>
+        </div>
       </div>
-      {activeTab === 'Tenant List' && <Organizations />}
-      {activeTab === 'Onboarding Requests' && <TenantOnboarding />}
+
+      <div className="flex gap-2 border-b border-[#EDE2D3] pb-2">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                activeTab === tab.key
+                  ? 'bg-[#176B5B] text-[#FFF9EF] shadow-sm'
+                  : 'text-[#6B5245] hover:bg-[#EDE2D3]'
+              }`}
+            >
+              <Icon size={16} /> {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {activeTab === 'list' && <Organizations />}
+      {activeTab === 'onboarding' && <TenantOnboarding />}
     </div>
   )
 }

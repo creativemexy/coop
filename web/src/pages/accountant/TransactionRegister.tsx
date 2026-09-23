@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
-import { Card, CardTitle } from '../../components/ui/card'
-import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Table, THead, THeadRow, THeadCell, TBody, TBodyRow, TBodyCell } from '../../components/ui/table'
+import {
+  Badge,
+  Btn,
+  PageHeader,
+  Panel,
+  StatCard,
+  Table,
+  TBody,
+  TBodyCell,
+  TBodyRow,
+  THead,
+  THeadCell,
+  THeadRow,
+  TextInput,
+  inputCls,
+} from './ui'
 
 interface Transaction {
   id: string
@@ -77,37 +88,48 @@ export function TransactionRegister() {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(n)
 
+  const totalDebit = data?.transactions.reduce((s, t) => s + Number(t.debit || 0), 0) ?? 0
+  const totalCredit = data?.transactions.reduce((s, t) => s + Number(t.credit || 0), 0) ?? 0
+  const totalFees = data?.transactions.reduce((s, t) => s + Number(t.fee || 0), 0) ?? 0
+
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardTitle>Transaction Register</CardTitle>
-        <div className="flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="block text-sm font-medium mb-1">Source</label>
-            <select
-              className="border rounded px-3 py-2 text-sm"
-              value={source}
-              onChange={e => { setSource(e.target.value); setOffset(0) }}
-            >
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Money In / Money Out"
+        title="Transaction Register"
+        subtitle="Every posting across payments, loans, savings and BNPL."
+        actions={
+          <Btn onClick={() => window.open(`/api/v1/accountant/transactions/export?source=${source}&days=${days}`, '_blank')}>
+            Export CSV
+          </Btn>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Transactions" value={data?.total ?? 0} sub={`last ${days} days`} icon="🧮" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
+        <StatCard label="Debits (page)" value={formatCurrency(totalDebit)} sub="on this page" icon="➖" iconCls="bg-[#9D4824]/10 text-[#9D4824]" />
+        <StatCard label="Credits (page)" value={formatCurrency(totalCredit)} sub="on this page" icon="➕" iconCls="bg-[#176B5B]/10 text-[#176B5B]" />
+        <StatCard label="Fees (page)" value={formatCurrency(totalFees)} sub="on this page" icon="💵" iconCls="bg-[#E4A42A]/15 text-[#8A5A00]" />
+      </div>
+
+      <Panel padded={false}>
+        <div className="flex flex-wrap items-end gap-3 border-b border-[#EDE2D3] p-5">
+          <div className="w-48">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B5245]">Source</label>
+            <select className={inputCls + ' w-full cursor-pointer'} value={source} onChange={e => { setSource(e.target.value); setOffset(0) }}>
               {sourceOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Days</label>
-            <Input type="number" value={days} onChange={e => { setDays(e.target.value); setOffset(0) }} className="w-20" />
+          <div className="w-24">
+            <TextInput label="Days" type="number" value={days} onChange={e => { setDays(e.target.value); setOffset(0) }} />
           </div>
-          <Button onClick={() => window.open(`/api/v1/accountant/transactions/export?source=${source}&days=${days}`, '_blank')}>
-            Export CSV
-          </Button>
-          <div className="text-sm text-gray-500 ml-auto">
+          <div className="ml-auto text-sm font-semibold text-[#6B5245]">
             {data ? `${data.total} transactions` : ''}
           </div>
         </div>
-      </Card>
 
-      <Card>
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading...</div>
+          <div className="py-12 text-center text-sm text-[#C9B89F]">Loading...</div>
         ) : data && data.transactions.length > 0 ? (
           <>
             <Table>
@@ -142,22 +164,22 @@ export function TransactionRegister() {
                 ))}
               </TBody>
             </Table>
-            <div className="flex justify-between items-center px-4 py-3 border-t">
-              <Button variant="secondary" disabled={offset === 0} onClick={() => fetch(offset - limit)}>
+            <div className="flex items-center justify-between border-t border-[#EDE2D3] px-4 py-3">
+              <Btn variant="secondary" size="sm" disabled={offset === 0} onClick={() => fetch(offset - limit)}>
                 Previous
-              </Button>
-              <span className="text-sm text-gray-500">
+              </Btn>
+              <span className="text-sm text-[#6B5245]">
                 {offset + 1} - {Math.min(offset + limit, data.total)} of {data.total}
               </span>
-              <Button variant="secondary" disabled={offset + limit >= data.total} onClick={() => fetch(offset + limit)}>
+              <Btn variant="secondary" size="sm" disabled={offset + limit >= data.total} onClick={() => fetch(offset + limit)}>
                 Next
-              </Button>
+              </Btn>
             </div>
           </>
         ) : (
-          <div className="py-8 text-center text-gray-500">No transactions found</div>
+          <div className="py-12 text-center text-sm text-[#C9B89F]">No transactions found</div>
         )}
-      </Card>
+      </Panel>
     </div>
   )
 }

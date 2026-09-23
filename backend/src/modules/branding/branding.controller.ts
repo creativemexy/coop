@@ -20,7 +20,10 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { SettingsService } from '../settings/settings.service';
 import { sanitizeInput } from '../../common/sanitize.util';
-import { validateImageFile, isAllowedExtension } from '../../common/file-validator.util';
+import {
+  validateImageFile,
+  isAllowedExtension,
+} from '../../common/file-validator.util';
 import { User } from '../users/entities/user.entity';
 import { Organization } from '../organizations/entities/organization.entity';
 import { SavingsAccount } from '../savings/entities/savings-account.entity';
@@ -32,9 +35,12 @@ export class BrandingController {
   constructor(
     private readonly settings: SettingsService,
     @InjectRepository(User) private readonly users: Repository<User>,
-    @InjectRepository(Organization) private readonly organizations: Repository<Organization>,
-    @InjectRepository(SavingsAccount) private readonly savingsAccounts: Repository<SavingsAccount>,
-    @InjectRepository(InvestmentHolding) private readonly holdings: Repository<InvestmentHolding>,
+    @InjectRepository(Organization)
+    private readonly organizations: Repository<Organization>,
+    @InjectRepository(SavingsAccount)
+    private readonly savingsAccounts: Repository<SavingsAccount>,
+    @InjectRepository(InvestmentHolding)
+    private readonly holdings: Repository<InvestmentHolding>,
   ) {}
 
   @Get()
@@ -62,7 +68,10 @@ export class BrandingController {
       this.organizations.count({ where: { status: 'active' as any } }),
       this.savingsAccounts
         .createQueryBuilder('account')
-        .select('COALESCE(SUM(account.balance + account.goal_balance), 0)', 'total')
+        .select(
+          'COALESCE(SUM(account.balance + account.goal_balance), 0)',
+          'total',
+        )
         .where('account.status = :status', { status: 'active' })
         .getRawOne<{ total: string }>(),
       this.holdings
@@ -83,7 +92,10 @@ export class BrandingController {
 
   @Get('maintenance')
   async maintenance() {
-    return { maintenance: (await this.settings.getValue('maintenance_mode')) === 'true' };
+    return {
+      maintenance:
+        (await this.settings.getValue('maintenance_mode')) === 'true',
+    };
   }
 
   @Put('name')
@@ -126,7 +138,11 @@ export class BrandingController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: (_req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
+        destination: (
+          _req: any,
+          _file: any,
+          cb: (error: Error | null, destination: string) => void,
+        ) => {
           const destination = join(process.cwd(), 'uploads', 'branding');
           mkdirSync(destination, { recursive: true });
           cb(null, destination);
@@ -146,10 +162,10 @@ export class BrandingController {
         file: any,
         cb: (err: Error | null, allowed: boolean) => void,
       ) => {
-        if (!file.mimetype.match(/^image\/(png|jpeg|jpg|svg|webp)$/)) {
+        if (!file.mimetype.match(/^image\/(png|jpeg|jpg|webp)$/)) {
           cb(
             new BadRequestException(
-              'Only image files (PNG, JPG, SVG, WebP) are allowed',
+              'Only image files (PNG, JPG, WebP) are allowed',
             ),
             false,
           );
