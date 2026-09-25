@@ -1,0 +1,117 @@
+<template>
+<div id="scene-4" data-composition-id="scene-4" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    * { box-sizing: border-box; }
+
+    .midtext { position: absolute; left: 50%; top: 120px; transform: translateX(-50%); text-align: center; z-index: 3; }
+    .midtext .big { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 72px; letter-spacing: -0.01em; color: #FFF9EF; }
+    .midtext .small { margin-top: 8px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 500; font-size: 26px; letter-spacing: 0.02em; color: #CBB8A4; }
+    .midtext .small b { color: #F8CE68; font-weight: 700; }
+
+    .pair { position: relative; display: flex; align-items: center; gap: 210px; margin-top: 60px; z-index: 2; }
+
+    .web { position: relative; width: 620px; height: 520px; border-radius: 20px; background: #1B100C; border: 1px solid rgba(229,215,199,0.16); overflow: hidden; box-shadow: 0 34px 80px rgba(0,0,0,0.6); flex: none; }
+    .web .titlebar { height: 44px; display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid rgba(229,215,199,0.10); }
+    .web .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .w1 { background: #E06657; } .w2 { background: #E4A42A; } .w3 { background: #6DBE8E; }
+    .web .url { margin-left: 12px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-size: 13px; color: #D8C9B8; }
+    .web .okwrap { height: calc(100% - 44px); display: flex; align-items: center; justify-content: center; }
+    .web .chip { display: inline-flex; align-items: center; gap: 12px; background: #176B5B; color: #FFF9EF; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 24px; padding: 16px 30px; border-radius: 40px; box-shadow: 0 14px 36px rgba(23,107,91,0.5); }
+
+    .phone { position: relative; width: 300px; height: 520px; border-radius: 38px; background: #FFF9EF; border: 5px solid #23150F; overflow: hidden; box-shadow: 0 34px 80px rgba(0,0,0,0.6); flex: none; display: flex; align-items: center; justify-content: center; }
+    .phone .notch { width: 100px; height: 18px; border-radius: 10px; background: #140C09; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); }
+    .phone .ok { width: 108px; height: 108px; border-radius: 50%; background: #176B5B; color: #FFF9EF; display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 800; box-shadow: 0 14px 36px rgba(23,107,91,0.5); }
+    .phone .cap { position: absolute; bottom: 40px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 20px; color: #176B5B; text-align: center; line-height: 1.35; }
+
+    .arcwrap { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-22%); z-index: 1; display: flex; align-items: center; justify-content: center; }
+    .arc { width: 1080px; height: 300px; }
+    .dot { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #E4A42A; box-shadow: 0 0 26px rgba(228,164,42,0.9); }
+
+    .pool { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+    .fee { display: flex; align-items: center; gap: 14px; background: rgba(27,16,12,0.85); border: 1px solid rgba(228,164,42,0.45); border-radius: 40px; padding: 18px 34px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 700; font-size: 22px; color: #F8CE68; box-shadow: 0 14px 40px rgba(0,0,0,0.5); }
+    .member { display: flex; align-items: center; gap: 12px; background: #176B5B; border-radius: 40px; padding: 18px 36px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 24px; letter-spacing: 0.06em; color: #FFF9EF; box-shadow: 0 16px 44px rgba(23,107,91,0.55); opacity: 0; transform: translateY(24px) scale(0.9); }
+  </style>
+  <div class="stage">
+    <div class="midtext">
+      <div class="big" id="big">One account.</div>
+      <div class="small">Start in your browser. <b>Finish on your phone.</b></div>
+    </div>
+
+    <div class="arcwrap">
+      <svg class="arc" viewBox="0 0 1080 300" fill="none">
+        <path id="arcpath" d="M 60 250 C 300 60, 780 60, 1020 250" stroke="#E4A42A" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 12" opacity="0.0"/>
+      </svg>
+      <div class="dot" id="trail"></div>
+      <div class="dot" id="lead"></div>
+    </div>
+
+    <div class="pair">
+      <div class="web" id="webdev">
+        <div class="titlebar"><div class="dot w1"></div><div class="dot w2"></div><div class="dot w3"></div>
+          <div class="url">fenac.coop/register</div></div>
+        <div class="okwrap"><div class="chip">✓ Account created</div></div>
+      </div>
+      <div class="phone" id="mob">
+        <div class="notch"></div>
+        <div class="ok">✓</div>
+        <div class="cap">Welcome to<br>the cooperative</div>
+      </div>
+    </div>
+
+    <div class="pool">
+      <div class="fee" id="feechip">₦5,000 &nbsp;·&nbsp; one-time member fee</div>
+      <div class="member" id="memberchip">MEMBER ✓</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var root = document.getElementById("scene-4");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-4"] = tl;
+
+      var arc = root.querySelector("#arcpath");
+      var lead = root.querySelector("#lead");
+      var webdev = root.querySelector("#webdev");
+      var mob = root.querySelector("#mob");
+      var trail = root.querySelector("#trail");
+
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.04 }, { scale: 1.0, duration: 0.7 }, 0.05);
+
+      tl.fromTo("#big", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6 }, 0.2);
+      tl.fromTo(".midtext .small", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.55);
+
+      // converge on beat 1.47 (17.47 abs)
+      tl.fromTo(webdev, { x: -170, y: 60, scale: 0.9, opacity: 0.25 }, { x: 0, y: 0, scale: 1.0, opacity: 1, duration: 0.6, ease: "power3.out" }, 1.47);
+      tl.fromTo(mob, { x: 170, y: 60, scale: 0.9, opacity: 0.25 }, { x: 0, y: 0, scale: 1.0, opacity: 1, duration: 0.6, ease: "power3.out" }, 1.55);
+
+      // arc + dot travel on beat 2.56 (18.56 abs)
+      tl.to(arc, { attr: { "stroke-dashoffset": 0 }, opacity: 1, duration: 0.01 }, 2.56);
+      tl.fromTo(arc, { opacity: 0 }, { opacity: 0.85, duration: 0.35 }, 2.56);
+      tl.fromTo(arc, { attr: { opacity: 0 } }, { attr: { opacity: 0.85 }, duration: 0.01 }, 2.56);
+      var arcLen = arc.getTotalLength();
+      arc.style.strokeDasharray = arcLen + " " + arcLen;
+      arc.style.strokeDashoffset = arcLen;
+      tl.to(arc, { attr: { "stroke-dashoffset": 0 }, duration: 1.0, ease: "power1.inOut" }, 2.56);
+      // lead dot follows the curve
+      var pt = { t: 0 };
+      tl.fromTo(pt, { t: 0 }, { t: 1, duration: 1.0, ease: "power1.inOut", onUpdate: function () {
+        var p = arc.getPointAtLength(pt.t * arcLen);
+        lead.style.transform = "translate(" + (p.x - 9) + "px," + (p.y - 9) + "px)";
+      } }, 2.56);
+      tl.fromTo(lead, { opacity: 0 }, { opacity: 1, duration: 0.15 }, 2.56);
+      tl.fromTo(trail, { opacity: 0 }, { opacity: 0.6, duration: 0.2 }, 2.56);
+
+      // fee chip on beat 3.66 (19.66 abs)
+      tl.fromTo("#feechip", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5 }, 3.56);
+
+      // member badge on beat 4.3 (20.3 abs)
+      tl.to("#memberchip", { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.8)" }, 4.26);
+
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power1.in" }, 4.7);
+    })();
+  </script>
+</div>
+</template>

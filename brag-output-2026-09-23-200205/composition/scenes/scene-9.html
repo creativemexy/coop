@@ -1,0 +1,62 @@
+<template>
+<div id="scene-9" data-composition-id="scene-9" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    * { box-sizing: border-box; }
+    .halo { position: absolute; left: 50%; top: 14%; width: 1080px; height: 1080px; transform: translate(-50%, -50%); pointer-events: none; }
+    .halo .glow { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at center, rgba(228,164,42,0.2) 0%, rgba(23,107,91,0.1) 42%, rgba(20,12,9,0) 66%); }
+    .halo .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(228,164,42,0.18); }
+    .emblem { position: relative; width: 460px; height: 314px; filter: drop-shadow(0 30px 70px rgba(0,0,0,0.6)) drop-shadow(0 0 60px rgba(228,164,42,0.3)); }
+    .emblem img { width: 100%; height: 100%; object-fit: contain; }
+    .lock { position: relative; margin-top: 54px; display: flex; flex-direction: column; align-items: center; }
+    .lock h1 { margin: 0; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 800; font-size: 120px; letter-spacing: 0.1em; color: #FFF9EF; text-transform: uppercase; }
+    .lock .sep { width: 500px; height: 2px; margin: 34px 0; background: linear-gradient(90deg, rgba(228,164,42,0) 0%, #E4A42A 50%, rgba(228,164,42,0) 100%); }
+    .lock .tag { font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 600; font-size: 40px; letter-spacing: 0.5em; text-transform: uppercase; color: #F8CE68; padding-left: 0.5em; }
+    .url { position: absolute; bottom: 96px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 600; font-size: 30px; letter-spacing: 0.34em; color: #E5D7C7; }
+  </style>
+  <div class="stage">
+    <div class="halo" id="halo">
+      <div class="glow"></div>
+      <div class="ring"></div>
+    </div>
+    <div class="emblem" id="emblem"><img src="../assets/img/logo.png" alt="FENAC COOP"></div>
+    <div class="lock">
+      <h1 id="wordmark">FENAC COOP</h1>
+      <div class="sep" id="sep"></div>
+      <div class="tag" id="tag">Building Wealth Together.</div>
+    </div>
+    <div class="url" id="url">www.fenacoop.org</div>
+  </div>
+  <script>
+    (function () {
+      var root = document.getElementById("scene-9");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-9"] = tl;
+
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.04 }, { scale: 1.0, duration: 0.9, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.05, duration: 4.9, ease: "none" }, 1.0);
+
+      // logo settles (beat-locked: 59.47s) // beat-locked: 59.47s
+      tl.fromTo("#halo .glow", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 1.0, ease: "power1.inOut" }, 0.3);
+      tl.fromTo("#halo .ring", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 1.2, ease: "power2.out" }, 0.4);
+      tl.fromTo("#emblem", { opacity: 0, y: 46, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.9, ease: "power2.out" }, 0.47);
+
+      // wordmark (beat-grid: 60.55s) // beat-grid: wordmark at 1.55s
+      tl.fromTo("#wordmark", { opacity: 0, y: 30, letterSpacing: "0.2em" }, { opacity: 1, y: 0, letterSpacing: "0.1em", duration: 0.85, ease: "power2.out" }, 1.55);
+      tl.fromTo("#sep", { opacity: 0, scaleX: 0.3 }, { opacity: 1, scaleX: 1, duration: 0.7, ease: "power2.out" }, 2.5);
+
+      // tagline + final bell (beat-locked: 62.19s) // beat-locked: 62.19s
+      tl.fromTo("#tag", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.7 }, 3.19);
+
+      // url (beat-grid: 63.29s) // beat-grid: url at 4.29s
+      tl.fromTo("#url", { opacity: 0, y: 14, letterSpacing: "0.5em" }, { opacity: 1, y: 0, letterSpacing: "0.34em", duration: 0.7 }, 4.29);
+
+      // resolved close — hold, breathe, fade
+      tl.fromTo("#halo .ring", { scale: 1.0, opacity: 1 }, { scale: 1.05, opacity: 0.5, duration: 1.5, ease: "power1.inOut" }, 4.0);
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 1.1, ease: "power1.in" }, 4.9);
+    })();
+  </script>
+</div>
+</template>

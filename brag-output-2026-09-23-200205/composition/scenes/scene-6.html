@@ -1,0 +1,127 @@
+<template>
+<div id="scene-6" data-composition-id="scene-6" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; }
+    * { box-sizing: border-box; }
+    .eyebrow { position: absolute; top: 84px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 0.5em; text-transform: uppercase; color: #E5D7C7; }
+    .cols { position: absolute; top: 210px; left: 0; right: 0; display: flex; justify-content: center; gap: 56px; }
+
+    .card { width: 790px; border-radius: 44px; background: #FBF3E6; padding: 44px 46px 48px; box-shadow: 0 40px 90px rgba(0,0,0,0.45); }
+    .card .tag { display: inline-flex; align-items: center; gap: 12px; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.34em; text-transform: uppercase; color: #176B5B; }
+    .card h2 { margin: 18px 0 0; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 52px; line-height: 1.02; color: #23150F; }
+    .card .hint { margin-top: 8px; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 400; font-size: 21px; color: #6B5B4D; }
+
+    .sav .gutz { margin-top: 34px; }
+    .sav .row1 { display: flex; justify-content: space-between; align-items: flex-end; }
+    .sav .row1 .lbl { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 600; font-size: 20px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A7458; }
+    .sav .prog { margin-top: 14px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .sav .amt { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 96px; line-height: 0.95; color: #1A0F0A; font-variant-numeric: tabular-nums; }
+    .sav .pct { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 64px; line-height: 0.9; color: #176B5B; }
+    .sav .bar { margin-top: 26px; height: 26px; border-radius: 14px; background: #F1E7D7; overflow: hidden; }
+    .sav .bar i { display: block; height: 100%; width: 64%; border-radius: 14px; background: linear-gradient(90deg, #176B5B, #2FA08A); }
+    .sav .dep { display: flex; align-items: center; gap: 18px; margin-top: 30px; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 700; font-size: 24px; color: #23150F; }
+    .sav .dep .chip { padding: 14px 24px; border-radius: 60px; background: #E4A42A; color: #1A0F0A; font-weight: 800; }
+    .sav .note { margin-top: 14px; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 500; font-size: 20px; color: #176B5B; }
+
+    .bnpl .item { margin-top: 30px; display: flex; align-items: center; gap: 24px; border-radius: 26px; border: 1px solid #E7DCCB; background: #FFFFFF; padding: 24px; }
+    .bnpl .thumb { width: 92px; height: 92px; border-radius: 20px; background: linear-gradient(135deg, #1A0F0A, #452A20); display: flex; align-items: center; justify-content: center; color: #F8CE68; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 34px; }
+    .bnpl .tl { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 28px; color: #23150F; }
+    .bnpl .pr { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 40px; color: #1A0F0A; }
+    .bnpl .free { margin-left: auto; padding: 10px 18px; border-radius: 60px; background: #176B5B; color: #FFF9EF; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .bnpl .emi { margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .bnpl .emi .m { border-radius: 20px; border: 1px solid #E7DCCB; background: #FFFFFF; padding: 20px 16px; text-align: center; }
+    .bnpl .emi .m b { display: block; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 28px; color: #23150F; }
+    .bnpl .emi .m span { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: #8A7458; }
+    .bnpl .foot { margin-top: 28px; display: flex; align-items: center; justify-content: space-between; }
+    .bnpl .foot .f1 { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 700; font-size: 22px; color: #176B5B; }
+    .bnpl .foot .f2 { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; color: #8A7458; }
+  </style>
+
+  <div class="stage">
+    <div class="eyebrow">Save · Buy Today</div>
+    <div class="cols">
+      <div class="card sav">
+        <div class="tag">Savings</div>
+        <h2>Highland School Fund</h2>
+        <div class="hint">One goal, powered by the whole pool</div>
+        <div class="gutz">
+          <div class="row1"><div class="lbl">Goal Balance</div><div class="lbl" id="goal-lbl">₦768,000</div></div>
+          <div class="prog">
+            <div class="amt" id="goal-amt">₦1,200,000</div>
+            <div class="pct" id="goal-pct">64%</div>
+          </div>
+          <div class="bar"><i id="goal-bar"></i></div>
+          <div class="dep" id="goal-dep"><div class="chip">+ ₦50,000</div><div>deposit from your balance</div></div>
+          <div class="note" id="goal-note">Interest accruing · next credit Friday · 14 members</div>
+        </div>
+      </div>
+
+      <div class="card bnpl">
+        <div class="tag">BNPL · Buying Power</div>
+        <h2>MacBook Pro 14"</h2>
+        <div class="hint">Zero down, friendly installments</div>
+        <div class="item">
+          <div class="thumb">M</div>
+          <div><div class="tl">MacBook Pro</div><div class="pr">₦180,000</div></div>
+          <div class="free" id="zero-fee">Zero Fee</div>
+        </div>
+        <div class="emi">
+          <div class="m" id="m1"><b>₦30,000</b><span>Month 1</span></div>
+          <div class="m" id="m2"><b>₦30,000</b><span>Month 2</span></div>
+          <div class="m" id="m3"><b>₦30,000</b><span>… × 6</span></div>
+        </div>
+        <div class="foot">
+          <div class="f1">6 × ₦30,000 — no interest, ever</div>
+          <div class="f2">48% Paid</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById("scene-6");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-6"] = tl;
+
+      var bar = root.querySelector("#goal-bar");
+      var pctEl = root.querySelector("#goal-pct");
+      var amtEl = root.querySelector("#goal-amt");
+      var o = { p: 64 };
+
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.04 }, { scale: 1.0, duration: 0.9, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.06, duration: 6.9, ease: "none" }, 0.95);
+
+      tl.fromTo(root.querySelector(".eyebrow"), { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.6 }, 0.5);
+      tl.fromTo(".card", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.85, ease: "power2.out" }, 0.6);
+
+      // savings card fills
+      tl.fromTo(".sav h2", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 1.2);
+      tl.fromTo(".sav .amt", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5 }, 1.5);
+      tl.fromTo(bar, { width: "0%" }, { width: "64%", duration: 0.8, ease: "power1.inOut" }, 1.8);
+
+      // deposit lands — bumps goal to 68% (beat-locked: 37.64s) // beat-locked: 37.64s
+      tl.fromTo(root.querySelector("#goal-dep"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 2.64);
+      tl.to(o, {
+        p: 68, duration: 1.0, ease: "power1.inOut", snap: { p: 1 }, onUpdate: function () {
+          var v = Math.round(o.p);
+          pctEl.textContent = v + "%";
+          bar.style.width = v + "%";
+          amtEl.textContent = "₦1,200,000";
+        }
+      }, 2.64);
+
+      // BNPL months tick in (beat-grid: 38.73/39.29/39.82s) // beat-grid: rows 3.73/4.29/4.82s
+      tl.fromTo("#m1", { opacity: 0, y: 18, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.4)" }, 3.73);
+      tl.fromTo("#m2", { opacity: 0, y: 18, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.4)" }, 4.29);
+      tl.fromTo("#m3", { opacity: 0, y: 18, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.4)" }, 4.82);
+      tl.fromTo(root.querySelector("#zero-fee"), { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 5.38);
+
+      tl.fromTo(".bnpl .foot", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, 6.0);
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power1.in" }, 7.55);
+    })();
+  </script>
+</div>
+</template>

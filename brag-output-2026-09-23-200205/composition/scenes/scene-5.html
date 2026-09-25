@@ -1,0 +1,139 @@
+<template>
+<div id="scene-5" data-composition-id="scene-5" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; }
+    * { box-sizing: border-box; }
+    .eyebrow { position: absolute; top: 84px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 0.5em; text-transform: uppercase; color: #E5D7C7; }
+    .headline { position: absolute; top: 138px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 800; font-size: 64px; letter-spacing: 0.02em; color: #FFF9EF; }
+    .headline span { color: #F8CE68; }
+
+    .floor { position: absolute; left: 50%; top: 840px; width: 1800px; height: 340px; margin-left: -900px; background: radial-gradient(ellipse at center, rgba(228,164,42,0.16) 0%, rgba(20,12,9,0) 68%); }
+
+    .phone { position: absolute; top: 250px; width: 372px; height: 700px; border-radius: 52px; box-shadow: 0 50px 110px rgba(0,0,0,0.6), 0 0 70px rgba(228,164,42,0.08); }
+    #ios { left: 464px; background: linear-gradient(180deg, #2A1A10, #1A0F0A); border: 1px solid #452A20; }
+    #ios .pill { position: absolute; left: 50%; top: 12px; width: 120px; height: 30px; margin-left: -60px; border-radius: 20px; background: #0D0705; z-index: 3; }
+    #android { left: 1062px; background: linear-gradient(180deg, #241309, #160C07); border: 1px solid #452A20; }
+    #android .punch { position: absolute; left: 50%; top: 16px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #0D0705; z-index: 3; }
+
+    .screen { position: absolute; left: 12px; top: 12px; right: 12px; bottom: 12px; border-radius: 42px; background: #FBF3E6; overflow: hidden; display: flex; flex-direction: column; }
+    .sb { height: 42px; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", system-ui, sans-serif; font-size: 15px; font-weight: 600; color: #23150F; }
+    .app { flex: 1; padding: 10px 22px 22px; position: relative; }
+    .brand { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+    .brand .l { display: flex; align-items: center; gap: 10px; }
+    .brand .mark { width: 32px; height: 32px; border-radius: 9px; background: #1A0F0A; color: #F8CE68; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; }
+    .brand .bn { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.02em; color: #23150F; }
+    .brand .av { width: 32px; height: 32px; border-radius: 50%; background: #E7DCCB; }
+
+    .bal { position: relative; margin-top: 20px; border-radius: 26px; background: linear-gradient(135deg, #176B5B, #0F5A4B); padding: 26px 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .bal .lb { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,249,239,0.85); }
+    .bal .am { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 34px; color: #FFF9EF; margin-top: 6px; }
+    .bal .ch { padding: 12px 18px; border-radius: 60px; background: #F8CE68; color: #1A0F0A; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 16px; }
+
+    .acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+    .acts .a { border-radius: 20px; border: 1px solid #E7DCCB; background: #FFFFFF; padding: 14px 6px; text-align: center; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 700; font-size: 14px; color: #23150F; }
+    .acts .a i { display: block; font-style: normal; font-size: 22px; margin-bottom: 4px; }
+
+    .goal { margin-top: 18px; border-radius: 22px; border: 1px solid #E7DCCB; background: #FFFFFF; padding: 20px; }
+    .goal .g1 { display: flex; justify-content: space-between; align-items: center; }
+    .goal .g1 .t { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 17px; color: #23150F; }
+    .goal .g1 .p { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 17px; color: #176B5B; }
+    .goal .bar { margin-top: 12px; height: 14px; border-radius: 8px; background: #F1E7D7; overflow: hidden; }
+    .goal .bar i { display: block; height: 100%; width: 64%; border-radius: 8px; background: linear-gradient(90deg, #E4A42A, #F8CE68); }
+    .goal .g2 { margin-top: 10px; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 500; font-size: 14px; color: #6B5B4D; }
+
+    .ph-label { position: absolute; top: 972px; text-align: center; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.34em; text-transform: uppercase; color: #FFF9EF; }
+    #lbl-ios { left: 464px; width: 372px; }
+    #lbl-android { left: 1062px; width: 372px; }
+    .store { position: absolute; top: 1028px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 600; font-size: 24px; letter-spacing: 0.2em; color: #F8CE68; }
+  </style>
+
+  <div class="stage">
+    <div class="eyebrow">Native Apps</div>
+    <div class="headline">The cooperative, <span>in your hand</span></div>
+    <div class="floor"></div>
+
+    <div class="phone" id="ios">
+      <div class="pill"></div>
+      <div class="screen">
+        <div class="sb">9:41</div>
+        <div class="app">
+          <div class="brand"><div class="l"><div class="mark">F</div><div class="bn">FENAC COOP</div></div><div class="av"></div></div>
+          <div class="bal"><div><div class="lb">Available Balance</div><div class="am">₦12,000.00</div></div><div class="ch">+ Save</div></div>
+          <div class="acts">
+            <div class="a"><i>S</i>Save</div>
+            <div class="a"><i>B</i>Buy</div>
+            <div class="a"><i>B</i>Borrow</div>
+            <div class="a"><i>I</i>Invest</div>
+          </div>
+          <div class="goal">
+            <div class="g1"><div class="t">Back-to-school fund</div><div class="p">64%</div></div>
+            <div class="bar"><i></i></div>
+            <div class="g2">₦768,000 raised · 14 contributing members</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone" id="android">
+      <div class="punch"></div>
+      <div class="screen">
+        <div class="sb">9:41</div>
+        <div class="app">
+          <div class="brand"><div class="l"><div class="mark">F</div><div class="bn">FENAC COOP</div></div><div class="av"></div></div>
+          <div class="bal"><div><div class="lb">Available Balance</div><div class="am">₦12,000.00</div></div><div class="ch">+ Save</div></div>
+          <div class="acts">
+            <div class="a"><i>S</i>Save</div>
+            <div class="a"><i>B</i>Buy</div>
+            <div class="a"><i>B</i>Borrow</div>
+            <div class="a"><i>I</i>Invest</div>
+          </div>
+          <div class="goal">
+            <div class="g1"><div class="t">Back-to-school fund</div><div class="p">64%</div></div>
+            <div class="bar"><i></i></div>
+            <div class="g2">₦768,000 raised · 14 contributing members</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ph-label" id="lbl-ios">iOS</div>
+    <div class="ph-label" id="lbl-android">Android</div>
+    <div class="store" id="stores">App Store &nbsp;·&nbsp; Google Play</div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById("scene-5");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-5"] = tl;
+
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.04 }, { scale: 1.0, duration: 0.9, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.06, duration: 4.9, ease: "none" }, 0.95);
+
+      tl.fromTo(root.querySelector(".eyebrow"), { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.6 }, 0.5);
+      tl.fromTo(root.querySelector(".headline"), { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.6);
+      tl.fromTo(".floor", { opacity: 0 }, { opacity: 1, duration: 1.2 }, 0.5);
+
+      // handsets rise (beat-locked: 29.47s / 30.56s) // beat-locked: 29.47s
+      tl.fromTo("#ios", { opacity: 0, y: 180, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: "power2.out" }, 0.47);
+      tl.fromTo("#ios .screen .bal", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, 1.0);
+      tl.fromTo("#ios .acts", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 1.2);
+      tl.fromTo("#ios .goal", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 1.4);
+      // beat-locked: 30.56s
+      tl.fromTo("#android", { opacity: 0, y: 180, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: "power2.out" }, 1.56);
+      tl.fromTo("#android .screen .bal", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, 2.1);
+      tl.fromTo("#android .acts", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 2.3);
+      tl.fromTo("#android .goal", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, 2.5);
+
+      // store chips + labels (beat-grid: 31.65 / 32.74s) // beat-grid: chips 31.65s, labels 32.74s
+      tl.fromTo("#stores", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7 }, 2.65);
+      tl.fromTo("#lbl-ios", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 }, 3.44);
+      tl.fromTo("#lbl-android", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 }, 3.5);
+
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power1.in" }, 5.55);
+    })();
+  </script>
+</div>
+</template>

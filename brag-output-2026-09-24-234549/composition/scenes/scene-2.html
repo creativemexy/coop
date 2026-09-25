@@ -1,0 +1,164 @@
+<template>
+<div id="scene-2" data-composition-id="scene-2" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    * { box-sizing: border-box; }
+
+    .window { position: relative; width: 860px; height: 880px; border-radius: 26px; background: #1B100C; border: 1px solid rgba(229,215,199,0.16); box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 70px rgba(228,164,42,0.10); overflow: hidden; display: flex; flex-direction: column; }
+    .titlebar { height: 52px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 20px; border-bottom: 1px solid rgba(229,215,199,0.10); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .d1 { background: #E06657; } .d2 { background: #E4A42A; } .d3 { background: #6DBE8E; }
+    .urlbar { flex: 1; margin-left: 14px; height: 30px; border-radius: 9px; background: rgba(255,249,239,0.07); display: flex; align-items: center; padding: 0 14px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-size: 15px; color: #D8C9B8; letter-spacing: 0.02em; }
+    .urlbar b { color: #F8CE68; font-weight: 700; }
+
+    .card { flex: 1; padding: 34px 52px 44px; display: flex; flex-direction: column; position: relative; }
+    .brand { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .brand .mark { width: 48px; height: 48px; border-radius: 13px; background: #E4A42A; color: #23150F; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 24px; }
+    .brand .bn { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: 0.03em; color: #FFF9EF; }
+    .h1 { margin-top: 20px; text-align: center; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 38px; letter-spacing: -0.01em; color: #FFF9EF; }
+    .sub { margin-top: 6px; text-align: center; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 400; font-size: 17px; color: #CBB8A4; }
+
+    .steps { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 26px; }
+    .step { display: flex; align-items: center; gap: 10px; }
+    .step .num { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid rgba(229,215,199,0.35); color: #D8C9B8; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 700; font-size: 14px; }
+    .step.done .num { background: #176B5B; border-color: #176B5B; color: #FFF9EF; }
+    .step.on .num { background: #E4A42A; border-color: #E4A42A; color: #23150F; }
+    .step .lbl { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: #D8C9B8; }
+    .step.on .lbl { color: #F8CE68; }
+    .step.done .lbl { color: #9CC7B8; }
+
+    .field { margin-top: 24px; }
+    .field .lab { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 600; font-size: 15px; color: #F5E9D9; margin-bottom: 10px; }
+    .select { display: flex; align-items: center; justify-content: space-between; height: 62px; border-radius: 14px; border: 1px solid rgba(229,215,199,0.24); background: rgba(255,249,239,0.06); padding: 0 22px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-size: 17px; color: #F5E9D9; }
+    .select .ph { color: #9C8771; }
+    .select .arr { color: #F8CE68; font-size: 20px; }
+
+    .btn { height: 62px; border-radius: 60px; background: #E4A42A; color: #23150F; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.02em; margin-top: 26px; box-shadow: 0 12px 30px rgba(228,164,42,0.30); }
+    .btn.rise { opacity: 0; transform: translateY(20px); }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+    .input { height: 56px; border-radius: 12px; border: 1px solid rgba(229,215,199,0.22); background: rgba(255,249,239,0.06); padding: 0 18px; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-size: 16px; color: #FFF9EF; display: flex; align-items: center; }
+    .input .ph { color: #9C8771; }
+    .input .val { color: #FFF9EF; letter-spacing: 0.02em; }
+    .span2 { grid-column: 1 / -1; }
+    .passrow { display: flex; align-items: center; gap: 16px; }
+    .strength { height: 10px; flex: 1; border-radius: 6px; background: rgba(255,249,239,0.10); overflow: hidden; }
+    .strength .fill { height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #6DBE8E, #176B5B); }
+    .stronglbl { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 700; font-size: 14px; color: #6DBE8E; min-width: 60px; text-align: right; }
+
+    .success { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(20,12,9,0.86); }
+    .success .tick { display: flex; align-items: center; gap: 16px; padding: 20px 34px; border-radius: 60px; background: #176B5B; color: #FFF9EF; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: 0.04em; box-shadow: 0 18px 50px rgba(23,107,91,0.45); }
+  </style>
+  <div class="stage">
+    <div class="window">
+      <div class="titlebar">
+        <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+        <div class="urlbar">fenac.coop/<b>register</b></div>
+      </div>
+      <div class="card">
+        <div class="brand"><div class="mark">F</div><div class="bn">FENAC COOP</div></div>
+        <div class="h1">Create Account</div>
+        <div class="sub">Join your cooperative community</div>
+
+        <div class="steps">
+          <div class="step" id="s1"><div class="num" id="n1">1</div><div class="lbl">Organization</div></div>
+          <div class="step" id="s2"><div class="num" id="n2">2</div><div class="lbl">Selection</div></div>
+          <div class="step" id="s3"><div class="num" id="n3">3</div><div class="lbl">Your Details</div></div>
+        </div>
+
+        <div class="field" id="f1">
+          <div class="lab">Choose your apex organization</div>
+          <div class="select"><span class="ph" id="f1v">Federal Employees Alliance</span><span class="arr">▼</span></div>
+          <div class="btn" id="b1">Continue</div>
+        </div>
+
+        <div class="field" id="f2" style="display:none;">
+          <div class="lab">Choose your member organization</div>
+          <div class="select"><span class="ph" id="f2v">Civil Service Credit Union</span><span class="arr">▼</span></div>
+          <div class="btn" id="b2">Continue</div>
+        </div>
+
+        <div class="field" id="f3" style="display:none;">
+          <div class="grid2">
+            <div class="input"><span class="val" id="fn">First name</span></div>
+            <div class="input"><span class="val">Last name</span></div>
+            <div class="input"><span class="val">Email (optional)</span></div>
+            <div class="input"><span class="val">Phone (optional)</span></div>
+            <div class="input span2 passrow">
+              <span class="val">Password</span>
+              <span class="strength"><span class="fill" id="strfill"></span></span>
+              <span class="stronglbl" id="strlbl">Weak</span>
+            </div>
+          </div>
+          <div class="btn rise" id="cta">Create Account</div>
+        </div>
+
+        <div class="success" id="ok">
+          <div class="tick">✓&nbsp; Account created</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var root = document.getElementById("scene-2");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-2"] = tl;
+
+      var ok = root.querySelector("#ok");
+      var fn = root.querySelector("#fn");
+      var strfill = root.querySelector("#strfill");
+      var strlbl = root.querySelector("#strlbl");
+
+      function done(n) {
+        var s = root.querySelector("#s" + n);
+        s.classList.remove("on"); s.classList.add("done");
+      }
+
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.05 }, { scale: 1.0, duration: 0.8, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.06, duration: 4.0, ease: "none" }, 0.9);
+
+      tl.fromTo(".window", { opacity: 0, y: 60, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power2.out" }, 0.3);
+      tl.fromTo(".brand,.h1,.sub,.steps", { opacity: 0 }, { opacity: 1, duration: 0.5, stagger: 0.12 }, 0.75);
+
+      // step 1 revealed; select is pre-set to the apex org (click on beat 1.64 relativity = 7.64 abs)
+      tl.fromTo("#f1", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, 1.35);
+      tl.call(function () { root.querySelector("#s1").classList.add("on"); }, [], 1.35);
+      tl.call(function () { done(1); root.querySelector("#f2").style.display = "block"; }, [], 1.42);
+
+      // beat-grid: 2.74 = 8.74 abs — org selected
+      tl.fromTo("#f2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, 1.5);
+      tl.call(function () { root.querySelector("#s2").classList.add("on"); }, [], 2.5);
+      tl.call(function () { done(2); }, [], 2.72);
+      tl.call(function () {
+        root.querySelector("#f2").style.display = "none";
+        root.querySelector("#f3").style.display = "block";
+        root.querySelector("#s3").classList.add("on");
+      }, [], 2.74);
+
+      tl.fromTo("#f3", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55 }, 2.74);
+
+      // typing "Amara" into First name (key ticks abs 9.35-9.80)
+      var nameVals = ["A", "Am", "Ama", "Amar", "Amara"];
+      for (var i = 0; i < nameVals.length; i++) {
+        tl.call((function (v) { return function () { fn.textContent = v; }; })(nameVals[i]), [], 3.35 + i * 0.15);
+      }
+
+      // password strength to Strong
+      tl.to(strfill, { width: "100%", duration: 0.4 }, 4.0);
+      tl.call(function () { strlbl.textContent = "Strong"; }, [], 4.32);
+
+      tl.fromTo("#cta", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5 }, 4.1);
+      tl.fromTo("#cta", { scale: 1 }, { scale: 1.06, duration: 0.28, ease: "power1.inOut" }, 4.6);
+
+      // Account created (beat-locked: 10.93 abs = 4.93)
+      tl.call(function () { ok.style.display = "flex"; }, [], 4.93);
+      tl.fromTo(ok, { opacity: 0 }, { opacity: 1, duration: 0.4 }, 4.93);
+
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power1.in" }, 5.6);
+    })();
+  </script>
+</div>
+</template>

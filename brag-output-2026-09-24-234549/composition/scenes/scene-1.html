@@ -1,0 +1,102 @@
+<template>
+<div id="scene-1" data-composition-id="scene-1" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    * { box-sizing: border-box; }
+
+    .halo { position: absolute; left: 50%; top: 50%; width: 980px; height: 980px; transform: translate(-50%, -50%); pointer-events: none; }
+    .halo .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(228,164,42,0.14); }
+    .halo .glow { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at center, rgba(228,164,42,0.22) 0%, rgba(23,107,91,0.12) 40%, rgba(20,12,9,0) 66%); }
+
+    .emblem { position: relative; width: 340px; height: 232px; margin-top: -150px; filter: drop-shadow(0 24px 60px rgba(0,0,0,0.55)) drop-shadow(0 0 46px rgba(228,164,42,0.26)); }
+    .emblem img { width: 100%; height: 100%; object-fit: contain; }
+
+    .headline { position: relative; margin-top: 46px; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 800; font-size: 104px; line-height: 1.04; letter-spacing: -0.01em; color: #FFF9EF; }
+    .headline .accent { color: #F8CE68; }
+
+    .devices { position: relative; display: flex; gap: 120px; margin-top: 74px; align-items: center; }
+    .dev { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .glyph { display: flex; align-items: center; justify-content: center; width: 150px; height: 102px; }
+    .glyph svg { width: 100%; height: 100%; }
+    .dev .lbl { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 600; font-size: 26px; letter-spacing: 0.5em; text-transform: uppercase; color: #F8CE68; padding-left: 0.5em; }
+
+    .eyebrow { position: absolute; top: 118px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 0.5em; text-transform: uppercase; color: #E5D7C7; }
+  </style>
+  <div class="stage">
+    <div class="halo">
+      <div class="glow"></div>
+      <div class="ring"></div>
+    </div>
+    <div class="eyebrow">A Digital Smart Cooperative</div>
+    <div class="emblem">
+      <img src="../assets/img/logo.png" alt="FENAC COOP">
+    </div>
+    <h1 class="headline">Membership,<br><span class="accent">in minutes.</span></h1>
+    <div class="devices">
+      <div class="dev" id="dev-web">
+        <div class="glyph">
+          <svg viewBox="0 0 150 102" fill="none">
+            <rect x="4" y="6" width="142" height="90" rx="10" stroke="#E4A42A" stroke-width="3" opacity="0.9"/>
+            <line x1="4" y1="26" x2="146" y2="26" stroke="#E4A42A" stroke-width="3" opacity="0.5"/>
+            <circle cx="16" cy="16" r="3" fill="#E4A42A" opacity="0.8"/>
+            <circle cx="28" cy="16" r="3" fill="#E4A42A" opacity="0.5"/>
+            <circle cx="40" cy="16" r="3" fill="#E4A42A" opacity="0.5"/>
+            <rect x="22" y="46" width="104" height="12" rx="6" fill="#E4A42A" opacity="0.7"/>
+            <rect x="22" y="66" width="70" height="10" rx="5" fill="#F8CE68" opacity="0.55"/>
+          </svg>
+        </div>
+        <div class="lbl">Web</div>
+      </div>
+      <div class="dev" id="dev-mob">
+        <div class="glyph">
+          <svg viewBox="0 0 150 102" fill="none">
+            <rect x="52" y="2" width="46" height="98" rx="12" stroke="#176B5B" stroke-width="3" opacity="0.9"/>
+            <line x1="66" y1="86" x2="84" y2="86" stroke="#176B5B" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+            <rect x="64" y="6" width="22" height="4" rx="2" fill="#F8CE68" opacity="0.9"/>
+            <rect x="62" y="26" width="26" height="10" rx="3" fill="#176B5B" opacity="0.8"/>
+            <rect x="62" y="44" width="26" height="10" rx="3" fill="#176B5B" opacity="0.5"/>
+            <rect x="62" y="62" width="26" height="10" rx="3" fill="#176B5B" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="lbl">Mobile</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var root = document.getElementById("scene-1");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-1"] = tl;
+
+      var glow = root.querySelector(".halo .glow");
+      var ring = root.querySelector(".halo .ring");
+      var emblem = root.querySelector(".emblem");
+      var headline = root.querySelector(".headline");
+      var eyebrow = root.querySelector(".eyebrow");
+      var devWeb = root.querySelector("#dev-web");
+      var devMob = root.querySelector("#dev-mob");
+
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.05 }, { scale: 1.0, duration: 0.8, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.05, duration: 5.0, ease: "none" }, 0.9);
+
+      // emblem ignite (beat-locked: 0.56s)
+      tl.fromTo(glow, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1.0, duration: 1.0, ease: "power1.inOut" }, 0.2);
+      tl.fromTo(ring, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1.0, duration: 1.2, ease: "power2.out" }, 0.25);
+      tl.fromTo(emblem, { opacity: 0, y: 36, scale: 0.94 }, { opacity: 1, y: 0, scale: 1.0, duration: 0.85, ease: "power2.out" }, 0.25);
+
+      tl.fromTo(eyebrow, { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.6 }, 0.7);
+
+      tl.fromTo(headline, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, 1.0);
+
+      // web + mobile chips on beats (3.82 / 4.91)
+      tl.fromTo(devWeb, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5 }, 3.82);
+      tl.fromTo(devMob, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5 }, 4.82);
+
+      // exit
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power1.in" }, 5.6);
+    })();
+  </script>
+</div>
+</template>

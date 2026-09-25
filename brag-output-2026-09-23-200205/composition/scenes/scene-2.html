@@ -1,0 +1,84 @@
+<template>
+<div id="scene-2" data-composition-id="scene-2" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    * { box-sizing: border-box; }
+    .eyebrow { position: absolute; top: 110px; left: 0; right: 0; text-align: center; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 0.5em; text-transform: uppercase; color: #E5D7C7; }
+    .row { display: flex; align-items: center; justify-content: center; width: 1640px; }
+    .stat { position: relative; width: 546px; display: flex; flex-direction: column; align-items: center; padding: 36px 0; }
+    .stat .ring { position: absolute; left: 50%; top: 46%; margin-left: -160px; margin-top: -160px; width: 320px; height: 320px; border-radius: 50%; border: 1px solid rgba(228,164,42,0.35); pointer-events: none; }
+    .stat .numwrap { position: relative; height: 220px; display: flex; align-items: center; justify-content: center; }
+    .stat .num { font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 800; font-size: 176px; line-height: 1; letter-spacing: -0.02em; color: #F8CE68; font-variant-numeric: tabular-nums; }
+    .stat .label { position: relative; margin-top: 18px; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 600; font-size: 30px; letter-spacing: 0.34em; text-transform: uppercase; color: #FFF9EF; }
+    .vr { width: 1px; height: 300px; background: linear-gradient(180deg, rgba(228,164,42,0) 0%, rgba(228,164,42,0.4) 50%, rgba(228,164,42,0) 100%); }
+    .bottom { margin-top: 74px; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 500; font-size: 30px; letter-spacing: 0.18em; text-transform: uppercase; color: #E5D7C7; }
+    .bottom b { color: #F8CE68; font-weight: 700; }
+  </style>
+  <div class="stage">
+    <div class="eyebrow">The Collective, In Scale</div>
+    <div class="row">
+      <div class="stat" id="st1">
+        <div class="ring"></div>
+        <div class="numwrap"><div class="num" id="n1">0</div></div>
+        <div class="label">Members</div>
+      </div>
+      <div class="vr"></div>
+      <div class="stat" id="st2">
+        <div class="ring"></div>
+        <div class="numwrap"><div class="num" id="n2">₦0</div></div>
+        <div class="label">Savings Pool</div>
+      </div>
+      <div class="vr"></div>
+      <div class="stat" id="st3">
+        <div class="ring"></div>
+        <div class="numwrap"><div class="num" id="n3">0</div></div>
+        <div class="label">Cooperatives</div>
+      </div>
+    </div>
+    <div class="bottom">One Community &nbsp;·&nbsp; One Pool &nbsp;·&nbsp; One <b>Movement</b></div>
+  </div>
+  <script>
+    (function () {
+      var root = document.getElementById("scene-2");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-2"] = tl;
+
+      var n1o = { v: 0 };
+      var n2o = { v: 0 };
+      var n3o = { v: 0 };
+      var n1 = root.querySelector("#n1");
+      var n2 = root.querySelector("#n2");
+      var n3 = root.querySelector("#n3");
+      var fmt = function (k) { return k < 1000 ? String(k) : Math.round(k / 1000) + "," + String(Math.round(k) % 1000).padStart(3, "0") + "+"; };
+
+      // entrance + slow push-in
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.04 }, { scale: 1.0, duration: 0.9, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.06, duration: 5.9, ease: "none" }, 0.95);
+
+      // intro
+      tl.fromTo(root.querySelector(".eyebrow"), { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.7 }, 0.8);
+      tl.fromTo(root.querySelector(".bottom"), { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8 }, 5.4);
+
+      // counter 1 — 10,000+ (beat-locked: 8.74s) // beat-locked: 8.74s
+      tl.fromTo("#st1 .ring", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6 }, 2.5);
+      tl.fromTo(n1, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5 }, 2.74);
+      tl.to(n1o, { v: 10000, duration: 1.4, ease: "power1.inOut", onUpdate: function () { n1.textContent = fmt(n1o.v); } }, 2.74);
+
+      // counter 2 — ₦2.4B (beat-grid: 9.83s) // beat-grid: stat 2 at 9.83s
+      tl.fromTo("#st2 .ring", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6 }, 3.6);
+      tl.fromTo(n2, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5 }, 3.83);
+      tl.to(n2o, { v: 2.4, duration: 1.2, ease: "power1.inOut", snap: { v: 0.1 }, onUpdate: function () { n2.textContent = "₦" + n2o.v.toFixed(1) + "B"; } }, 3.83);
+
+      // counter 3 — 35+ (beat-grid: 10.93s) // beat-grid: stat 3 at 10.93s
+      tl.fromTo("#st3 .ring", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6 }, 4.7);
+      tl.fromTo(n3, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5 }, 4.93);
+      tl.to(n3o, { v: 35, duration: 1.0, ease: "power1.inOut", snap: { v: 1 }, onUpdate: function () { n3.textContent = n3o.v + "+"; } }, 4.93);
+
+      // exit hold
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power1.in" }, 6.55);
+    })();
+  </script>
+</div>
+</template>

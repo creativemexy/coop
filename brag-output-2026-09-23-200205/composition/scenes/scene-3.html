@@ -1,0 +1,141 @@
+<template>
+<div id="scene-3" data-composition-id="scene-3" class="scene">
+  <style>
+    .scene { position: absolute; inset: 0; overflow: hidden; background: #140C09; }
+    .stage { position: absolute; inset: 0; }
+    * { box-sizing: border-box; }
+    .eyebrow { position: absolute; top: 96px; left: 150px; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 0.5em; text-transform: uppercase; color: #E5D7C7; }
+    .headline { position: absolute; top: 148px; left: 150px; font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 800; font-size: 92px; line-height: 1.02; color: #FFF9EF; letter-spacing: -0.01em; }
+    .headline .accent { color: #F8CE68; }
+
+    .rail { position: absolute; left: 150px; top: 430px; display: flex; flex-direction: column; gap: 54px; }
+    .rail .step { display: flex; align-items: center; gap: 26px; }
+    .rail .dot { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(229,215,199,0.4); color: #E5D7C7; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 700; font-size: 26px; }
+    .rail .step.on .dot { border-color: #F8CE68; color: #1A0F0A; background: #F8CE68; }
+    .rail .step.done .dot { border-color: #68D391; color: #0F5A4B; background: #68D391; }
+    .rail .lbl { font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; font-weight: 600; font-size: 38px; letter-spacing: 0.22em; text-transform: uppercase; color: #FFF9EF; }
+    .rail .lbl span { display: block; font-weight: 400; font-size: 22px; letter-spacing: 0.18em; color: #A99683; margin-top: 4px; }
+
+    .phone { position: absolute; right: 210px; top: 132px; width: 400px; height: 780px; border-radius: 52px; background: #241309; border: 1px solid #452A20; box-shadow: 0 40px 90px rgba(0,0,0,0.6), 0 0 60px rgba(228,164,42,0.10); overflow: hidden; }
+    .phone .inner { position: absolute; left: 14px; top: 14px; right: 14px; bottom: 14px; border-radius: 40px; background: #FBF3E6; overflow: hidden; display: flex; flex-direction: column; }
+    .phone .bar { height: 34px; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", system-ui, sans-serif; font-size: 14px; font-weight: 600; color: #23150F; }
+    .phone .app { flex: 1; padding: 22px 24px; position: relative; }
+    .phone .brand { display: flex; align-items: center; gap: 10px; }
+    .phone .brand .mark { width: 34px; height: 34px; border-radius: 9px; background: #1A0F0A; color: #F8CE68; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; }
+    .phone .brand .bn { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 20px; letter-spacing: 0.02em; color: #23150F; }
+    .phone h2 { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 30px; color: #23150F; margin: 26px 0 6px; }
+    .phone .sub { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 400; font-size: 16px; color: #6B5B4D; line-height: 1.5; }
+
+    .card { position: relative; margin-top: 26px; border: 1px solid #E7DCCB; border-radius: 22px; background: #FFF; padding: 22px; }
+    .card .go { display: flex; align-items: center; justify-content: center; height: 62px; border-radius: 16px; background: linear-gradient(135deg, #E4A42A, #F8CE68); color: #1A0F0A; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 21px; letter-spacing: 0.02em; }
+    .card .cursor { position: absolute; right: 22px; top: 34px; width: 2px; height: 26px; background: #1A0F0A; }
+    .kyc { position: absolute; inset: 0; background: #FBF3E6; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 34px; }
+    .kyc .tick { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 30px; color: #23150F; margin-bottom: 18px; letter-spacing: 0.02em; }
+    .kyc .sub2 { font-family: "Avenir Next", system-ui, sans-serif; font-weight: 400; font-size: 16px; color: #6B5B4D; text-align: center; line-height: 1.6; }
+    .kyc .ringbox { position: relative; width: 150px; height: 150px; margin: 26px 0 10px; }
+    .kyc svg.ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .kyc .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 30px; color: #176B5B; }
+    .unlock { position: absolute; inset: 0; background: #FBF3E6; display: none; flex-direction: column; align-items: center; justify-content: center; }
+    .unlock .chip { display: flex; align-items: center; gap: 14px; padding: 18px 34px; border-radius: 60px; background: #176B5B; color: #FFF9EF; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: 0.04em; }
+    .unlock .hey { margin-top: 22px; font-family: "Avenir Next", system-ui, sans-serif; font-weight: 600; font-size: 22px; color: #23150F; }
+  </style>
+
+  <div class="stage">
+    <div class="eyebrow">Join In Minutes</div>
+    <h1 class="headline">Your wealth starts<br>with a <span class="accent">tap.</span></h1>
+
+    <div class="rail">
+      <div class="step done" id="st-join"><div class="dot">1</div><div class="lbl">Join<span>become a member</span></div></div>
+      <div class="step on" id="st-verify"><div class="dot">2</div><div class="lbl">Verify<span>selfie + ID</span></div></div>
+      <div class="step" id="st-unlock"><div class="dot">3</div><div class="lbl">Unlock<span>savings, credit, investing</span></div></div>
+    </div>
+
+    <div class="phone">
+      <div class="inner">
+        <div class="bar">9:41</div>
+        <div class="app" id="app-main-phone">
+          <div class="brand"><div class="mark">F</div><div class="bn">FENAC COOP</div></div>
+          <h2>Join your cooperative</h2>
+          <div class="sub">Become a member in minutes — one identity unlocks everything.</div>
+          <div class="card" id="join-card">
+            <div class="go">Become a member</div>
+            <div class="cursor" id="cursor"></div>
+          </div>
+        </div>
+        <div class="kyc" id="kyc">
+          <div class="tick">Verifying your identity</div>
+          <div class="ringbox">
+            <svg class="ring" width="150" height="150" viewBox="0 0 150 150">
+              <circle cx="75" cy="75" r="66" fill="none" stroke="#E7DCCB" stroke-width="10"/>
+              <circle id="ring-fg" cx="75" cy="75" r="66" fill="none" stroke="#176B5B" stroke-width="10" stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="414.7"/>
+            </svg>
+            <div class="pct" id="pct">0%</div>
+          </div>
+          <div class="sub2">Selfie + government ID + BVN<br>checked against our registry</div>
+        </div>
+        <div class="unlock" id="unlock">
+          <div class="chip">✓&nbsp; Unlocked</div>
+          <div class="hey">Welcome to the movement.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.getElementById("scene-3");
+      var tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      window.__timelines["scene-3"] = tl;
+
+      var kyc = root.querySelector("#kyc");
+      var unlock = root.querySelector("#unlock");
+      var cursor = root.querySelector("#cursor");
+      var ringFg = root.querySelector("#ring-fg");
+      var pctEl = root.querySelector("#pct");
+      var pct = { v: 0 };
+
+      // entrance + push-in
+      tl.fromTo(".stage", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 0);
+      tl.fromTo(".stage", { scale: 1.04 }, { scale: 1.0, duration: 0.9, ease: "power2.out" }, 0.05);
+      tl.fromTo(".stage", { scale: 1.0 }, { scale: 1.06, duration: 5.9, ease: "none" }, 0.95);
+
+      tl.fromTo(root.querySelector(".eyebrow"), { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.6 }, 0.6);
+      tl.fromTo(".headline", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8 }, 0.7);
+
+      // rail steps arrive on beat grid (14.2/16.38/17.47)
+      tl.fromTo("#st-join", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6 }, 1.0);
+      tl.fromTo("#st-verify", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6 }, 1.7);
+
+      // phone + join card
+      tl.fromTo(".phone", { opacity: 0, y: 90, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.9, ease: "power2.out" }, 1.0);
+      // beat-locked: 14.2s tap
+      tl.fromTo("#join-card", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6 }, 1.2);
+      tl.fromTo(cursor, { opacity: 0 }, { opacity: 1, duration: 0.2 }, 1.5);
+      for (var i = 1; i <= 6; i++) {
+        tl.fromTo(cursor, { opacity: 1 }, { opacity: 0, duration: 0.12, ease: "none" }, 1.5 + i * 0.34);
+        tl.fromTo(cursor, { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "none" }, 1.5 + i * 0.34 + 0.12);
+      }
+
+      // KYC panel: ring fills (beat-locked: 16.38s) // beat-locked: 16.38s
+      tl.call(function () { kyc.style.display = "flex"; root.querySelector("#app-main-phone").style.visibility = "hidden"; }, [], 3.05);
+      tl.fromTo(kyc, { opacity: 0 }, { opacity: 1, duration: 0.5 }, 3.05);
+      tl.to(pct, { v: 100, duration: 1.0, ease: "power1.inOut", snap: { v: 1 }, onUpdate: function () {
+        var pr = Math.round(pct.v);
+        pctEl.textContent = pr + "%";
+        ringFg.style.strokeDashoffset = String(414.7 - (414.7 * pct.v) / 100);
+      } }, 3.38);
+      tl.fromTo("#st-verify .dot", { backgroundColor: "#F8CE68" }, { backgroundColor: "#68D391", color: "#0F5A4B", duration: 0.3 }, 4.1);
+
+      // Unlocked (beat-locked: 17.47s) // beat-locked: 17.47s
+      tl.call(function () { unlock.style.display = "flex"; kyc.style.visibility = "hidden"; }, [], 4.35);
+      tl.fromTo(unlock, { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.4)" }, 4.47);
+      tl.fromTo("#st-verify", { opacity: 1 }, { opacity: 0.35, duration: 0.3 }, 4.5);
+      tl.fromTo("#st-unlock", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6 }, 4.7);
+      tl.fromTo("#st-unlock .dot", { backgroundColor: "transparent" }, { backgroundColor: "#68D391", color: "#0F5A4B", borderColor: "#68D391", duration: 0.3 }, 4.75);
+
+      // exit hold
+      tl.fromTo(".stage", { opacity: 1 }, { opacity: 0, duration: 0.4, ease: "power1.in" }, 6.55);
+    })();
+  </script>
+</div>
+</template>
