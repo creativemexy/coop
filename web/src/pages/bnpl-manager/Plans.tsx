@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../../api/client'
+import { useAuth } from '../../stores/auth.store'
 import {
   Layers, Plus, Search, RefreshCw, Pencil, Clock, ToggleLeft, ToggleRight,
   AlertTriangle, History, CheckCircle2, X,
@@ -7,7 +8,7 @@ import {
 
 interface Plan {
   id: string
-  organizationId: string
+  organizationId: string | null
   catalogItemId: string
   catalogItem?: { id: string; name: string; price: number }
   tenorOptions?: number[]
@@ -214,6 +215,7 @@ function PaginationBar({
 }
 
 export function Plans() {
+  const canManagePlans = useAuth((state) => state.user?.role === 'super_admin')
   const [plans, setPlans] = useState<Plan[]>([])
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
   const [search, setSearch] = useState('')
@@ -295,9 +297,11 @@ export function Plans() {
             </p>
           </div>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] cursor-pointer">
-          <Plus size={16} /> Create
-        </button>
+        {canManagePlans && (
+          <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-full bg-[#176B5B] px-5 py-2.5 text-sm font-semibold text-[#FFF9EF] shadow-sm transition hover:bg-[#0F5A4B] cursor-pointer">
+            <Plus size={16} /> Create
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -383,21 +387,21 @@ export function Plans() {
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Status</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Enabled</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Version</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Actions</th>
+                {canManagePlans && <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[#6B5245]">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EDE2D3]">
               {loading && plans.length === 0 ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={10} className="px-5 py-6">
+                    <td colSpan={canManagePlans ? 10 : 9} className="px-5 py-6">
                       <div className="h-4 w-1/3 animate-pulse rounded bg-[#F0DDAD]/40" />
                     </td>
                   </tr>
                 ))
               ) : pageItems.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-5 py-12 text-center">
+                  <td colSpan={canManagePlans ? 10 : 9} className="px-5 py-12 text-center">
                     <div className="mx-auto flex max-w-xs flex-col items-center gap-2 text-[#6B5245]">
                       <Layers size={22} className="text-[#C9B89F]" />
                       <p className="text-sm font-semibold text-[#2C1B13]">
@@ -441,17 +445,19 @@ export function Plans() {
                         <History size={12} /> v{p.version}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => handleViewHistory(p)} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-[#6B5245] transition hover:bg-[#F0DDAD]/50 hover:text-[#23150F] cursor-pointer">
-                          <Clock size={13} /> History
-                        </button>
-                        <button onClick={() => handleToggleStatus(p)} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-[#6B5245] transition hover:bg-[#F0DDAD]/50 hover:text-[#23150F] cursor-pointer">
-                          {p.status === 'active' ? <ToggleLeft size={13} /> : <ToggleRight size={13} />}
-                          {p.status === 'active' ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    </td>
+                    {canManagePlans && (
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button onClick={() => handleViewHistory(p)} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-[#6B5245] transition hover:bg-[#F0DDAD]/50 hover:text-[#23150F] cursor-pointer">
+                            <Clock size={13} /> History
+                          </button>
+                          <button onClick={() => handleToggleStatus(p)} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-[#6B5245] transition hover:bg-[#F0DDAD]/50 hover:text-[#23150F] cursor-pointer">
+                            {p.status === 'active' ? <ToggleLeft size={13} /> : <ToggleRight size={13} />}
+                            {p.status === 'active' ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -463,7 +469,7 @@ export function Plans() {
 
       {/* Create modal */}
       <BrandModal
-        open={createOpen}
+        open={canManagePlans && createOpen}
         onClose={() => setCreateOpen(false)}
         icon={<Plus size={20} className="text-[#176B5B]" />}
         iconCls="bg-[#176B5B]/10"

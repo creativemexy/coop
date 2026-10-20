@@ -18,7 +18,10 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Role } from '../../../common/enums/role.enum';
-import { RiskFlagStatus, RiskFlagEntityType } from '../entities/risk-flag.entity';
+import {
+  RiskFlagStatus,
+  RiskFlagEntityType,
+} from '../entities/risk-flag.entity';
 
 @Controller('api/v1/bnpl/compliance')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -36,7 +39,8 @@ export class ComplianceController {
     @Query('planId') planId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    if (!planId) throw new BadRequestException('planId query param is required');
+    if (!planId)
+      throw new BadRequestException('planId query param is required');
     return this.subsService.checkEligibility(userId, planId);
   }
 
@@ -134,7 +138,10 @@ export class ComplianceController {
   async export(@Res() res: any) {
     const csv = await this.service.exportCsv();
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="bnpl-report.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="bnpl-report.csv"',
+    );
     res.send(csv);
   }
 
@@ -148,7 +155,12 @@ export class ComplianceController {
     @Query('action') action?: string,
     @Query('category') category?: string,
   ) {
-    return this.service.listAuditLogs({ entityType, entityId, action, category });
+    return this.service.listAuditLogs({
+      entityType,
+      entityId,
+      action,
+      category,
+    });
   }
 
   @Get('audit-logs/:id')

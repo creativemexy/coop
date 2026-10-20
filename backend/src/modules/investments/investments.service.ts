@@ -1,19 +1,58 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, Between, In, DataSource } from 'typeorm';
-import { InvestmentProduct, InvestmentType, RiskTier, ProductStatus, DistributionFrequency, VALID_LIFECYCLE_TRANSITIONS } from './entities/investment-product.entity';
+import {
+  InvestmentProduct,
+  InvestmentType,
+  RiskTier,
+  ProductStatus,
+  DistributionFrequency,
+  VALID_LIFECYCLE_TRANSITIONS,
+} from './entities/investment-product.entity';
 import { InvestmentProductVersion } from './entities/investment-product-version.entity';
-import { InvestmentEligibilityRule, KycLevel } from './entities/investment-eligibility-rule.entity';
-import { ShareIssuanceCycle, CycleStatus } from './entities/share-issuance-cycle.entity';
-import { InvestmentOrder, OrderStatus } from './entities/investment-order.entity';
+import {
+  InvestmentEligibilityRule,
+  KycLevel,
+} from './entities/investment-eligibility-rule.entity';
+import {
+  ShareIssuanceCycle,
+  CycleStatus,
+} from './entities/share-issuance-cycle.entity';
+import {
+  InvestmentOrder,
+  OrderStatus,
+} from './entities/investment-order.entity';
 import { InvestmentHolding } from './entities/investment-holding.entity';
-import { Distribution, DistributionType, DistributionStatus } from './entities/distribution.entity';
+import {
+  Distribution,
+  DistributionType,
+  DistributionStatus,
+} from './entities/distribution.entity';
 import { DistributionPayment } from './entities/distribution-payment.entity';
-import { DistributionRun, DistRunStatus } from './entities/distribution-run.entity';
-import { RedemptionRequest, RedemptionStatus } from './entities/redemption-request.entity';
-import { PricingConfig, PricingFormula, NavSchedule, AccrualMethod } from './entities/pricing-config.entity';
+import {
+  DistributionRun,
+  DistRunStatus,
+} from './entities/distribution-run.entity';
+import {
+  RedemptionRequest,
+  RedemptionStatus,
+} from './entities/redemption-request.entity';
+import {
+  PricingConfig,
+  PricingFormula,
+  NavSchedule,
+  AccrualMethod,
+} from './entities/pricing-config.entity';
 import { NavSnapshot } from './entities/nav-snapshot.entity';
-import { CorporateAction, CorporateActionType, CorporateActionStatus } from './entities/corporate-action.entity';
+import {
+  CorporateAction,
+  CorporateActionType,
+  CorporateActionStatus,
+} from './entities/corporate-action.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { PaymentStatus, KycStatus } from '../../common/enums/status.enum';
 import { UsersService } from '../users/users.service';
@@ -53,7 +92,11 @@ export class InvestmentsService {
     private readonly distRunRepo: Repository<DistributionRun>,
   ) {}
 
-  async listProducts(filters?: { type?: string; riskTier?: string; isOpen?: boolean }) {
+  async listProducts(filters?: {
+    type?: string;
+    riskTier?: string;
+    isOpen?: boolean;
+  }) {
     const where: any = { status: ProductStatus.ACTIVE };
     if (filters?.type) where.type = filters.type;
     if (filters?.riskTier) where.riskTier = filters.riskTier;
@@ -69,31 +112,49 @@ export class InvestmentsService {
 
   async placeOrder(userId: string, dto: { productId: string; amount: number }) {
     const product = await this.getProduct(dto.productId);
-    if (!product.isOpen) throw new BadRequestException('Investment product is not open');
+    if (!product.isOpen)
+      throw new BadRequestException('Investment product is not open');
 
     if (dto.amount < Number(product.minimumInvestment)) {
-      throw new BadRequestException(`Minimum investment is ${product.minimumInvestment}`);
+      throw new BadRequestException(
+        `Minimum investment is ${product.minimumInvestment}`,
+      );
     }
-    if (product.maximumInvestment && dto.amount > Number(product.maximumInvestment)) {
-      throw new BadRequestException(`Maximum investment is ${product.maximumInvestment}`);
+    if (
+      product.maximumInvestment &&
+      dto.amount > Number(product.maximumInvestment)
+    ) {
+      throw new BadRequestException(
+        `Maximum investment is ${product.maximumInvestment}`,
+      );
     }
 
     const eligibility = await this.checkFullEligibility(userId, dto.productId);
     if (!eligibility.allowed) {
-      const reasons = eligibility.reasons.filter((r) => !r.passed).map((r) => r.label).join(', ');
+      const reasons = eligibility.reasons
+        .filter((r) => !r.passed)
+        .map((r) => r.label)
+        .join(', ');
       throw new BadRequestException(`Not eligible: ${reasons}`);
     }
 
-    const pricingConfig = await this.pricingRepo.findOne({ where: { productId: dto.productId } });
+    const pricingConfig = await this.pricingRepo.findOne({
+      where: { productId: dto.productId },
+    });
     let unitPrice = Number(product.unitPrice) || 1;
     if (pricingConfig?.formulaType === PricingFormula.NAV_BASED) {
       const latestNav = await this.getLatestNavSnapshot(dto.productId);
       if (latestNav) unitPrice = Number(latestNav.unitPrice);
     }
-    if (pricingConfig?.minUnitPrice) unitPrice = Math.max(unitPrice, Number(pricingConfig.minUnitPrice));
-    if (pricingConfig?.maxUnitPrice) unitPrice = Math.min(unitPrice, Number(pricingConfig.maxUnitPrice));
+    if (pricingConfig?.minUnitPrice)
+      unitPrice = Math.max(unitPrice, Number(pricingConfig.minUnitPrice));
+    if (pricingConfig?.maxUnitPrice)
+      unitPrice = Math.min(unitPrice, Number(pricingConfig.maxUnitPrice));
 
-    const fee = Math.round(dto.amount * Number(product.managementFeeRate) / 100 * 100) / 100;
+    const fee =
+      Math.round(
+        ((dto.amount * Number(product.managementFeeRate)) / 100) * 100,
+      ) / 100;
     const units = Math.floor((dto.amount - fee) / unitPrice);
 
     const order = new InvestmentOrder();
@@ -125,10 +186,18 @@ export class InvestmentsService {
     return order;
   }
 
-  async confirmPayment(orderId: string, paymentReference: string, paymentId: string) {
-    const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: { product: true } });
+  async confirmPayment(
+    orderId: string,
+    paymentReference: string,
+    paymentId: string,
+  ) {
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: { product: true },
+    });
     if (!order) throw new NotFoundException('Order not found');
-    if (order.status !== OrderStatus.PLACED) throw new BadRequestException('Order already processed');
+    if (order.status !== OrderStatus.PLACED)
+      throw new BadRequestException('Order already processed');
 
     order.status = OrderStatus.PAYMENT_CONFIRMED;
     order.paymentReference = paymentReference;
@@ -136,9 +205,10 @@ export class InvestmentsService {
     await this.orderRepo.save(order);
 
     const product = order.product;
-    const lockedUntil = product.lockInDays > 0
-      ? new Date(Date.now() + product.lockInDays * 86400000)
-      : null;
+    const lockedUntil =
+      product.lockInDays > 0
+        ? new Date(Date.now() + product.lockInDays * 86400000)
+        : null;
     const maturityDate = product.tenorDays
       ? new Date(Date.now() + product.tenorDays * 86400000)
       : null;
@@ -159,11 +229,20 @@ export class InvestmentsService {
     order.status = OrderStatus.ALLOCATED;
     await this.orderRepo.save(order);
 
-    if (product.availableUnits !== null && product.availableUnits !== undefined) {
-      product.availableUnits = Math.max(0, product.availableUnits - (order.units ?? 0));
+    if (
+      product.availableUnits !== null &&
+      product.availableUnits !== undefined
+    ) {
+      product.availableUnits = Math.max(
+        0,
+        product.availableUnits - (order.units ?? 0),
+      );
     }
     if (product.totalCapacity) {
-      product.currentCapacity = Math.min(Number(product.totalCapacity), (product.currentCapacity ?? 0) + order.amount);
+      product.currentCapacity = Math.min(
+        Number(product.totalCapacity),
+        (product.currentCapacity ?? 0) + order.amount,
+      );
     }
     if (product.availableUnits !== null || product.totalCapacity) {
       await this.productRepo.save(product);
@@ -191,8 +270,13 @@ export class InvestmentsService {
   async getPortfolioSummary(userId: string) {
     const holdings = await this.getMyHoldings(userId);
     const totalInvested = holdings.reduce((s, h) => s + Number(h.costBasis), 0);
-    const currentValue = holdings.reduce((s, h) => s + Number(h.currentValue || 0), 0);
-    const lockedValue = holdings.filter((h) => h.isLocked).reduce((s, h) => s + Number(h.currentValue || 0), 0);
+    const currentValue = holdings.reduce(
+      (s, h) => s + Number(h.currentValue || 0),
+      0,
+    );
+    const lockedValue = holdings
+      .filter((h) => h.isLocked)
+      .reduce((s, h) => s + Number(h.currentValue || 0), 0);
     const availableValue = currentValue - lockedValue;
 
     const distPays = await this.distPayRepo.find({
@@ -205,7 +289,8 @@ export class InvestmentsService {
       totalInvested,
       currentValue,
       unrealizedReturn,
-      unrealizedReturnPct: totalInvested > 0 ? (unrealizedReturn / totalInvested) * 100 : 0,
+      unrealizedReturnPct:
+        totalInvested > 0 ? (unrealizedReturn / totalInvested) * 100 : 0,
       totalEarned,
       lockedValue,
       availableValue,
@@ -235,12 +320,24 @@ export class InvestmentsService {
     });
   }
 
-  async requestRedemption(userId: string, dto: { holdingId: string; units: number; reason?: string }) {
-    const holding = await this.holdingRepo.findOne({ where: { id: dto.holdingId, userId, isActive: true }, relations: { product: true } });
+  async requestRedemption(
+    userId: string,
+    dto: { holdingId: string; units: number; reason?: string },
+  ) {
+    const holding = await this.holdingRepo.findOne({
+      where: { id: dto.holdingId, userId, isActive: true },
+      relations: { product: true },
+    });
     if (!holding) throw new NotFoundException('Holding not found');
 
-    if (holding.isLocked && holding.lockedUntil && new Date(holding.lockedUntil) > new Date()) {
-      throw new BadRequestException(`Holding is locked until ${holding.lockedUntil.toISOString().slice(0, 10)}`);
+    if (
+      holding.isLocked &&
+      holding.lockedUntil &&
+      new Date(holding.lockedUntil) > new Date()
+    ) {
+      throw new BadRequestException(
+        `Holding is locked until ${holding.lockedUntil.toISOString().slice(0, 10)}`,
+      );
     }
 
     if (dto.units > holding.units) {
@@ -292,7 +389,8 @@ export class InvestmentsService {
     product.managementFeeRate = dto.managementFeeRate ?? 0;
     product.expectedReturnRate = dto.expectedReturnRate ?? 0;
     product.profitSharingRules = dto.profitSharingRules || null;
-    product.distributionFrequency = dto.distributionFrequency || DistributionFrequency.MATURITY;
+    product.distributionFrequency =
+      dto.distributionFrequency || DistributionFrequency.MATURITY;
     product.totalUnits = dto.totalUnits ?? null;
     product.availableUnits = dto.availableUnits ?? null;
     product.currentCapacity = 0;
@@ -305,30 +403,38 @@ export class InvestmentsService {
     return saved;
   }
 
-  async updateProduct(id: string, dto: Partial<{
-    name: string;
-    description: string;
-    type: InvestmentType;
-    riskTier: RiskTier;
-    minimumInvestment: number;
-    maximumInvestment: number;
-    unitPrice: number;
-    lockInDays: number;
-    tenorDays: number;
-    managementFeeRate: number;
-    expectedReturnRate: number;
-    profitSharingRules: string;
-    distributionFrequency: DistributionFrequency;
-    totalUnits: number;
-    availableUnits: number;
-    isOpen: boolean;
-    changeSummary: string;
-  }>, changedBy: string) {
+  async updateProduct(
+    id: string,
+    dto: Partial<{
+      name: string;
+      description: string;
+      type: InvestmentType;
+      riskTier: RiskTier;
+      minimumInvestment: number;
+      maximumInvestment: number;
+      unitPrice: number;
+      lockInDays: number;
+      tenorDays: number;
+      managementFeeRate: number;
+      expectedReturnRate: number;
+      profitSharingRules: string;
+      distributionFrequency: DistributionFrequency;
+      totalUnits: number;
+      availableUnits: number;
+      isOpen: boolean;
+      changeSummary: string;
+    }>,
+    changedBy: string,
+  ) {
     const product = await this.getProduct(id);
     Object.assign(product, dto);
     product.version += 1;
     const saved = await this.productRepo.save(product);
-    await this._snapshotVersion(saved, dto.changeSummary || `Updated to v${saved.version}`, changedBy);
+    await this._snapshotVersion(
+      saved,
+      dto.changeSummary || `Updated to v${saved.version}`,
+      changedBy,
+    );
     return saved;
   }
 
@@ -343,10 +449,19 @@ export class InvestmentsService {
     const oldStatus = product.status;
     product.status = status;
     product.version += 1;
-    if (status === ProductStatus.CLOSED || status === ProductStatus.ARCHIVED) product.isOpen = false;
-    if (status === ProductStatus.ACTIVE || status === ProductStatus.PENDING_REVIEW) product.isOpen = true;
+    if (status === ProductStatus.CLOSED || status === ProductStatus.ARCHIVED)
+      product.isOpen = false;
+    if (
+      status === ProductStatus.ACTIVE ||
+      status === ProductStatus.PENDING_REVIEW
+    )
+      product.isOpen = true;
     const saved = await this.productRepo.save(product);
-    await this._snapshotVersion(saved, `Status changed: ${oldStatus} → ${status}`, changedBy);
+    await this._snapshotVersion(
+      saved,
+      `Status changed: ${oldStatus} → ${status}`,
+      changedBy,
+    );
     return saved;
   }
 
@@ -357,7 +472,11 @@ export class InvestmentsService {
     });
   }
 
-  async listAllProducts(filters?: { type?: string; riskTier?: string; status?: string }) {
+  async listAllProducts(filters?: {
+    type?: string;
+    riskTier?: string;
+    status?: string;
+  }) {
     const where: any = {};
     if (filters?.type) where.type = filters.type;
     if (filters?.riskTier) where.riskTier = filters.riskTier;
@@ -365,7 +484,11 @@ export class InvestmentsService {
     return this.productRepo.find({ where, order: { createdAt: 'DESC' } });
   }
 
-  private async _snapshotVersion(product: InvestmentProduct, changeSummary: string, changedBy: string) {
+  private async _snapshotVersion(
+    product: InvestmentProduct,
+    changeSummary: string,
+    changedBy: string,
+  ) {
     const version = new InvestmentProductVersion();
     version.productId = product.id;
     version.version = product.version;
@@ -375,7 +498,9 @@ export class InvestmentsService {
       type: product.type,
       riskTier: product.riskTier,
       minimumInvestment: Number(product.minimumInvestment),
-      maximumInvestment: product.maximumInvestment ? Number(product.maximumInvestment) : null,
+      maximumInvestment: product.maximumInvestment
+        ? Number(product.maximumInvestment)
+        : null,
       unitPrice: product.unitPrice ? Number(product.unitPrice) : null,
       lockInDays: product.lockInDays,
       tenorDays: product.tenorDays,
@@ -399,20 +524,26 @@ export class InvestmentsService {
     let rules = await this.eligibilityRepo.findOne({ where: { productId } });
     if (!rules) {
       const product = await this.getProduct(productId);
-      rules = this.eligibilityRepo.create({ productId, kycRequiredLevel: KycLevel.BASIC });
+      rules = this.eligibilityRepo.create({
+        productId,
+        kycRequiredLevel: KycLevel.BASIC,
+      });
       rules = await this.eligibilityRepo.save(rules);
     }
     return rules;
   }
 
-  async updateEligibilityRules(productId: string, dto: Partial<{
-    kycRequiredLevel: KycLevel;
-    requireMembership: boolean;
-    allowedGeographies: string[];
-    accreditationRequired: boolean;
-    investorWhitelist: string[];
-    investorBlacklist: string[];
-  }>) {
+  async updateEligibilityRules(
+    productId: string,
+    dto: Partial<{
+      kycRequiredLevel: KycLevel;
+      requireMembership: boolean;
+      allowedGeographies: string[];
+      accreditationRequired: boolean;
+      investorWhitelist: string[];
+      investorBlacklist: string[];
+    }>,
+  ) {
     const rules = await this.getEligibilityRules(productId);
     Object.assign(rules, dto);
     return this.eligibilityRepo.save(rules);
@@ -420,24 +551,35 @@ export class InvestmentsService {
 
   // ── Capacity controls ──
 
-  async setCapacity(id: string, dto: { totalCapacity?: number; perInvestorCaps?: { min?: number; max?: number } }) {
+  async setCapacity(
+    id: string,
+    dto: {
+      totalCapacity?: number;
+      perInvestorCaps?: { min?: number; max?: number };
+    },
+  ) {
     const product = await this.getProduct(id);
-    if (dto.totalCapacity !== undefined) product.totalCapacity = dto.totalCapacity;
-    if (dto.perInvestorCaps !== undefined) product.perInvestorCaps = dto.perInvestorCaps;
+    if (dto.totalCapacity !== undefined)
+      product.totalCapacity = dto.totalCapacity;
+    if (dto.perInvestorCaps !== undefined)
+      product.perInvestorCaps = dto.perInvestorCaps;
     return this.productRepo.save(product);
   }
 
   // ── Share issuance cycles ──
 
-  async createIssuanceCycle(productId: string, dto: {
-    cycleName: string;
-    totalUnits: number;
-    unitPrice: number;
-    totalValue: number;
-    openDate?: string;
-    closeDate?: string;
-    createdBy: string;
-  }) {
+  async createIssuanceCycle(
+    productId: string,
+    dto: {
+      cycleName: string;
+      totalUnits: number;
+      unitPrice: number;
+      totalValue: number;
+      openDate?: string;
+      closeDate?: string;
+      createdBy: string;
+    },
+  ) {
     const product = await this.getProduct(productId);
     const cycle = new ShareIssuanceCycle();
     cycle.productId = productId;
@@ -455,7 +597,8 @@ export class InvestmentsService {
   async approveIssuanceCycle(cycleId: string, approvedBy: string) {
     const cycle = await this.cycleRepo.findOne({ where: { id: cycleId } });
     if (!cycle) throw new NotFoundException('Issuance cycle not found');
-    if (cycle.status !== CycleStatus.PENDING) throw new BadRequestException('Cycle already processed');
+    if (cycle.status !== CycleStatus.PENDING)
+      throw new BadRequestException('Cycle already processed');
     cycle.status = CycleStatus.APPROVED;
     cycle.approvedBy = approvedBy;
     cycle.approvedAt = new Date();
@@ -478,7 +621,10 @@ export class InvestmentsService {
 
   // ── Whitelist/blacklist helpers ──
 
-  async isInvestorAllowed(productId: string, userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  async isInvestorAllowed(
+    productId: string,
+    userId: string,
+  ): Promise<{ allowed: boolean; reason?: string }> {
     const rules = await this.eligibilityRepo.findOne({ where: { productId } });
     if (!rules) return { allowed: true };
 
@@ -486,7 +632,10 @@ export class InvestmentsService {
       return { allowed: false, reason: 'Investor is blacklisted' };
     }
 
-    if (rules.investorWhitelist?.length && !rules.investorWhitelist.includes(userId)) {
+    if (
+      rules.investorWhitelist?.length &&
+      !rules.investorWhitelist.includes(userId)
+    ) {
       return { allowed: false, reason: 'Investor is not whitelisted' };
     }
 
@@ -497,7 +646,12 @@ export class InvestmentsService {
     const product = await this.getProduct(productId);
     const user = await this.usersService.findById(userId);
     const rules = await this.getEligibilityRules(productId);
-    const reasons: Array<{ key: string; label: string; passed: boolean; detail?: string }> = [];
+    const reasons: Array<{
+      key: string;
+      label: string;
+      passed: boolean;
+      detail?: string;
+    }> = [];
 
     const whitelistCheck = await this.isInvestorAllowed(productId, userId);
     reasons.push({
@@ -510,14 +664,17 @@ export class InvestmentsService {
     let kycOk = true;
     if (rules.kycRequiredLevel !== KycLevel.NONE) {
       const userKyc = user.kycStatus;
-      kycOk = rules.kycRequiredLevel === KycLevel.ADVANCED
-        ? userKyc === KycStatus.APPROVED
-        : userKyc === KycStatus.APPROVED;
+      kycOk =
+        rules.kycRequiredLevel === KycLevel.ADVANCED
+          ? userKyc === KycStatus.APPROVED
+          : userKyc === KycStatus.APPROVED;
       reasons.push({
         key: 'kyc',
         label: `KYC level: ${rules.kycRequiredLevel}`,
         passed: kycOk,
-        detail: kycOk ? undefined : `KYC status is ${userKyc}, required ${rules.kycRequiredLevel}`,
+        detail: kycOk
+          ? undefined
+          : `KYC status is ${userKyc}, required ${rules.kycRequiredLevel}`,
       });
     }
 
@@ -536,7 +693,12 @@ export class InvestmentsService {
   async getCompliance(userId: string, productId?: string) {
     const user = await this.usersService.findById(userId);
     const kycApproved = user.kycStatus === KycStatus.APPROVED;
-    const requirements: Array<{ key: string; label: string; met: boolean; status?: string }> = [
+    const requirements: Array<{
+      key: string;
+      label: string;
+      met: boolean;
+      status?: string;
+    }> = [
       {
         key: 'kyc',
         label: 'KYC Verification',
@@ -549,7 +711,12 @@ export class InvestmentsService {
       const full = await this.checkFullEligibility(userId, productId);
       for (const r of full.reasons) {
         if (!requirements.find((x) => x.key === r.key)) {
-          requirements.push({ key: r.key, label: r.label, met: r.passed, status: r.passed ? 'passed' : 'failed' });
+          requirements.push({
+            key: r.key,
+            label: r.label,
+            met: r.passed,
+            status: r.passed ? 'passed' : 'failed',
+          });
         }
       }
       return {
@@ -642,15 +809,18 @@ export class InvestmentsService {
     return config;
   }
 
-  async updatePricingConfig(productId: string, dto: Partial<{
-    formulaType: PricingFormula;
-    minUnitPrice: number;
-    maxUnitPrice: number;
-    navSchedule: NavSchedule;
-    allowCorporateActions: boolean;
-    distributionApprovalRequired: boolean;
-    accrualMethod: AccrualMethod;
-  }>) {
+  async updatePricingConfig(
+    productId: string,
+    dto: Partial<{
+      formulaType: PricingFormula;
+      minUnitPrice: number;
+      maxUnitPrice: number;
+      navSchedule: NavSchedule;
+      allowCorporateActions: boolean;
+      distributionApprovalRequired: boolean;
+      accrualMethod: AccrualMethod;
+    }>,
+  ) {
     const config = await this.getPricingConfig(productId);
     Object.assign(config, dto);
     return this.pricingRepo.save(config);
@@ -658,7 +828,11 @@ export class InvestmentsService {
 
   // ── NAV snapshots ──
 
-  async recordNavSnapshot(productId: string, dto: { nav: number; unitPrice: number; snapshotDate: string }, createdBy: string) {
+  async recordNavSnapshot(
+    productId: string,
+    dto: { nav: number; unitPrice: number; snapshotDate: string },
+    createdBy: string,
+  ) {
     const product = await this.getProduct(productId);
     const snapshot = new NavSnapshot();
     snapshot.productId = productId;
@@ -670,7 +844,11 @@ export class InvestmentsService {
     product.unitPrice = dto.unitPrice;
     product.version += 1;
     await this.productRepo.save(product);
-    await this._snapshotVersion(product, `NAV snapshot: ${dto.unitPrice}`, createdBy);
+    await this._snapshotVersion(
+      product,
+      `NAV snapshot: ${dto.unitPrice}`,
+      createdBy,
+    );
     return saved;
   }
 
@@ -690,13 +868,17 @@ export class InvestmentsService {
 
   // ── Corporate actions ──
 
-  async createCorporateAction(productId: string, dto: {
-    type: CorporateActionType;
-    description?: string;
-    ratioNumerator: number;
-    ratioDenominator: number;
-    effectiveDate: string;
-  }, createdBy: string) {
+  async createCorporateAction(
+    productId: string,
+    dto: {
+      type: CorporateActionType;
+      description?: string;
+      ratioNumerator: number;
+      ratioDenominator: number;
+      effectiveDate: string;
+    },
+    createdBy: string,
+  ) {
     const product = await this.getProduct(productId);
     const action = new CorporateAction();
     action.productId = productId;
@@ -710,9 +892,12 @@ export class InvestmentsService {
   }
 
   async approveCorporateAction(actionId: string, approvedBy: string) {
-    const action = await this.corpActionRepo.findOne({ where: { id: actionId } });
+    const action = await this.corpActionRepo.findOne({
+      where: { id: actionId },
+    });
     if (!action) throw new NotFoundException('Corporate action not found');
-    if (action.status !== CorporateActionStatus.PENDING) throw new BadRequestException('Action already processed');
+    if (action.status !== CorporateActionStatus.PENDING)
+      throw new BadRequestException('Action already processed');
     action.status = CorporateActionStatus.APPROVED;
     action.approvedBy = approvedBy;
     action.approvedAt = new Date();
@@ -720,12 +905,17 @@ export class InvestmentsService {
   }
 
   async executeCorporateAction(actionId: string, executedBy: string) {
-    const action = await this.corpActionRepo.findOne({ where: { id: actionId } });
+    const action = await this.corpActionRepo.findOne({
+      where: { id: actionId },
+    });
     if (!action) throw new NotFoundException('Corporate action not found');
-    if (action.status !== CorporateActionStatus.APPROVED) throw new BadRequestException('Action must be approved first');
+    if (action.status !== CorporateActionStatus.APPROVED)
+      throw new BadRequestException('Action must be approved first');
 
     const product = await this.getProduct(action.productId);
-    const holdings = await this.holdingRepo.find({ where: { productId: action.productId, isActive: true } });
+    const holdings = await this.holdingRepo.find({
+      where: { productId: action.productId, isActive: true },
+    });
     const ratio = action.ratioNumerator / action.ratioDenominator;
 
     for (const holding of holdings) {
@@ -758,7 +948,11 @@ export class InvestmentsService {
 
     product.version += 1;
     await this.productRepo.save(product);
-    await this._snapshotVersion(product, `Corporate action executed: ${action.type}`, executedBy);
+    await this._snapshotVersion(
+      product,
+      `Corporate action executed: ${action.type}`,
+      executedBy,
+    );
 
     return { action, affectedHoldings: holdings.length };
   }
@@ -771,15 +965,18 @@ export class InvestmentsService {
 
   // ── Distributions / payout runs ──
 
-  async createDistribution(dto: {
-    productId: string;
-    type: DistributionType;
-    amountPerUnit: number;
-    totalPool: number;
-    recordDate: string;
-    payDate: string;
-    description?: string;
-  }, createdBy: string) {
+  async createDistribution(
+    dto: {
+      productId: string;
+      type: DistributionType;
+      amountPerUnit: number;
+      totalPool: number;
+      recordDate: string;
+      payDate: string;
+      description?: string;
+    },
+    createdBy: string,
+  ) {
     const product = await this.getProduct(dto.productId);
     const dist = new Distribution();
     dist.productId = dto.productId;
@@ -797,7 +994,10 @@ export class InvestmentsService {
   async submitDistributionForApproval(distId: string) {
     const dist = await this.distRepo.findOne({ where: { id: distId } });
     if (!dist) throw new NotFoundException('Distribution not found');
-    if (dist.status !== DistributionStatus.DRAFT) throw new BadRequestException('Only draft distributions can be submitted');
+    if (dist.status !== DistributionStatus.DRAFT)
+      throw new BadRequestException(
+        'Only draft distributions can be submitted',
+      );
     dist.status = DistributionStatus.PENDING_APPROVAL;
     return this.distRepo.save(dist);
   }
@@ -805,7 +1005,8 @@ export class InvestmentsService {
   async approveDistribution(distId: string, approvedBy: string) {
     const dist = await this.distRepo.findOne({ where: { id: distId } });
     if (!dist) throw new NotFoundException('Distribution not found');
-    if (dist.status !== DistributionStatus.PENDING_APPROVAL) throw new BadRequestException('Distribution not pending approval');
+    if (dist.status !== DistributionStatus.PENDING_APPROVAL)
+      throw new BadRequestException('Distribution not pending approval');
     dist.status = DistributionStatus.APPROVED;
     dist.approvedBy = approvedBy;
     dist.approvedAt = new Date();
@@ -815,13 +1016,19 @@ export class InvestmentsService {
   async computeDistributionRun(distId: string, createdBy: string) {
     const dist = await this.distRepo.findOne({ where: { id: distId } });
     if (!dist) throw new NotFoundException('Distribution not found');
-    if (dist.status !== DistributionStatus.APPROVED) throw new BadRequestException('Distribution must be approved first');
-    if (dist.isPaid) throw new BadRequestException('Distribution is already paid out');
+    if (dist.status !== DistributionStatus.APPROVED)
+      throw new BadRequestException('Distribution must be approved first');
+    if (dist.isPaid)
+      throw new BadRequestException('Distribution is already paid out');
 
     const priorRun = await this.distRunRepo.findOne({
       where: {
         distributionId: distId,
-        status: In([DistRunStatus.COMPUTING, DistRunStatus.PAYOUTS_READY, DistRunStatus.APPROVED]),
+        status: In([
+          DistRunStatus.COMPUTING,
+          DistRunStatus.PAYOUTS_READY,
+          DistRunStatus.APPROVED,
+        ]),
       },
     });
     if (priorRun) {
@@ -836,7 +1043,12 @@ export class InvestmentsService {
       });
 
       let totalAccrued = 0;
-      const payouts: Array<{ userId: string; holdingId: string; amount: number; units: number }> = [];
+      const payouts: Array<{
+        userId: string;
+        holdingId: string;
+        amount: number;
+        units: number;
+      }> = [];
 
       for (const holding of holdings) {
         const amount = holding.units * Number(dist.amountPerUnit);
@@ -883,7 +1095,8 @@ export class InvestmentsService {
   async approveDistributionRun(runId: string, approvedBy: string) {
     const run = await this.distRunRepo.findOne({ where: { id: runId } });
     if (!run) throw new NotFoundException('Distribution run not found');
-    if (run.status !== DistRunStatus.PAYOUTS_READY) throw new BadRequestException('Payouts not ready for approval');
+    if (run.status !== DistRunStatus.PAYOUTS_READY)
+      throw new BadRequestException('Payouts not ready for approval');
     run.status = DistRunStatus.APPROVED;
     run.approvedBy = approvedBy;
     run.approvedAt = new Date();
@@ -897,11 +1110,15 @@ export class InvestmentsService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!run) throw new NotFoundException('Distribution run not found');
-      if (run.status !== DistRunStatus.APPROVED) throw new BadRequestException('Run must be approved first');
+      if (run.status !== DistRunStatus.APPROVED)
+        throw new BadRequestException('Run must be approved first');
 
-      const dist = await em.findOne(Distribution, { where: { id: run.distributionId } });
+      const dist = await em.findOne(Distribution, {
+        where: { id: run.distributionId },
+      });
       if (!dist) throw new NotFoundException('Distribution not found');
-      if (dist.isPaid) throw new BadRequestException('Distribution is already paid');
+      if (dist.isPaid)
+        throw new BadRequestException('Distribution is already paid');
 
       const now = new Date();
 
@@ -917,7 +1134,9 @@ export class InvestmentsService {
       run.successCount = successCount;
       run.failedCount = failedCount;
       run.status =
-        run.payoutCount > 0 && successCount === 0 ? DistRunStatus.FAILED : DistRunStatus.PAID;
+        run.payoutCount > 0 && successCount === 0
+          ? DistRunStatus.FAILED
+          : DistRunStatus.PAID;
       run.executedBy = executedBy;
       run.executedAt = now;
       await em.save(run);

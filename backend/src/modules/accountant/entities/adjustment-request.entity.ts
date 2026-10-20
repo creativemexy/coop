@@ -38,7 +38,12 @@ export class AdjustmentRequest {
   @Column({ type: 'jsonb', name: 'changes' })
   changes: Record<string, any>;
 
-  @Column({ type: 'varchar', length: 100, name: 'reference_type', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    name: 'reference_type',
+    nullable: true,
+  })
   referenceType: string;
 
   @Column({ type: 'uuid', name: 'reference_id', nullable: true })

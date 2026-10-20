@@ -8,7 +8,11 @@ import { BnplSubscription } from '../entities/bnpl-subscription.entity';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
 import { BnplPlan } from '../entities/bnpl-plan.entity';
 import { BnplCatalogItem } from '../entities/bnpl-catalog-item.entity';
-import { SubscriptionStatus, InstallmentStatus, PayoutStatus } from '../../../common/enums/status.enum';
+import {
+  SubscriptionStatus,
+  InstallmentStatus,
+  PayoutStatus,
+} from '../../../common/enums/status.enum';
 
 describe('SubscriptionsService', () => {
   let service: SubscriptionsService;

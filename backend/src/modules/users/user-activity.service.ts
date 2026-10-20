@@ -10,7 +10,12 @@ export class UserActivityService {
     private readonly repo: Repository<UserActivity>,
   ) {}
 
-  async log(userId: string, action: string, details?: Record<string, any>, ipAddress?: string) {
+  async log(
+    userId: string,
+    action: string,
+    details?: Record<string, any>,
+    ipAddress?: string,
+  ) {
     const activity = this.repo.create({ userId, action, details, ipAddress });
     return this.repo.save(activity);
   }

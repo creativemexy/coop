@@ -38,10 +38,14 @@ export function maskName(name?: string | null): string | null {
   return name[0] + '*'.repeat(name.length - 1);
 }
 
-export function maskUser<T extends { email?: string | null; phone?: string | null; firstName?: string | null; lastName?: string | null }>(
-  user: T,
-  callerRole?: Role,
-): T {
+export function maskUser<
+  T extends {
+    email?: string | null;
+    phone?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  },
+>(user: T, callerRole?: Role): T {
   if (!shouldMask(callerRole)) return user;
   return {
     ...user,

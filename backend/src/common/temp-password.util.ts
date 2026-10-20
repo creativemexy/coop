@@ -26,7 +26,10 @@ export function generateTemporaryPassword(length = 12): string {
 
 export function normalizePhoneForSms(phone: string): string {
   const digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('234') && (digits.length === 12 || digits.length === 13)) {
+  if (
+    digits.startsWith('234') &&
+    (digits.length === 12 || digits.length === 13)
+  ) {
     return digits;
   }
   if (digits.startsWith('0')) {

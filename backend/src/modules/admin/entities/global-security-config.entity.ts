@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('global_security_config')
 export class GlobalSecurityConfig {
@@ -14,7 +20,12 @@ export class GlobalSecurityConfig {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string;
 
-  @Column({ type: 'varchar', length: 50, name: 'value_type', default: 'string' })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    name: 'value_type',
+    default: 'string',
+  })
   valueType: string;
 
   @Column({ type: 'uuid', name: 'updated_by', nullable: true })

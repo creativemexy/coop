@@ -27,6 +27,9 @@ export class BnplSubscription {
   @Column({ type: 'uuid', name: 'user_id' })
   userId: string;
 
+  @Column({ type: 'uuid', name: 'organization_id', nullable: true })
+  organizationId: string | null;
+
   @Column({ type: 'uuid', name: 'plan_id' })
   planId: string;
 

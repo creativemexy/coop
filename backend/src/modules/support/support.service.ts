@@ -1,8 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { WebhookLog } from '../payments/entities/webhook-log.entity';
-import { SupportTicket, TicketStatus, TicketCategory } from '../bnpl/entities/support-ticket.entity';
+import {
+  SupportTicket,
+  TicketStatus,
+  TicketCategory,
+} from '../bnpl/entities/support-ticket.entity';
 import { TicketMessage } from './entities/ticket-message.entity';
 import { AuditLog } from '../bnpl/entities/audit-log.entity';
 import { BnplSubscription } from '../bnpl/entities/bnpl-subscription.entity';
@@ -88,7 +96,8 @@ export class SupportService {
         status: inst.status,
         paidAt: inst.paidAt,
         paymentReference: inst.paymentReference,
-        isOverdue: inst.status === 'pending' && new Date(inst.dueDate) < new Date(),
+        isOverdue:
+          inst.status === 'pending' && new Date(inst.dueDate) < new Date(),
       })),
       paymentAttempts: payments.map((p) => ({
         id: p.id,
@@ -109,8 +118,10 @@ export class SupportService {
     limit?: number;
   }) {
     const qb = this.webhookLogRepo.createQueryBuilder('w');
-    if (filters?.provider) qb.andWhere('w.provider = :provider', { provider: filters.provider });
-    if (filters?.status) qb.andWhere('w.status = :status', { status: filters.status });
+    if (filters?.provider)
+      qb.andWhere('w.provider = :provider', { provider: filters.provider });
+    if (filters?.status)
+      qb.andWhere('w.status = :status', { status: filters.status });
     qb.orderBy('w.created_at', 'DESC');
     qb.take(filters?.limit || 100);
     return qb.getMany();
@@ -125,7 +136,9 @@ export class SupportService {
   /* ── Resubmit / Reconciliation ── */
 
   async resubmitWebhook(paymentId: string, performedBy: string) {
-    const payment = await this.paymentRepo.findOne({ where: { id: paymentId } });
+    const payment = await this.paymentRepo.findOne({
+      where: { id: paymentId },
+    });
     if (!payment) throw new NotFoundException('Payment not found');
 
     await this.auditRepo.save({
@@ -133,12 +146,15 @@ export class SupportService {
       entityId: paymentId,
       action: 'webhook_resubmit_support',
       performedBy,
-      changes: { providerReference: { from: null, to: payment.providerReference } },
+      changes: {
+        providerReference: { from: null, to: payment.providerReference },
+      },
       reason: 'Technical resubmission by operations',
     } as unknown as AuditLog);
 
     return {
-      message: 'Resubmission prepared. Use the provider reference to re-trigger on the payment provider dashboard.',
+      message:
+        'Resubmission prepared. Use the provider reference to re-trigger on the payment provider dashboard.',
       providerReference: payment.providerReference,
       paymentId: payment.id,
     };
@@ -186,7 +202,10 @@ export class SupportService {
     const where: any = {};
     if (filters?.status) where.status = filters.status;
     if (filters?.category) where.category = filters.category;
-    const tickets = await this.ticketRepo.find({ where, order: { createdAt: 'DESC' } });
+    const tickets = await this.ticketRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+    });
 
     const creatorIds = [...new Set(tickets.map((t) => t.createdBy))];
     const users = creatorIds.length
@@ -208,7 +227,9 @@ export class SupportService {
               role: u.role,
             }
           : null,
-        senderName: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Member' : 'Unknown',
+        senderName: u
+          ? [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Member'
+          : 'Unknown',
         senderEmail: u ? maskEmail(u.email) : null,
       };
     });
@@ -250,7 +271,9 @@ export class SupportService {
       : [];
     const userById = new Map(users.map((u) => [u.id, u]));
 
-    const creator = await this.userRepo.findOne({ where: { id: ticket.createdBy } });
+    const creator = await this.userRepo.findOne({
+      where: { id: ticket.createdBy },
+    });
 
     return {
       ticket: {
@@ -262,7 +285,8 @@ export class SupportService {
         resolutionNote: ticket.resolutionNote,
         createdAt: ticket.createdAt,
         senderName: creator
-          ? [creator.firstName, creator.lastName].filter(Boolean).join(' ') || 'Member'
+          ? [creator.firstName, creator.lastName].filter(Boolean).join(' ') ||
+            'Member'
           : 'Unknown',
         senderEmail: creator ? maskEmail(creator.email) : null,
       },
@@ -280,12 +304,22 @@ export class SupportService {
     };
   }
 
-  async addTicketMessage(ticketId: string, senderId: string, senderRole: string, message: string) {
+  async addTicketMessage(
+    ticketId: string,
+    senderId: string,
+    senderRole: string,
+    message: string,
+  ) {
     const ticket = await this.ticketRepo.findOne({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    if (ticket.status === TicketStatus.RESOLVED || ticket.status === TicketStatus.CLOSED) {
-      throw new BadRequestException('This ticket is closed and can no longer receive replies.');
+    if (
+      ticket.status === TicketStatus.RESOLVED ||
+      ticket.status === TicketStatus.CLOSED
+    ) {
+      throw new BadRequestException(
+        'This ticket is closed and can no longer receive replies.',
+      );
     }
 
     await this.ticketRepo.save({ ...ticket, status: TicketStatus.IN_PROGRESS });

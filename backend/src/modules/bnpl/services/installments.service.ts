@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
-import { InstallmentStatus, SubscriptionStatus } from '../../../common/enums/status.enum';
+import {
+  InstallmentStatus,
+  SubscriptionStatus,
+} from '../../../common/enums/status.enum';
 
 @Injectable()
 export class InstallmentsService {
@@ -47,8 +54,9 @@ export class InstallmentsService {
       qb.andWhere('inst.status = :status', { status: filters.status });
     }
     if (filters?.overdue) {
-      qb.andWhere('inst.status = :pending', { pending: InstallmentStatus.PENDING })
-        .andWhere('inst.due_date < :now', { now: new Date() });
+      qb.andWhere('inst.status = :pending', {
+        pending: InstallmentStatus.PENDING,
+      }).andWhere('inst.due_date < :now', { now: new Date() });
     }
     qb.orderBy('inst.due_date', 'ASC');
     return qb.getMany();
@@ -57,7 +65,13 @@ export class InstallmentsService {
   async retryInstallment(id: string): Promise<BnplInstallment> {
     const inst = await this.repo.findOne({ where: { id } });
     if (!inst) throw new NotFoundException('Installment not found');
-    if (inst.status !== InstallmentStatus.OVERDUE && !(inst.status === InstallmentStatus.PENDING && new Date(inst.dueDate) < new Date())) {
+    if (
+      inst.status !== InstallmentStatus.OVERDUE &&
+      !(
+        inst.status === InstallmentStatus.PENDING &&
+        new Date(inst.dueDate) < new Date()
+      )
+    ) {
       throw new BadRequestException('Only overdue installments can be retried');
     }
     // Move due date forward
@@ -83,10 +97,16 @@ export class InstallmentsService {
     const expectedTotal = sub.totalAmount;
     const receivedTotal = Number(sub.amountPaid);
     const outstanding = expectedTotal - receivedTotal;
-    const paidInstallments = installments.filter((i) => i.status === InstallmentStatus.PAID);
-    const pendingInstallments = installments.filter((i) => i.status === InstallmentStatus.PENDING);
+    const paidInstallments = installments.filter(
+      (i) => i.status === InstallmentStatus.PAID,
+    );
+    const pendingInstallments = installments.filter(
+      (i) => i.status === InstallmentStatus.PENDING,
+    );
     const overdueInstallments = installments.filter(
-      (i) => i.status === InstallmentStatus.PENDING && new Date(i.dueDate) < new Date(),
+      (i) =>
+        i.status === InstallmentStatus.PENDING &&
+        new Date(i.dueDate) < new Date(),
     );
 
     return {
@@ -107,7 +127,9 @@ export class InstallmentsService {
         status: i.status,
         paidAt: i.paidAt,
         paymentReference: i.paymentReference,
-        isOverdue: i.status === InstallmentStatus.PENDING && new Date(i.dueDate) < new Date(),
+        isOverdue:
+          i.status === InstallmentStatus.PENDING &&
+          new Date(i.dueDate) < new Date(),
       })),
     };
   }

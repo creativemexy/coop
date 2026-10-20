@@ -24,7 +24,11 @@ export class ProcessingEngineController {
     @Param('subscriptionId') subscriptionId: string,
     @Body() dto: { disbursementReference: string; idempotencyKey?: string },
   ) {
-    return this.service.executeDisbursement(subscriptionId, dto.disbursementReference, dto.idempotencyKey);
+    return this.service.executeDisbursement(
+      subscriptionId,
+      dto.disbursementReference,
+      dto.idempotencyKey,
+    );
   }
 
   @Get(':subscriptionId/steps')

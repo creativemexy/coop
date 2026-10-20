@@ -66,7 +66,10 @@ export class BusinessManagerController {
     );
     return {
       ...logs,
-      smsLogs: logs.smsLogs.map((l) => ({ ...l, recipient: maskPhone(l.recipient) })),
+      smsLogs: logs.smsLogs.map((l) => ({
+        ...l,
+        recipient: maskPhone(l.recipient),
+      })),
     };
   }
 

@@ -72,7 +72,14 @@ export class LoansController {
   }
 
   @Get()
-  @Roles(Role.INDIVIDUAL, Role.LOAN_MANAGER, Role.ACCOUNTANT, Role.BUSINESS_MANAGER, Role.APEX_BUSINESS_MANAGER, Role.OPERATIONAL_ADMIN)
+  @Roles(
+    Role.INDIVIDUAL,
+    Role.LOAN_MANAGER,
+    Role.ACCOUNTANT,
+    Role.BUSINESS_MANAGER,
+    Role.APEX_BUSINESS_MANAGER,
+    Role.OPERATIONAL_ADMIN,
+  )
   findAll(@CurrentUser('sub') userId: string) {
     return this.service.findByUser(userId);
   }
@@ -92,7 +99,12 @@ export class LoansController {
   }
 
   @Post(':loanId/apex-approve')
-  @Roles(Role.APEX_BUSINESS_MANAGER, Role.LOAN_MANAGER, Role.OPERATIONAL_ADMIN, Role.SUPER_ADMIN)
+  @Roles(
+    Role.APEX_BUSINESS_MANAGER,
+    Role.LOAN_MANAGER,
+    Role.OPERATIONAL_ADMIN,
+    Role.SUPER_ADMIN,
+  )
   approveApex(
     @CurrentUser() reviewer: Reviewer,
     @Param('loanId') loanId: string,
@@ -101,7 +113,12 @@ export class LoansController {
   }
 
   @Post(':loanId/org-approve')
-  @Roles(Role.BUSINESS_MANAGER, Role.LOAN_MANAGER, Role.OPERATIONAL_ADMIN, Role.SUPER_ADMIN)
+  @Roles(
+    Role.BUSINESS_MANAGER,
+    Role.LOAN_MANAGER,
+    Role.OPERATIONAL_ADMIN,
+    Role.SUPER_ADMIN,
+  )
   approveOrg(
     @CurrentUser() reviewer: Reviewer,
     @Param('loanId') loanId: string,
@@ -119,11 +136,13 @@ export class LoansController {
   }
 
   @Post(':loanId/disburse')
-  @Roles(Role.ACCOUNTANT, Role.LOAN_MANAGER, Role.OPERATIONAL_ADMIN, Role.SUPER_ADMIN)
-  disburse(
-    @CurrentUser() reviewer: Reviewer,
-    @Param('loanId') loanId: string,
-  ) {
+  @Roles(
+    Role.ACCOUNTANT,
+    Role.LOAN_MANAGER,
+    Role.OPERATIONAL_ADMIN,
+    Role.SUPER_ADMIN,
+  )
+  disburse(@CurrentUser() reviewer: Reviewer, @Param('loanId') loanId: string) {
     return this.service.disburse(loanId, reviewer);
   }
 

@@ -13,7 +13,6 @@ import { ENDPOINTS } from '../../constants';
 import {
   SavingsAccount,
   SavingsTransaction,
-  VirtualAccount,
   DepositInstruction,
 } from '../../types';
 
@@ -22,7 +21,6 @@ type DepositType = 'general' | 'goal';
 
 export default function SavingsScreen() {
   const [account, setAccount] = useState<SavingsAccount | null>(null);
-  const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [txns, setTxns] = useState<SavingsTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ActionType>(null);
@@ -37,14 +35,12 @@ export default function SavingsScreen() {
 
   const fetch = useCallback(async () => {
     try {
-      const [a, t, va] = await Promise.all([
+      const [a, t] = await Promise.all([
         client.get(ENDPOINTS.savings.account),
         client.get(ENDPOINTS.savings.transactions),
-        client.get(ENDPOINTS.virtualAccounts.me),
       ]);
       setAccount(a.data);
       setTxns(t.data);
-      setVirtualAccount(va.data);
     } catch { /* ignore */ } finally { setLoading(false); }
   }, []);
 
@@ -284,8 +280,6 @@ export default function SavingsScreen() {
     </Modal>
   );
 
-  const sectionCardStyle = [isIOS ? styles.sectionGlass : styles.sectionM3];
-
   return (
     <LinearGradient
       colors={isIOS ? ['#0A1F1C', '#123A34', '#173F38'] : ['#0E342C', '#173F38', '#1D4A3F']}
@@ -350,31 +344,6 @@ export default function SavingsScreen() {
             </View>
           ) : null;
         })()}
-
-        <View style={sectionCardStyle}>
-          <View style={styles.vaCardHeader}>
-            <View style={styles.vaIcon}>
-              <Ionicons name="business-outline" size={20} color="#0F766E" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vaTitle}>Your bank transfer account</Text>
-              <Text style={styles.vaSub}>Fund savings anytime via a normal bank transfer.</Text>
-            </View>
-          </View>
-          {virtualAccount && (
-            <View style={styles.vaRow}>
-              <View>
-                <Text style={styles.vaLabel}>{virtualAccount.bankName}</Text>
-                <Text style={styles.vaNumber}>{virtualAccount.accountNumber}</Text>
-                <Text style={styles.vaName}>{virtualAccount.accountName}</Text>
-              </View>
-              <TouchableOpacity style={styles.copyBtn} onPress={() => copyNumber(virtualAccount.accountNumber)}>
-                <Ionicons name={copied === virtualAccount.accountNumber ? 'checkmark' : 'copy-outline'} size={16} color="#0F766E" />
-                <Text style={styles.copyBtnText}>{copied === virtualAccount.accountNumber ? 'Copied!' : 'Copy'}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
 
         <View style={styles.actions}>
           {(['deposit', 'withdraw', 'target'] as Exclude<ActionType, null>[]).map((a) => {
@@ -468,23 +437,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
-  vaCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  vaIcon: {
-    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(15,118,110,0.12)',
-  },
-  vaTitle: { fontSize: 15, fontWeight: '700', color: '#173F38' },
-  vaTitleGlass: {},
-  vaSub: { fontSize: 12, color: '#627084', marginTop: 2 },
-  vaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
   vaLabel: { fontSize: 13, color: '#627084', fontWeight: '500' },
-  vaNumber: { fontSize: 22, fontWeight: '800', color: '#173F38', letterSpacing: 1.5, marginTop: 2 },
   vaName: { fontSize: 13, color: '#334155', marginTop: 2 },
-  copyBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#E5EDEA', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
-  },
-  copyBtnText: { color: '#0F766E', fontWeight: '700', fontSize: 13 },
   actions: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 16, gap: 10 },
   actionBtn: {
     flex: 1, borderRadius: 18, paddingVertical: 14, alignItems: 'center', gap: 6,

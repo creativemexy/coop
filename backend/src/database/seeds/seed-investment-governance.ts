@@ -73,7 +73,8 @@ interface ProductSeed {
 const PRODUCTS: ProductSeed[] = [
   {
     name: 'Coop Growth Shares',
-    description: 'Long-term growth shares in the cooperative investment pool targeting capital appreciation with quarterly profit distributions. Members invest at a fixed unit price of ₦1,000 per unit and earn an expected annual return of 8% before a 1.5% management fee. Profits are shared 80/20 (80% to investors, 20% to the cooperative) after fees. A 90-day lock-in applies from purchase; shares redeemed before the lock-in ends incur an early-withdrawal penalty of 5% of principal plus forfeiture of any accrued but unpaid distributions. After lock-in, redemptions are processed at the current NAV.',
+    description:
+      'Long-term growth shares in the cooperative investment pool targeting capital appreciation with quarterly profit distributions. Members invest at a fixed unit price of ₦1,000 per unit and earn an expected annual return of 8% before a 1.5% management fee. Profits are shared 80/20 (80% to investors, 20% to the cooperative) after fees. A 90-day lock-in applies from purchase; shares redeemed before the lock-in ends incur an early-withdrawal penalty of 5% of principal plus forfeiture of any accrued but unpaid distributions. After lock-in, redemptions are processed at the current NAV.',
     type: InvestmentType.SHARES,
     riskTier: RiskTier.MEDIUM,
     minimumInvestment: 50000,
@@ -107,7 +108,8 @@ const PRODUCTS: ProductSeed[] = [
   },
   {
     name: 'Fixed Income Deposit',
-    description: 'Capital-protected fixed income deposit paying monthly interest at a guaranteed annual rate of 5% (0.75% annual management fee). Principal is guaranteed at maturity (365 days). Early withdrawal before maturity is penalised: within the first 30 days, no interest is paid and a 1% penalty on principal applies; after 30 days, interest is recalculated at 50% of the stated rate and a 2% penalty on principal applies. Minimum deposit ₦100,000; maximum ₦50,000,000 per investor.',
+    description:
+      'Capital-protected fixed income deposit paying monthly interest at a guaranteed annual rate of 5% (0.75% annual management fee). Principal is guaranteed at maturity (365 days). Early withdrawal before maturity is penalised: within the first 30 days, no interest is paid and a 1% penalty on principal applies; after 30 days, interest is recalculated at 50% of the stated rate and a 2% penalty on principal applies. Minimum deposit ₦100,000; maximum ₦50,000,000 per investor.',
     type: InvestmentType.FIXED_INCOME,
     riskTier: RiskTier.LOW,
     minimumInvestment: 100000,
@@ -141,7 +143,8 @@ const PRODUCTS: ProductSeed[] = [
   },
   {
     name: 'Pooled Micro-Investment',
-    description: 'High-yield pooled fund investing across cooperative ventures such as asset financing, trade and working capital. Expected annual return of 12% with a 2% management fee and 70/30 profit share (70% to investors, 30% to the cooperative). Requires advanced KYC and accredited-investor status. Units are priced at ₦500 with daily NAV updates. A 180-day lock-in and tenor applies; redeeming before maturity incurs a 10% penalty on principal plus forfeiture of any accrued profit share.',
+    description:
+      'High-yield pooled fund investing across cooperative ventures such as asset financing, trade and working capital. Expected annual return of 12% with a 2% management fee and 70/30 profit share (70% to investors, 30% to the cooperative). Requires advanced KYC and accredited-investor status. Units are priced at ₦500 with daily NAV updates. A 180-day lock-in and tenor applies; redeeming before maturity incurs a 10% penalty on principal plus forfeiture of any accrued profit share.',
     type: InvestmentType.POOLED,
     riskTier: RiskTier.HIGH,
     minimumInvestment: 10000,
@@ -175,7 +178,8 @@ const PRODUCTS: ProductSeed[] = [
   },
   {
     name: 'Youth Investment Plan',
-    description: 'Low-barrier entry product designed for young cooperators to build a savings-and-investment habit early. Minimum investment of just ₦5,000 with a 4% expected annual return, 0.5% management fee and monthly distributions on a 90/10 profit-share basis (90% to investors, 10% to the cooperative). No KYC level required. A short 30-day lock-in applies; early withdrawal within the lock-in period incurs a 3% penalty on principal.',
+    description:
+      'Low-barrier entry product designed for young cooperators to build a savings-and-investment habit early. Minimum investment of just ₦5,000 with a 4% expected annual return, 0.5% management fee and monthly distributions on a 90/10 profit-share basis (90% to investors, 10% to the cooperative). No KYC level required. A short 30-day lock-in applies; early withdrawal within the lock-in period incurs a 3% penalty on principal.',
     type: InvestmentType.SHARES,
     riskTier: RiskTier.LOW,
     minimumInvestment: 5000,
@@ -209,7 +213,12 @@ const PRODUCTS: ProductSeed[] = [
   },
 ];
 
-const ISSUANCE_CYCLES: Array<Omit<ShareIssuanceCycle, 'id' | 'product' | 'productId' | 'createdAt' | 'updatedAt'>> = [
+const ISSUANCE_CYCLES: Array<
+  Omit<
+    ShareIssuanceCycle,
+    'id' | 'product' | 'productId' | 'createdAt' | 'updatedAt'
+  >
+> = [
   {
     cycleName: 'Q1 2026 Issuance',
     totalUnits: 25000,
@@ -238,13 +247,35 @@ const ISSUANCE_CYCLES: Array<Omit<ShareIssuanceCycle, 'id' | 'product' | 'produc
   },
 ];
 
-const NAV_SNAPSHOTS: Array<Omit<NavSnapshot, 'id' | 'productId' | 'createdAt'>> = [
-  { nav: 1040.5, unitPrice: 1040.5, snapshotDate: new Date('2026-06-30'), createdBy: SYS_ADMIN },
-  { nav: 1020.75, unitPrice: 1020.75, snapshotDate: new Date('2026-06-23'), createdBy: SYS_ADMIN },
-  { nav: 1000.0, unitPrice: 1000.0, snapshotDate: new Date('2026-06-16'), createdBy: SYS_ADMIN },
+const NAV_SNAPSHOTS: Array<
+  Omit<NavSnapshot, 'id' | 'productId' | 'createdAt'>
+> = [
+  {
+    nav: 1040.5,
+    unitPrice: 1040.5,
+    snapshotDate: new Date('2026-06-30'),
+    createdBy: SYS_ADMIN,
+  },
+  {
+    nav: 1020.75,
+    unitPrice: 1020.75,
+    snapshotDate: new Date('2026-06-23'),
+    createdBy: SYS_ADMIN,
+  },
+  {
+    nav: 1000.0,
+    unitPrice: 1000.0,
+    snapshotDate: new Date('2026-06-16'),
+    createdBy: SYS_ADMIN,
+  },
 ];
 
-const CORPORATE_ACTIONS: Array<Omit<CorporateAction, 'id' | 'productId' | 'createdAt' | 'updatedAt' | 'product'>> = [
+const CORPORATE_ACTIONS: Array<
+  Omit<
+    CorporateAction,
+    'id' | 'productId' | 'createdAt' | 'updatedAt' | 'product'
+  >
+> = [
   {
     type: CorporateActionType.BONUS,
     description: '1-for-10 bonus share issue to reward existing members',
@@ -261,7 +292,9 @@ const CORPORATE_ACTIONS: Array<Omit<CorporateAction, 'id' | 'productId' | 'creat
   },
 ];
 
-const DISTRIBUTIONS: Array<Omit<Distribution, 'id' | 'productId' | 'createdAt' | 'product'>> = [
+const DISTRIBUTIONS: Array<
+  Omit<Distribution, 'id' | 'productId' | 'createdAt' | 'product'>
+> = [
   {
     type: DistributionType.DIVIDEND,
     amountPerUnit: 15.5,
@@ -277,7 +310,9 @@ const DISTRIBUTIONS: Array<Omit<Distribution, 'id' | 'productId' | 'createdAt' |
   },
 ];
 
-export async function seedInvestmentGovernance(dataSource: DataSource): Promise<void> {
+export async function seedInvestmentGovernance(
+  dataSource: DataSource,
+): Promise<void> {
   const productRepo = dataSource.getRepository(InvestmentProduct);
   const versionRepo = dataSource.getRepository(InvestmentProductVersion);
   const eligibilityRepo = dataSource.getRepository(InvestmentEligibilityRule);
@@ -336,7 +371,9 @@ export async function seedInvestmentGovernance(dataSource: DataSource): Promise<
           type: saved.type,
           riskTier: saved.riskTier,
           minimumInvestment: Number(saved.minimumInvestment),
-          maximumInvestment: saved.maximumInvestment ? Number(saved.maximumInvestment) : null,
+          maximumInvestment: saved.maximumInvestment
+            ? Number(saved.maximumInvestment)
+            : null,
           unitPrice: saved.unitPrice ? Number(saved.unitPrice) : null,
           lockInDays: saved.lockInDays,
           tenorDays: saved.tenorDays,
@@ -381,22 +418,32 @@ export async function seedInvestmentGovernance(dataSource: DataSource): Promise<
   }
 
   for (const cycle of ISSUANCE_CYCLES) {
-    await cycleRepo.save(cycleRepo.create({ ...cycle, productId: growthSharesId.id }));
+    await cycleRepo.save(
+      cycleRepo.create({ ...cycle, productId: growthSharesId.id }),
+    );
   }
 
   for (const nav of NAV_SNAPSHOTS) {
-    await navRepo.save(navRepo.create({ ...nav, productId: growthSharesId.id }));
+    await navRepo.save(
+      navRepo.create({ ...nav, productId: growthSharesId.id }),
+    );
   }
 
   for (const action of CORPORATE_ACTIONS) {
-    await corporateRepo.save(corporateRepo.create({ ...action, productId: growthSharesId.id }));
+    await corporateRepo.save(
+      corporateRepo.create({ ...action, productId: growthSharesId.id }),
+    );
   }
 
   for (const dist of DISTRIBUTIONS) {
-    await distributionRepo.save(distributionRepo.create({ ...dist, productId: growthSharesId.id }));
+    await distributionRepo.save(
+      distributionRepo.create({ ...dist, productId: growthSharesId.id }),
+    );
   }
 
   void fixedIncomeId;
 
-  console.log(`Seeded ${PRODUCTS.length} investment products with eligibility, pricing, cycles, NAV, corporate actions and distributions`);
+  console.log(
+    `Seeded ${PRODUCTS.length} investment products with eligibility, pricing, cycles, NAV, corporate actions and distributions`,
+  );
 }

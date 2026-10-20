@@ -1,14 +1,32 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import { ProcessingStep, ProcessingStepType, ProcessingStepStatus } from '../entities/processing-step.entity';
+import {
+  ProcessingStep,
+  ProcessingStepType,
+  ProcessingStepStatus,
+} from '../entities/processing-step.entity';
 import { IdempotencyKey } from '../entities/idempotency-key.entity';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
 import { BnplPlan } from '../entities/bnpl-plan.entity';
-import { BnplPlanConfig, InterestModel, DueDateRule, LateFeeType } from '../entities/bnpl-plan-config.entity';
-import { SubscriptionStatus, InstallmentStatus, PayoutStatus } from '../../../common/enums/status.enum';
+import {
+  BnplPlanConfig,
+  InterestModel,
+  DueDateRule,
+  LateFeeType,
+} from '../entities/bnpl-plan-config.entity';
+import {
+  SubscriptionStatus,
+  InstallmentStatus,
+  PayoutStatus,
+} from '../../../common/enums/status.enum';
 
 @Injectable()
 export class ProcessingEngineService {
@@ -27,15 +45,25 @@ export class ProcessingEngineService {
     private readonly configRepo: Repository<BnplPlanConfig>,
   ) {}
 
-  private async checkIdempotency(key: string, operation: string): Promise<{ isNew: boolean; result?: any }> {
-    const existing = await this.ikRepo.findOne({ where: { idempotencyKey: key } });
+  private async checkIdempotency(
+    key: string,
+    operation: string,
+  ): Promise<{ isNew: boolean; result?: any }> {
+    const existing = await this.ikRepo.findOne({
+      where: { idempotencyKey: key },
+    });
     if (existing) {
       return { isNew: false, result: existing.result };
     }
     return { isNew: true };
   }
 
-  private async markIdempotent(key: string, operation: string, referenceId: string, result: any) {
+  private async markIdempotent(
+    key: string,
+    operation: string,
+    referenceId: string,
+    result: any,
+  ) {
     const entity = this.ikRepo.create({
       idempotencyKey: key,
       operation,
@@ -51,14 +79,23 @@ export class ProcessingEngineService {
     if (!sub) throw new NotFoundException('Subscription not found');
 
     const key = idempotencyKey || `payment_intent_${subscriptionId}_${uuid()}`;
-    const { isNew, result } = await this.checkIdempotency(key, 'payment_intent');
+    const { isNew, result } = await this.checkIdempotency(
+      key,
+      'payment_intent',
+    );
     if (!isNew) return result;
 
     const existingStep = await this.stepRepo.findOne({
-      where: { subscriptionId, stepType: ProcessingStepType.PAYMENT_INTENT, status: ProcessingStepStatus.COMPLETED },
+      where: {
+        subscriptionId,
+        stepType: ProcessingStepType.PAYMENT_INTENT,
+        status: ProcessingStepStatus.COMPLETED,
+      },
     });
     if (existingStep) {
-      throw new ConflictException('Payment intent already created for this subscription');
+      throw new ConflictException(
+        'Payment intent already created for this subscription',
+      );
     }
 
     const step = this.stepRepo.create({
@@ -66,21 +103,34 @@ export class ProcessingEngineService {
       stepType: ProcessingStepType.PAYMENT_INTENT,
       status: ProcessingStepStatus.COMPLETED,
       idempotencyKey: key,
-      metadata: { totalAmount: Number(sub.totalAmount), downPayment: Number(sub.downPayment) },
+      metadata: {
+        totalAmount: Number(sub.totalAmount),
+        downPayment: Number(sub.downPayment),
+      },
       completedAt: new Date(),
     });
     await this.stepRepo.save(step);
 
-    const response = { paymentIntentId: step.id, amount: Number(sub.totalAmount), status: 'created' };
+    const response = {
+      paymentIntentId: step.id,
+      amount: Number(sub.totalAmount),
+      status: 'created',
+    };
     await this.markIdempotent(key, 'payment_intent', step.id, response);
     return response;
   }
 
-  async executeDisbursement(subscriptionId: string, disbursementReference: string, idempotencyKey?: string) {
+  async executeDisbursement(
+    subscriptionId: string,
+    disbursementReference: string,
+    idempotencyKey?: string,
+  ) {
     const sub = await this.subRepo.findOne({ where: { id: subscriptionId } });
     if (!sub) throw new NotFoundException('Subscription not found');
     if (sub.status !== SubscriptionStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('Order must be in pending_payment to disburse');
+      throw new BadRequestException(
+        'Order must be in pending_payment to disburse',
+      );
     }
 
     const key = idempotencyKey || `disburse_${subscriptionId}_${uuid()}`;
@@ -88,10 +138,16 @@ export class ProcessingEngineService {
     if (!isNew) return result;
 
     const existingDisbursement = await this.stepRepo.findOne({
-      where: { subscriptionId, stepType: ProcessingStepType.DISBURSEMENT, status: ProcessingStepStatus.COMPLETED },
+      where: {
+        subscriptionId,
+        stepType: ProcessingStepType.DISBURSEMENT,
+        status: ProcessingStepStatus.COMPLETED,
+      },
     });
     if (existingDisbursement) {
-      throw new ConflictException('Disbursement already completed for this subscription');
+      throw new ConflictException(
+        'Disbursement already completed for this subscription',
+      );
     }
 
     const step = this.stepRepo.create({
@@ -103,10 +159,17 @@ export class ProcessingEngineService {
     });
     await this.stepRepo.save(step);
 
-    const plan = await this.planRepo.findOne({ where: { id: sub.planId }, relations: { catalogItem: true } });
+    const plan = await this.planRepo.findOne({
+      where: { id: sub.planId },
+      relations: { catalogItem: true },
+    });
     if (!plan) throw new NotFoundException('Plan not found');
 
-    const config = await this.configRepo.findOne({ where: { organizationId: plan.organizationId } });
+    const config = sub.organizationId
+      ? await this.configRepo.findOne({
+          where: { organizationId: sub.organizationId },
+        })
+      : null;
     const itemPrice = Number(plan.catalogItem?.price || 0);
     const downPayment = (itemPrice * Number(plan.downPaymentPercent)) / 100;
 
@@ -118,13 +181,25 @@ export class ProcessingEngineService {
     const savedSub = await this.subRepo.save(sub);
 
     // Generate installments
-    const installmentAmount = (Number(sub.totalAmount) - downPayment) / Number(plan.installmentCount);
+    const installmentAmount =
+      (Number(sub.totalAmount) - downPayment) / Number(plan.installmentCount);
     const startDate = new Date();
     const installments: BnplInstallment[] = [];
     for (let i = 0; i < plan.installmentCount; i++) {
-      const dueDate = this._calculateDueDate(startDate, i, plan.installmentFrequency, config?.dueDateRule || DueDateRule.SAME_DAY_MONTHLY);
-      const gracePeriodEnd = config?.gracePeriodDays ? new Date(dueDate.getTime() + config.gracePeriodDays * 86400000) : undefined;
-      const lateFeeAmount = this._calculateLateFee(installmentAmount, config?.lateFeeType || LateFeeType.FLAT, config?.lateFeeValue || 0);
+      const dueDate = this._calculateDueDate(
+        startDate,
+        i,
+        plan.installmentFrequency,
+        config?.dueDateRule || DueDateRule.SAME_DAY_MONTHLY,
+      );
+      const gracePeriodEnd = config?.gracePeriodDays
+        ? new Date(dueDate.getTime() + config.gracePeriodDays * 86400000)
+        : undefined;
+      const lateFeeAmount = this._calculateLateFee(
+        installmentAmount,
+        config?.lateFeeType || LateFeeType.FLAT,
+        config?.lateFeeValue || 0,
+      );
       installments.push({
         subscriptionId,
         dueDate,
@@ -137,9 +212,15 @@ export class ProcessingEngineService {
 
     // Distribute rounding remainder across installments
     const totalInstallmentSum = installments.reduce((s, i) => s + i.amount, 0);
-    const roundingDiff = Math.round((Number(sub.totalAmount) - downPayment - totalInstallmentSum) * 100) / 100;
+    const roundingDiff =
+      Math.round(
+        (Number(sub.totalAmount) - downPayment - totalInstallmentSum) * 100,
+      ) / 100;
     if (installments.length > 0) {
-      installments[installments.length - 1].amount = Math.round((installments[installments.length - 1].amount + roundingDiff) * 100) / 100;
+      installments[installments.length - 1].amount =
+        Math.round(
+          (installments[installments.length - 1].amount + roundingDiff) * 100,
+        ) / 100;
     }
 
     const savedInsts = await this.instRepo.save(installments);
@@ -192,7 +273,12 @@ export class ProcessingEngineService {
     return this.stepRepo.save(step);
   }
 
-  private _calculateDueDate(start: Date, index: number, frequency: string, rule: DueDateRule): Date {
+  private _calculateDueDate(
+    start: Date,
+    index: number,
+    frequency: string,
+    rule: DueDateRule,
+  ): Date {
     const due = new Date(start);
     if (frequency === 'weekly') {
       due.setDate(due.getDate() + (index + 1) * 7);
@@ -211,8 +297,14 @@ export class ProcessingEngineService {
     return due;
   }
 
-  private _calculateLateFee(installmentAmount: number, feeType: LateFeeType, feeValue: number): number {
+  private _calculateLateFee(
+    installmentAmount: number,
+    feeType: LateFeeType,
+    feeValue: number,
+  ): number {
     if (feeValue <= 0) return 0;
-    return feeType === LateFeeType.PERCENTAGE ? installmentAmount * (feeValue / 100) : feeValue;
+    return feeType === LateFeeType.PERCENTAGE
+      ? installmentAmount * (feeValue / 100)
+      : feeValue;
   }
 }

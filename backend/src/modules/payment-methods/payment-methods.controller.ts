@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentMethodsService } from './payment-methods.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -22,7 +31,8 @@ export class PaymentMethodsController {
   @Roles(Role.INDIVIDUAL)
   create(
     @CurrentUser('sub') userId: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       type: PaymentMethodType;
       provider: string;
       providerToken?: string;

@@ -44,13 +44,31 @@ export class ReconciliationRun {
   @Column({ type: 'int', name: 'mismatch_count', default: 0 })
   mismatchCount: number;
 
-  @Column({ type: 'decimal', name: 'expected_amount', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'expected_amount',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   expectedAmount: number;
 
-  @Column({ type: 'decimal', name: 'actual_amount', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'actual_amount',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   actualAmount: number;
 
-  @Column({ type: 'decimal', name: 'discrepancy', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'discrepancy',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   discrepancy: number;
 
   @Column({ type: 'uuid', name: 'organization_id', nullable: true })

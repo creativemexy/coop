@@ -9,7 +9,12 @@ import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([KycSubmission]), HttpModule, UsersModule, NotificationsModule],
+  imports: [
+    TypeOrmModule.forFeature([KycSubmission]),
+    HttpModule,
+    UsersModule,
+    NotificationsModule,
+  ],
   controllers: [KycController],
   providers: [KycService, KorapayClient],
   exports: [KycService],

@@ -28,7 +28,13 @@ export class BnplInstallment {
   @Column({ type: 'date', name: 'due_date' })
   dueDate: Date;
 
-  @Column({ type: 'decimal', name: 'late_fee_amount', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'late_fee_amount',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   lateFeeAmount: number;
 
   @Column({ type: 'date', name: 'grace_period_end', nullable: true })

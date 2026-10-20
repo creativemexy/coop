@@ -31,7 +31,11 @@ export class RiskService {
     return { allowed: value <= limit, limit };
   }
 
-  async checkMin(key: string, value: number, field: string = 'amount'): Promise<{ allowed: boolean; min: number } | null> {
+  async checkMin(
+    key: string,
+    value: number,
+    field: string = 'amount',
+  ): Promise<{ allowed: boolean; min: number } | null> {
     const config = await this.getConfig(key);
     if (!config) return null;
     const min = config[field];

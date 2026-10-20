@@ -1,5 +1,8 @@
 import { DataSource } from 'typeorm';
-import { NotificationTemplate, TemplateType } from '../../modules/admin/entities/notification-template.entity';
+import {
+  NotificationTemplate,
+  TemplateType,
+} from '../../modules/admin/entities/notification-template.entity';
 
 const TEMPLATES = [
   {
@@ -102,7 +105,14 @@ Funds will be disbursed to your account shortly.
 
 Best,
 The {{platform_name}} Team`,
-    variables: ['name', 'amount', 'duration', 'monthly_payment', 'total_repayment', 'platform_name'],
+    variables: [
+      'name',
+      'amount',
+      'duration',
+      'monthly_payment',
+      'total_repayment',
+      'platform_name',
+    ],
   },
   {
     key: 'payment_due_reminder',
@@ -202,7 +212,14 @@ Funds have been credited to your wallet.
 
 Best,
 The {{platform_name}} Team`,
-    variables: ['name', 'product_name', 'invested_amount', 'returns', 'total_payout', 'platform_name'],
+    variables: [
+      'name',
+      'product_name',
+      'invested_amount',
+      'returns',
+      'total_payout',
+      'platform_name',
+    ],
   },
   {
     key: 'referral_bonus',
@@ -217,7 +234,13 @@ Keep sharing your referral link to earn more:
 
 Best,
 The {{platform_name}} Team`,
-    variables: ['name', 'bonus_amount', 'referred_name', 'referral_link', 'platform_name'],
+    variables: [
+      'name',
+      'bonus_amount',
+      'referred_name',
+      'referral_link',
+      'platform_name',
+    ],
   },
   {
     key: 'welcome_sms',
@@ -242,7 +265,9 @@ The {{platform_name}} Team`,
   },
 ];
 
-export async function seedNotificationTemplates(dataSource: DataSource): Promise<void> {
+export async function seedNotificationTemplates(
+  dataSource: DataSource,
+): Promise<void> {
   const repo = dataSource.getRepository(NotificationTemplate);
 
   const existing = await repo.count();

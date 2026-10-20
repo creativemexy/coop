@@ -10,7 +10,12 @@ export class IdempotencyKey {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'idempotency_key', unique: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'idempotency_key',
+    unique: true,
+  })
   idempotencyKey: string;
 
   @Column({ type: 'varchar', length: 100 })

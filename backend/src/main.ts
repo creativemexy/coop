@@ -7,6 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import * as Sentry from '@sentry/node';
 import { AppModule } from './app.module';
+import { shouldCaptureRawBody } from './common/raw-body.util';
 
 async function bootstrap() {
   if (process.env.SENTRY_DSN) {
@@ -25,7 +26,9 @@ async function bootstrap() {
     bodyParser.json({
       limit: '1mb',
       verify: (req: any, _res, buf) => {
-        req.rawBody = buf.toString();
+        if (shouldCaptureRawBody(req.url || '/')) {
+          req.rawBody = buf.toString();
+        }
       },
     }),
   );

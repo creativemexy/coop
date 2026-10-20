@@ -83,7 +83,8 @@ const POLICY_SEEDS: PolicySeed[] = [
       ownerDepartment: 'Risk',
       effectiveDate: null,
     },
-    changeSummary: 'Rejected: insufficient risk controls and missing board sign-off.',
+    changeSummary:
+      'Rejected: insufficient risk controls and missing board sign-off.',
   },
 
   // ─── kyc_requirement ──────────────────────────────────────────
@@ -130,7 +131,8 @@ const POLICY_SEEDS: PolicySeed[] = [
       effectiveDate: '2026-05-01',
       reviewCadenceMonths: 12,
     },
-    changeSummary: 'Added NIN as a mandatory ID type and enabled liveness verification.',
+    changeSummary:
+      'Added NIN as a mandatory ID type and enabled liveness verification.',
   },
   {
     name: 'Tier-2 Standard KYC Policy',
@@ -169,7 +171,11 @@ const POLICY_SEEDS: PolicySeed[] = [
         sanctionedFlag: true,
         politicallyExposedPerson: true,
       },
-      requiredDocumentation: ['utility-bill', 'bank-statement-6months', 'proof-of-business'],
+      requiredDocumentation: [
+        'utility-bill',
+        'bank-statement-6months',
+        'proof-of-business',
+      ],
       reVerificationMonths: 6,
       requiresComplianceOfficerApproval: true,
     },
@@ -340,7 +346,9 @@ const POLICY_SEEDS: PolicySeed[] = [
   },
 ];
 
-export async function seedPolicyTemplates(dataSource: DataSource): Promise<void> {
+export async function seedPolicyTemplates(
+  dataSource: DataSource,
+): Promise<void> {
   const policyRepo = dataSource.getRepository(PolicyTemplate);
 
   const existing = await policyRepo.count();

@@ -3,9 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
-import { CollectionPriority, PriorityLevel, PriorityEntityType } from '../entities/collection-priority.entity';
-import { ExceptionCase, ExceptionCaseStatus } from '../entities/exception-case.entity';
-import { CollectionPlaybook, PlaybookTrigger } from '../entities/collection-playbook.entity';
+import {
+  CollectionPriority,
+  PriorityLevel,
+  PriorityEntityType,
+} from '../entities/collection-priority.entity';
+import {
+  ExceptionCase,
+  ExceptionCaseStatus,
+} from '../entities/exception-case.entity';
+import {
+  CollectionPlaybook,
+  PlaybookTrigger,
+} from '../entities/collection-playbook.entity';
 import { ExceptionReason } from '../entities/exception-reason.entity';
 import { AuditLog } from '../entities/audit-log.entity';
 import { InstallmentStatus } from '../../../common/enums/status.enum';
@@ -30,7 +40,13 @@ const COHORT_BUCKETS: CohortBucket[] = [
   { label: '1–30 days', minDays: 1, maxDays: 30, count: 0, totalAmount: 0 },
   { label: '31–60 days', minDays: 31, maxDays: 60, count: 0, totalAmount: 0 },
   { label: '61–90 days', minDays: 61, maxDays: 90, count: 0, totalAmount: 0 },
-  { label: '90+ days', minDays: 91, maxDays: Infinity, count: 0, totalAmount: 0 },
+  {
+    label: '90+ days',
+    minDays: 91,
+    maxDays: Infinity,
+    count: 0,
+    totalAmount: 0,
+  },
 ];
 
 const DAYS_LATE_SQL = `FLOOR(EXTRACT(EPOCH FROM (now() - due_date)) / 86400)`;
@@ -64,7 +80,11 @@ export class CollectionsService {
   async getDelinquencyCohorts() {
     const now = new Date();
 
-    interface CohortRow { label: string; count: string; total_amount: string }
+    interface CohortRow {
+      label: string;
+      count: string;
+      total_amount: string;
+    }
     const rows: CohortRow[] = await this.instRepo.manager.query(
       `SELECT CASE
                 WHEN late_days BETWEEN 1 AND 30 THEN '1–30 days'
@@ -104,7 +124,10 @@ export class CollectionsService {
       cohorts: buckets,
       totalDelinquentAmount: totalDelinquent,
       totalActivePrincipal: Number(totalActive?.total || 0),
-      delinquencyRate: Number(totalActive?.total || 0) > 0 ? totalDelinquent / Number(totalActive?.total || 0) : 0,
+      delinquencyRate:
+        Number(totalActive?.total || 0) > 0
+          ? totalDelinquent / Number(totalActive?.total || 0)
+          : 0,
       asOf: now,
     };
   }
@@ -113,23 +136,35 @@ export class CollectionsService {
     bucketLabel: string,
     page = 1,
     pageSize = 50,
-  ): Promise<{ bucket: string; total: number; page: number; pageSize: number; items: CohortInstallment[] }> {
+  ): Promise<{
+    bucket: string;
+    total: number;
+    page: number;
+    pageSize: number;
+    items: CohortInstallment[];
+  }> {
     const where = bucketSqlFor(bucketLabel);
     const limit = Math.max(1, Math.min(pageSize, 200));
     const offset = Math.max(0, (page - 1) * limit);
 
-    const countRows: Array<{ total: string }> = await this.instRepo.manager.query(
-      `SELECT COUNT(*)::text AS total
+    const countRows: Array<{ total: string }> =
+      await this.instRepo.manager.query(
+        `SELECT COUNT(*)::text AS total
        FROM (
          SELECT amount, ${DAYS_LATE_SQL} AS late_days
          FROM bnpl_installments
          WHERE status = 'pending' AND due_date < now()
        ) t
        WHERE late_days >= 1 AND ${where}`,
-    );
-    const rows: Array<{ id: string; subscription_id: string; due_date: string; amount: string; days_late: string }> =
-      await this.instRepo.manager.query(
-        `SELECT id, subscription_id, due_date, amount::text AS amount, late_days::text AS days_late
+      );
+    const rows: Array<{
+      id: string;
+      subscription_id: string;
+      due_date: string;
+      amount: string;
+      days_late: string;
+    }> = await this.instRepo.manager.query(
+      `SELECT id, subscription_id, due_date, amount::text AS amount, late_days::text AS days_late
          FROM (
            SELECT id, subscription_id, due_date, amount, ${DAYS_LATE_SQL} AS late_days
            FROM bnpl_installments
@@ -138,7 +173,7 @@ export class CollectionsService {
          WHERE late_days >= 1 AND ${where}
          ORDER BY late_days DESC, due_date ASC
          LIMIT ${limit} OFFSET ${offset}`,
-      );
+    );
 
     return {
       bucket: bucketLabel,
@@ -155,8 +190,16 @@ export class CollectionsService {
     };
   }
 
-  async assignPriority(entityType: PriorityEntityType, entityId: string, priority: PriorityLevel, reason: string, assignedBy: string) {
-    const existing = await this.priorityRepo.findOne({ where: { entityType, entityId } });
+  async assignPriority(
+    entityType: PriorityEntityType,
+    entityId: string,
+    priority: PriorityLevel,
+    reason: string,
+    assignedBy: string,
+  ) {
+    const existing = await this.priorityRepo.findOne({
+      where: { entityType, entityId },
+    });
     if (existing) {
       existing.priority = priority;
       existing.reason = reason;
@@ -189,7 +232,9 @@ export class CollectionsService {
     createdBy: string;
     assignedTo?: string;
   }) {
-    const reason = await this.reasonRepo.findOne({ where: { id: data.reasonId } });
+    const reason = await this.reasonRepo.findOne({
+      where: { id: data.reasonId },
+    });
     if (!reason) throw new NotFoundException('Exception reason not found');
 
     const exceptionCase = await this.exceptionRepo.save({
@@ -205,14 +250,21 @@ export class CollectionsService {
       entityId: exceptionCase.id,
       action: 'exception_case_created',
       performedBy: data.createdBy,
-      changes: { reasonId: { from: null, to: data.reasonId }, subscriptionId: { from: null, to: data.subscriptionId } },
+      changes: {
+        reasonId: { from: null, to: data.reasonId },
+        subscriptionId: { from: null, to: data.subscriptionId },
+      },
       reason: data.description || 'Exception case created',
     } as unknown as AuditLog);
 
     return exceptionCase;
   }
 
-  async resolveExceptionCase(id: string, resolution: string, resolvedBy: string) {
+  async resolveExceptionCase(
+    id: string,
+    resolution: string,
+    resolvedBy: string,
+  ) {
     const ec = await this.exceptionRepo.findOne({ where: { id } });
     if (!ec) throw new NotFoundException('Exception case not found');
 
@@ -226,14 +278,20 @@ export class CollectionsService {
       entityId: id,
       action: 'exception_case_resolved',
       performedBy: resolvedBy,
-      changes: { status: { from: ec.status, to: ExceptionCaseStatus.RESOLVED }, resolution: { from: null, to: resolution } },
+      changes: {
+        status: { from: ec.status, to: ExceptionCaseStatus.RESOLVED },
+        resolution: { from: null, to: resolution },
+      },
       reason: resolution,
     } as unknown as AuditLog);
 
     return saved;
   }
 
-  async getExceptionCases(filters?: { status?: ExceptionCaseStatus; subscriptionId?: string }) {
+  async getExceptionCases(filters?: {
+    status?: ExceptionCaseStatus;
+    subscriptionId?: string;
+  }) {
     const where: any = {};
     if (filters?.status) where.status = filters.status;
     if (filters?.subscriptionId) where.subscriptionId = filters.subscriptionId;
@@ -280,7 +338,10 @@ export class CollectionsService {
       subscriptionId,
       trigger,
       overdueCount: overdueInsts.length,
-      totalOverdueAmount: overdueInsts.reduce((s, i) => s + Number(i.amount), 0),
+      totalOverdueAmount: overdueInsts.reduce(
+        (s, i) => s + Number(i.amount),
+        0,
+      ),
       priorRetries: hasPriorDelinquency,
       playbooks: playbooks.map((p) => ({
         id: p.id,
@@ -302,9 +363,21 @@ export class CollectionsService {
         description: 'For customers who missed their first payment.',
         triggerEvent: PlaybookTrigger.FIRST_DELINQUENCY,
         recommendedActions: [
-          { step: 1, action: 'Send SMS/email payment reminder', note: 'Include late fee warning' },
-          { step: 2, action: 'Apply late fee if grace period expired', note: 'Per plan config' },
-          { step: 3, action: 'Flag for review if unpaid after 7 days', note: 'Escalate to collections' },
+          {
+            step: 1,
+            action: 'Send SMS/email payment reminder',
+            note: 'Include late fee warning',
+          },
+          {
+            step: 2,
+            action: 'Apply late fee if grace period expired',
+            note: 'Per plan config',
+          },
+          {
+            step: 3,
+            action: 'Flag for review if unpaid after 7 days',
+            note: 'Escalate to collections',
+          },
         ],
         requiresApproval: false,
       },
@@ -313,10 +386,26 @@ export class CollectionsService {
         description: 'Repeat offenders need stricter action.',
         triggerEvent: PlaybookTrigger.REPEATED_DELINQUENCY,
         recommendedActions: [
-          { step: 1, action: 'Send escalation notice with final payment deadline', note: '7-day final notice' },
-          { step: 2, action: 'Suspend future BNPL access', note: 'Requires approval' },
-          { step: 3, action: 'Assign collection priority flag', note: 'Set to HIGH or CRITICAL' },
-          { step: 4, action: 'Consider legal / third-party collection', note: 'Escalate to supervisor' },
+          {
+            step: 1,
+            action: 'Send escalation notice with final payment deadline',
+            note: '7-day final notice',
+          },
+          {
+            step: 2,
+            action: 'Suspend future BNPL access',
+            note: 'Requires approval',
+          },
+          {
+            step: 3,
+            action: 'Assign collection priority flag',
+            note: 'Set to HIGH or CRITICAL',
+          },
+          {
+            step: 4,
+            action: 'Consider legal / third-party collection',
+            note: 'Escalate to supervisor',
+          },
         ],
         requiresApproval: true,
       },
@@ -325,21 +414,50 @@ export class CollectionsService {
         description: 'When a payment attempt fails at the processor.',
         triggerEvent: PlaybookTrigger.PAYMENT_FAILURE,
         recommendedActions: [
-          { step: 1, action: 'Verify provider error code and reason', note: 'Check webhook logs' },
-          { step: 2, action: 'Retry payment with same provider', note: 'Safe retry up to 3x' },
-          { step: 3, action: 'Offer alternative payment method', note: 'Manual override if needed' },
+          {
+            step: 1,
+            action: 'Verify provider error code and reason',
+            note: 'Check webhook logs',
+          },
+          {
+            step: 2,
+            action: 'Retry payment with same provider',
+            note: 'Safe retry up to 3x',
+          },
+          {
+            step: 3,
+            action: 'Offer alternative payment method',
+            note: 'Manual override if needed',
+          },
         ],
         requiresApproval: false,
       },
       {
         title: 'High-Risk Account — Immediate Review',
-        description: 'Triggered when risk flags or exception cases indicate high risk.',
+        description:
+          'Triggered when risk flags or exception cases indicate high risk.',
         triggerEvent: PlaybookTrigger.HIGH_RISK,
         recommendedActions: [
-          { step: 1, action: 'Full account review by risk team', note: 'Check payment history' },
-          { step: 2, action: 'Place temporary hold on new orders', note: 'Requires supervisor approval' },
-          { step: 3, action: 'Create exception case documenting rationale', note: 'Template-driven' },
-          { step: 4, action: 'Determine if write-off or restructuring needed', note: 'Supervisor decision' },
+          {
+            step: 1,
+            action: 'Full account review by risk team',
+            note: 'Check payment history',
+          },
+          {
+            step: 2,
+            action: 'Place temporary hold on new orders',
+            note: 'Requires supervisor approval',
+          },
+          {
+            step: 3,
+            action: 'Create exception case documenting rationale',
+            note: 'Template-driven',
+          },
+          {
+            step: 4,
+            action: 'Determine if write-off or restructuring needed',
+            note: 'Supervisor decision',
+          },
         ],
         requiresApproval: true,
       },

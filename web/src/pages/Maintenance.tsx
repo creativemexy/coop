@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../stores/auth.store'
 import { DesignCredit } from '../components/layout/DesignCredit'
+import { usePageMeta } from '../lib/seo'
 
 export function Maintenance() {
   const { user } = useAuth()
+
+  usePageMeta({
+    title: 'Maintenance | FENAC COOP',
+    description: 'FENAC COOP is performing scheduled maintenance.',
+    noindex: true,
+  })
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-6">

@@ -19,11 +19,31 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     try {
       await this.ensureSuperAdmin();
     } catch (err) {
-      this.logger.error(`Failed to ensure super admin: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to ensure super admin: ${(err as Error).message}`,
+      );
     }
   }
 
   private async ensureSuperAdmin(): Promise<void> {
+    const enableBootstrap =
+      process.env.BOOTSTRAP_ADMIN_ENABLED === 'true' ||
+      process.env.BOOTSTRAP_ADMIN_ENABLED === '1';
+
+    if (!enableBootstrap) {
+      return;
+    }
+
+    const email = process.env.SUPER_ADMIN_EMAIL;
+    const password = process.env.SUPER_ADMIN_PASSWORD;
+    const bootstrapSecret = process.env.ADMIN_BOOTSTRAP_SECRET;
+
+    if (!bootstrapSecret || !password || !email) {
+      throw new Error(
+        'ADMIN_BOOTSTRAP_SECRET and SUPER_ADMIN_PASSWORD must be set before bootstrap is enabled',
+      );
+    }
+
     const existing = await this.userRepo.findOne({
       where: { role: Role.SUPER_ADMIN },
     });
@@ -36,8 +56,6 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       return;
     }
 
-    const email = process.env.SUPER_ADMIN_EMAIL || 'superadmin@coop.com';
-    const password = process.env.SUPER_ADMIN_PASSWORD || 'Admin@123456';
     const passwordHash = await bcrypt.hash(password, 10);
 
     await this.userRepo.save({
@@ -54,7 +72,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     });
 
     this.logger.warn(
-      `Super admin auto-provisioned: ${email} (default credentials — change in production via SUPER_ADMIN_* env vars)`,
+      `Super admin auto-provisioned only after explicit bootstrap approval for ${email}`,
     );
   }
 }

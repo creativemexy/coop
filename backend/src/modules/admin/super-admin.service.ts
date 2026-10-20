@@ -1,10 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Between } from 'typeorm';
 import { exec } from 'child_process';
 import { join } from 'path';
-import { existsSync, mkdirSync, readdirSync, createReadStream, statSync, unlinkSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  createReadStream,
+  statSync,
+  unlinkSync,
+} from 'fs';
 import * as bcrypt from 'bcrypt';
 import { hashForLookup } from '../../common/encryption.service';
 import { generateTemporaryPassword } from '../../common/temp-password.util';
@@ -12,12 +23,19 @@ import { EmailService } from '../email/email.service';
 
 function execShell(cmd: string, timeout: number): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const child = exec(cmd, { shell: true } as any, (err: any, _stdout: any, stderr: any) => {
-      if (err) reject(new Error(stderr || err.message));
-      else resolve();
-    });
+    const child = exec(
+      cmd,
+      { shell: true } as any,
+      (err: any, _stdout: any, stderr: any) => {
+        if (err) reject(new Error(stderr || err.message));
+        else resolve();
+      },
+    );
     if (timeout > 0) {
-      const timer = setTimeout(() => { child.kill(); reject(new Error('Command timed out')); }, timeout);
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new Error('Command timed out'));
+      }, timeout);
       child.on('close', () => clearTimeout(timer));
     }
   });
@@ -26,13 +44,28 @@ import { Organization } from '../organizations/entities/organization.entity';
 import { User } from '../users/entities/user.entity';
 import { AuditLog } from '../bnpl/entities/audit-log.entity';
 import { AppSetting } from '../settings/entities/app-setting.entity';
-import { PolicyTemplate, PolicyTemplateType, PolicyTemplateStatus } from './entities/policy-template.entity';
-import { TenantOnboardingRequest, OnboardingStatus } from './entities/tenant-onboarding-request.entity';
+import {
+  PolicyTemplate,
+  PolicyTemplateType,
+  PolicyTemplateStatus,
+} from './entities/policy-template.entity';
+import {
+  TenantOnboardingRequest,
+  OnboardingStatus,
+} from './entities/tenant-onboarding-request.entity';
 import { FeatureFlag, FeatureFlagStatus } from './entities/feature-flag.entity';
-import { Incident, IncidentSeverity, IncidentStatus, IncidentSource } from './entities/incident.entity';
+import {
+  Incident,
+  IncidentSeverity,
+  IncidentStatus,
+  IncidentSource,
+} from './entities/incident.entity';
 import { GlobalSecurityConfig } from './entities/global-security-config.entity';
 import { Secret, SecretCategory } from './entities/secret.entity';
-import { NotificationTemplate, TemplateType } from './entities/notification-template.entity';
+import {
+  NotificationTemplate,
+  TemplateType,
+} from './entities/notification-template.entity';
 import { GlobalRiskRule } from './entities/global-risk-rule.entity';
 import { Dispute, DisputeType, DisputeStatus } from './entities/dispute.entity';
 import { KycSubmission } from '../kyc/entities/kyc-submission.entity';
@@ -79,7 +112,8 @@ export class SuperAdminService {
     private readonly paymentRepo: Repository<Payment>,
   ) {
     this.backupDir = join(process.cwd(), 'storage', 'backups');
-    if (!existsSync(this.backupDir)) mkdirSync(this.backupDir, { recursive: true });
+    if (!existsSync(this.backupDir))
+      mkdirSync(this.backupDir, { recursive: true });
   }
 
   // ─── User Management ─────────────────────────────────────────
@@ -100,11 +134,14 @@ export class SuperAdminService {
     const existing = await this.userRepo.findOne({
       where: [{ emailHash: hashForLookup(email) }, { email }],
     });
-    if (existing) throw new BadRequestException('A user with that email already exists');
+    if (existing)
+      throw new BadRequestException('A user with that email already exists');
 
     const role = dto.role;
     if (role === Role.SUPER_ADMIN || role === Role.INDIVIDUAL) {
-      throw new BadRequestException('Super admin accounts cannot be created here');
+      throw new BadRequestException(
+        'Super admin accounts cannot be created here',
+      );
     }
 
     const coopRoles = [
@@ -161,7 +198,12 @@ export class SuperAdminService {
       ].join('\n'),
     });
 
-    return { id: user.id, email: user.email, role: user.role, isActive: user.isActive };
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+    };
   }
 
   // ─── Policy Templates ─────────────────────────────────────────
@@ -190,7 +232,10 @@ export class SuperAdminService {
     return this.policyRepo.save(template);
   }
 
-  async listPolicyTemplates(type?: PolicyTemplateType, status?: PolicyTemplateStatus) {
+  async listPolicyTemplates(
+    type?: PolicyTemplateType,
+    status?: PolicyTemplateStatus,
+  ) {
     const where: any = {};
     if (type) where.templateType = type;
     if (status) where.status = status;
@@ -203,36 +248,46 @@ export class SuperAdminService {
     return tpl;
   }
 
-  async updatePolicyTemplate(id: string, dto: Partial<{
-    name: string;
-    description: string;
-    rules: Record<string, any>;
-    metadata: Record<string, any>;
-    isApplicableToAllTenants: boolean;
-    applicableTenantIds: string[];
-    changeSummary: string;
-    updatedBy: string;
-  }>) {
+  async updatePolicyTemplate(
+    id: string,
+    dto: Partial<{
+      name: string;
+      description: string;
+      rules: Record<string, any>;
+      metadata: Record<string, any>;
+      isApplicableToAllTenants: boolean;
+      applicableTenantIds: string[];
+      changeSummary: string;
+      updatedBy: string;
+    }>,
+  ) {
     const tpl = await this.policyRepo.findOne({ where: { id } });
     if (!tpl) throw new NotFoundException('Policy template not found');
     if (tpl.status === PolicyTemplateStatus.ACTIVE) {
-      throw new BadRequestException('Cannot edit an active template directly. Create a new version instead.');
+      throw new BadRequestException(
+        'Cannot edit an active template directly. Create a new version instead.',
+      );
     }
     if (dto.name) tpl.name = dto.name;
     if (dto.description !== undefined) tpl.description = dto.description;
     if (dto.rules) tpl.rules = dto.rules;
     if (dto.metadata) tpl.metadata = dto.metadata;
-    if (dto.isApplicableToAllTenants !== undefined) tpl.isApplicableToAllTenants = dto.isApplicableToAllTenants;
-    if (dto.applicableTenantIds) tpl.applicableTenantIds = dto.applicableTenantIds;
+    if (dto.isApplicableToAllTenants !== undefined)
+      tpl.isApplicableToAllTenants = dto.isApplicableToAllTenants;
+    if (dto.applicableTenantIds)
+      tpl.applicableTenantIds = dto.applicableTenantIds;
     if (dto.changeSummary) tpl.changeSummary = dto.changeSummary;
     return this.policyRepo.save(tpl);
   }
 
-  async createPolicyVersion(id: string, dto: {
-    rules: Record<string, any>;
-    changeSummary: string;
-    createdBy: string;
-  }) {
+  async createPolicyVersion(
+    id: string,
+    dto: {
+      rules: Record<string, any>;
+      changeSummary: string;
+      createdBy: string;
+    },
+  ) {
     const parent = await this.policyRepo.findOne({ where: { id } });
     if (!parent) throw new NotFoundException('Parent template not found');
 
@@ -260,7 +315,10 @@ export class SuperAdminService {
     }
 
     if (tpl.parentTemplateId) {
-      await this.policyRepo.update(tpl.parentTemplateId, { status: PolicyTemplateStatus.SUPERSEDED, supersededBy: id });
+      await this.policyRepo.update(tpl.parentTemplateId, {
+        status: PolicyTemplateStatus.SUPERSEDED,
+        supersededBy: id,
+      });
     }
 
     tpl.status = PolicyTemplateStatus.ACTIVE;
@@ -281,7 +339,9 @@ export class SuperAdminService {
     const tpl = await this.policyRepo.findOne({ where: { id } });
     if (!tpl) throw new NotFoundException('Policy template not found');
     if (tpl.status !== PolicyTemplateStatus.DRAFT) {
-      throw new BadRequestException('Only draft templates can be submitted for approval');
+      throw new BadRequestException(
+        'Only draft templates can be submitted for approval',
+      );
     }
     tpl.status = PolicyTemplateStatus.PENDING_APPROVAL;
     return this.policyRepo.save(tpl);
@@ -299,8 +359,13 @@ export class SuperAdminService {
     contactInfo?: Record<string, any>;
     submittedBy: string;
   }) {
-    const existingOrg = await this.orgRepo.findOne({ where: { code: dto.orgCode } });
-    if (existingOrg) throw new BadRequestException('An organization with this code already exists');
+    const existingOrg = await this.orgRepo.findOne({
+      where: { code: dto.orgCode },
+    });
+    if (existingOrg)
+      throw new BadRequestException(
+        'An organization with this code already exists',
+      );
 
     const request = this.onboardingRepo.create({
       ...dto,
@@ -331,10 +396,17 @@ export class SuperAdminService {
     return this.onboardingRepo.save(req);
   }
 
-  async approveOnboardingRequest(id: string, reviewedBy: string, reviewNotes?: string) {
+  async approveOnboardingRequest(
+    id: string,
+    reviewedBy: string,
+    reviewNotes?: string,
+  ) {
     const req = await this.onboardingRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Onboarding request not found');
-    if (req.status !== OnboardingStatus.SUBMITTED && req.status !== OnboardingStatus.COMPLIANCE_REVIEW) {
+    if (
+      req.status !== OnboardingStatus.SUBMITTED &&
+      req.status !== OnboardingStatus.COMPLIANCE_REVIEW
+    ) {
       throw new BadRequestException('Request is not in a reviewable state');
     }
     req.status = OnboardingStatus.APPROVED;
@@ -344,7 +416,11 @@ export class SuperAdminService {
     return this.onboardingRepo.save(req);
   }
 
-  async rejectOnboardingRequest(id: string, reviewedBy: string, reason: string) {
+  async rejectOnboardingRequest(
+    id: string,
+    reviewedBy: string,
+    reason: string,
+  ) {
     const req = await this.onboardingRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Onboarding request not found');
     req.status = OnboardingStatus.REJECTED;
@@ -358,7 +434,9 @@ export class SuperAdminService {
     const req = await this.onboardingRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Onboarding request not found');
     if (req.status !== OnboardingStatus.APPROVED) {
-      throw new BadRequestException('Request must be approved before onboarding');
+      throw new BadRequestException(
+        'Request must be approved before onboarding',
+      );
     }
 
     const org = this.orgRepo.create({
@@ -370,7 +448,10 @@ export class SuperAdminService {
     const savedOrg = await this.orgRepo.save(org);
 
     await this.settingRepo.upsert(
-      { key: `tenant:${savedOrg.id}:supported_products`, value: JSON.stringify(req.productConfig?.supportedProducts || []) } as AppSetting,
+      {
+        key: `tenant:${savedOrg.id}:supported_products`,
+        value: JSON.stringify(req.productConfig?.supportedProducts || []),
+      },
       ['key'],
     );
 
@@ -381,15 +462,21 @@ export class SuperAdminService {
     return savedOrg;
   }
 
-  async updateOnboardingRequest(id: string, dto: Partial<{
-    complianceDocs: Record<string, any>;
-    kycRequirements: Record<string, any>;
-    productConfig: Record<string, any>;
-    contactInfo: Record<string, any>;
-  }>) {
+  async updateOnboardingRequest(
+    id: string,
+    dto: Partial<{
+      complianceDocs: Record<string, any>;
+      kycRequirements: Record<string, any>;
+      productConfig: Record<string, any>;
+      contactInfo: Record<string, any>;
+    }>,
+  ) {
     const req = await this.onboardingRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Onboarding request not found');
-    if (req.status !== OnboardingStatus.DRAFT && req.status !== OnboardingStatus.SUBMITTED) {
+    if (
+      req.status !== OnboardingStatus.DRAFT &&
+      req.status !== OnboardingStatus.SUBMITTED
+    ) {
       throw new BadRequestException('Cannot update request in current state');
     }
     if (dto.complianceDocs) req.complianceDocs = dto.complianceDocs;
@@ -411,7 +498,10 @@ export class SuperAdminService {
     metadata?: Record<string, any>;
   }) {
     const existing = await this.flagRepo.findOne({ where: { key: dto.key } });
-    if (existing) throw new BadRequestException('Feature flag with this key already exists');
+    if (existing)
+      throw new BadRequestException(
+        'Feature flag with this key already exists',
+      );
 
     const flag = this.flagRepo.create({
       ...dto,
@@ -434,16 +524,19 @@ export class SuperAdminService {
     return flag;
   }
 
-  async updateFeatureFlag(id: string, dto: Partial<{
-    name: string;
-    description: string;
-    status: FeatureFlagStatus;
-    environments: Record<string, boolean>;
-    cohortRules: Record<string, any>;
-    rolloutPercentage: number;
-    updatedBy: string;
-    metadata: Record<string, any>;
-  }>) {
+  async updateFeatureFlag(
+    id: string,
+    dto: Partial<{
+      name: string;
+      description: string;
+      status: FeatureFlagStatus;
+      environments: Record<string, boolean>;
+      cohortRules: Record<string, any>;
+      rolloutPercentage: number;
+      updatedBy: string;
+      metadata: Record<string, any>;
+    }>,
+  ) {
     const flag = await this.flagRepo.findOne({ where: { id } });
     if (!flag) throw new NotFoundException('Feature flag not found');
 
@@ -455,7 +548,8 @@ export class SuperAdminService {
     }
     if (dto.environments !== undefined) flag.environments = dto.environments;
     if (dto.cohortRules !== undefined) flag.cohortRules = dto.cohortRules;
-    if (dto.rolloutPercentage !== undefined) flag.rolloutPercentage = dto.rolloutPercentage;
+    if (dto.rolloutPercentage !== undefined)
+      flag.rolloutPercentage = dto.rolloutPercentage;
     if (dto.updatedBy !== undefined) flag.updatedBy = dto.updatedBy;
     if (dto.metadata !== undefined) flag.metadata = dto.metadata;
 
@@ -471,7 +565,9 @@ export class SuperAdminService {
   async toggleFeatureFlag(id: string, enabled: boolean, updatedBy: string) {
     const flag = await this.flagRepo.findOne({ where: { id } });
     if (!flag) throw new NotFoundException('Feature flag not found');
-    flag.status = enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED;
+    flag.status = enabled
+      ? FeatureFlagStatus.ENABLED
+      : FeatureFlagStatus.DISABLED;
     flag.updatedBy = updatedBy;
     if (enabled) flag.enabledAt = new Date();
     return this.flagRepo.save(flag);
@@ -497,8 +593,13 @@ export class SuperAdminService {
     return this.incidentRepo.save(incident);
   }
 
-  async listIncidents(status?: IncidentStatus | IncidentStatus[], severity?: IncidentSeverity) {
-    const qb = this.incidentRepo.createQueryBuilder('i').orderBy('i.detectedAt', 'DESC');
+  async listIncidents(
+    status?: IncidentStatus | IncidentStatus[],
+    severity?: IncidentSeverity,
+  ) {
+    const qb = this.incidentRepo
+      .createQueryBuilder('i')
+      .orderBy('i.detectedAt', 'DESC');
     if (status) {
       if (Array.isArray(status)) {
         qb.andWhere('i.status IN (:...statuses)', { statuses: status });
@@ -518,26 +619,33 @@ export class SuperAdminService {
     return incident;
   }
 
-  async updateIncident(id: string, dto: Partial<{
-    status: IncidentStatus;
-    assignedTo: string;
-    resolutionSteps: Record<string, any>[];
-    rootCause: string;
-    actionItems: string;
-    resolvedBy: string;
-  }>) {
+  async updateIncident(
+    id: string,
+    dto: Partial<{
+      status: IncidentStatus;
+      assignedTo: string;
+      resolutionSteps: Record<string, any>[];
+      rootCause: string;
+      actionItems: string;
+      resolvedBy: string;
+    }>,
+  ) {
     const incident = await this.incidentRepo.findOne({ where: { id } });
     if (!incident) throw new NotFoundException('Incident not found');
 
     if (dto.status !== undefined) {
       incident.status = dto.status;
-      if (dto.status === IncidentStatus.RESOLVED || dto.status === IncidentStatus.CLOSED) {
+      if (
+        dto.status === IncidentStatus.RESOLVED ||
+        dto.status === IncidentStatus.CLOSED
+      ) {
         incident.resolvedAt = new Date();
         incident.resolvedBy = dto.resolvedBy || incident.resolvedBy;
       }
     }
     if (dto.assignedTo !== undefined) incident.assignedTo = dto.assignedTo;
-    if (dto.resolutionSteps !== undefined) incident.resolutionSteps = dto.resolutionSteps;
+    if (dto.resolutionSteps !== undefined)
+      incident.resolutionSteps = dto.resolutionSteps;
     if (dto.rootCause !== undefined) incident.rootCause = dto.rootCause;
     if (dto.actionItems !== undefined) incident.actionItems = dto.actionItems;
 
@@ -555,18 +663,33 @@ export class SuperAdminService {
   }
 
   async getIncidentStats() {
-    const [
-      total,
-      open,
-      critical,
-      bySeverity,
-      bySource,
-    ] = await Promise.all([
+    const [total, open, critical, bySeverity, bySource] = await Promise.all([
       this.incidentRepo.count(),
-      this.incidentRepo.createQueryBuilder('i').where('i.status IN (:...statuses)', { statuses: [IncidentStatus.DETECTED, IncidentStatus.INVESTIGATING] }).getCount(),
-      this.incidentRepo.createQueryBuilder('i').where('i.severity = :severity AND i.status NOT IN (:...statuses)', { severity: IncidentSeverity.CRITICAL, statuses: [IncidentStatus.RESOLVED, IncidentStatus.CLOSED] }).getCount(),
-      this.incidentRepo.createQueryBuilder('i').select('i.severity', 'severity').addSelect('COUNT(*)', 'count').groupBy('i.severity').getRawMany(),
-      this.incidentRepo.createQueryBuilder('i').select('i.source', 'source').addSelect('COUNT(*)', 'count').groupBy('i.source').getRawMany(),
+      this.incidentRepo
+        .createQueryBuilder('i')
+        .where('i.status IN (:...statuses)', {
+          statuses: [IncidentStatus.DETECTED, IncidentStatus.INVESTIGATING],
+        })
+        .getCount(),
+      this.incidentRepo
+        .createQueryBuilder('i')
+        .where('i.severity = :severity AND i.status NOT IN (:...statuses)', {
+          severity: IncidentSeverity.CRITICAL,
+          statuses: [IncidentStatus.RESOLVED, IncidentStatus.CLOSED],
+        })
+        .getCount(),
+      this.incidentRepo
+        .createQueryBuilder('i')
+        .select('i.severity', 'severity')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('i.severity')
+        .getRawMany(),
+      this.incidentRepo
+        .createQueryBuilder('i')
+        .select('i.source', 'source')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('i.source')
+        .getRawMany(),
     ]);
 
     const severityMap: Record<string, number> = {};
@@ -575,23 +698,51 @@ export class SuperAdminService {
     const sourceMap: Record<string, number> = {};
     for (const s of bySource) sourceMap[s.source] = Number(s.count);
 
-    return { total, open, critical, bySeverity: severityMap, bySource: sourceMap };
+    return {
+      total,
+      open,
+      critical,
+      bySeverity: severityMap,
+      bySource: sourceMap,
+    };
   }
 
   // ─── Global Security Config ─────────────────────────────────
 
   async getSecurityConfig() {
     const configs = await this.securityRepo.find();
-    const result: Record<string, { value: string; description: string; valueType: string; updatedAt: Date }> = {};
+    const result: Record<
+      string,
+      { value: string; description: string; valueType: string; updatedAt: Date }
+    > = {};
     for (const c of configs) {
-      result[c.key] = { value: c.value, description: c.description || '', valueType: c.valueType, updatedAt: c.updatedAt };
+      result[c.key] = {
+        value: c.value,
+        description: c.description || '',
+        valueType: c.valueType,
+        updatedAt: c.updatedAt,
+      };
     }
     return result;
   }
 
-  async setSecurityConfig(key: string, dto: { value: string; description?: string; valueType?: string; updatedBy: string }) {
+  async setSecurityConfig(
+    key: string,
+    dto: {
+      value: string;
+      description?: string;
+      valueType?: string;
+      updatedBy: string;
+    },
+  ) {
     await this.securityRepo.upsert(
-      { key, value: dto.value, description: dto.description || null, valueType: dto.valueType || 'string', updatedBy: dto.updatedBy } as GlobalSecurityConfig,
+      {
+        key,
+        value: dto.value,
+        description: dto.description || null,
+        valueType: dto.valueType || 'string',
+        updatedBy: dto.updatedBy,
+      } as GlobalSecurityConfig,
       ['key'],
     );
     return this.securityRepo.findOne({ where: { key } });
@@ -615,7 +766,8 @@ export class SuperAdminService {
     expiresAt?: Date;
   }) {
     const existing = await this.secretRepo.findOne({ where: { key: dto.key } });
-    if (existing) throw new BadRequestException('Secret with this key already exists');
+    if (existing)
+      throw new BadRequestException('Secret with this key already exists');
 
     const secret = this.secretRepo.create(dto);
     return this.secretRepo.save(secret);
@@ -624,7 +776,10 @@ export class SuperAdminService {
   async listSecrets(category?: SecretCategory) {
     const where: any = {};
     if (category) where.category = category;
-    const secrets = await this.secretRepo.find({ where, order: { createdAt: 'DESC' } });
+    const secrets = await this.secretRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+    });
     return secrets.map((s) => ({
       id: s.id,
       key: s.key,
@@ -657,23 +812,29 @@ export class SuperAdminService {
     };
   }
 
-  async updateSecret(id: string, dto: Partial<{
-    encryptedValue: string;
-    description: string;
-    category: SecretCategory;
-    isRotationEnabled: boolean;
-    rotationIntervalDays: number;
-    updatedBy: string;
-    expiresAt: Date;
-  }>) {
+  async updateSecret(
+    id: string,
+    dto: Partial<{
+      encryptedValue: string;
+      description: string;
+      category: SecretCategory;
+      isRotationEnabled: boolean;
+      rotationIntervalDays: number;
+      updatedBy: string;
+      expiresAt: Date;
+    }>,
+  ) {
     const secret = await this.secretRepo.findOne({ where: { id } });
     if (!secret) throw new NotFoundException('Secret not found');
 
-    if (dto.encryptedValue !== undefined) secret.encryptedValue = dto.encryptedValue;
+    if (dto.encryptedValue !== undefined)
+      secret.encryptedValue = dto.encryptedValue;
     if (dto.description !== undefined) secret.description = dto.description;
     if (dto.category !== undefined) secret.category = dto.category;
-    if (dto.isRotationEnabled !== undefined) secret.isRotationEnabled = dto.isRotationEnabled;
-    if (dto.rotationIntervalDays !== undefined) secret.rotationIntervalDays = dto.rotationIntervalDays;
+    if (dto.isRotationEnabled !== undefined)
+      secret.isRotationEnabled = dto.isRotationEnabled;
+    if (dto.rotationIntervalDays !== undefined)
+      secret.rotationIntervalDays = dto.rotationIntervalDays;
     if (dto.updatedBy !== undefined) secret.updatedBy = dto.updatedBy;
     if (dto.expiresAt !== undefined) secret.expiresAt = dto.expiresAt;
 
@@ -710,16 +871,26 @@ export class SuperAdminService {
     if (filters?.action) where.action = filters.action;
     if (filters?.actorId) where.performedBy = filters.actorId;
 
-    return this.auditRepo.find({ where, order: { createdAt: 'DESC' }, take: filters?.limit || 200 });
+    return this.auditRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      take: filters?.limit || 200,
+    });
   }
 
   // ─── KYC Compliance Overview ────────────────────────────────
 
   async getKycOverview() {
     const total = await this.kycRepo.count();
-    const approved = await this.kycRepo.count({ where: { status: KycStatus.APPROVED as any } });
-    const rejected = await this.kycRepo.count({ where: { status: KycStatus.REJECTED as any } });
-    const pending = await this.kycRepo.count({ where: { status: KycStatus.PENDING as any } });
+    const approved = await this.kycRepo.count({
+      where: { status: KycStatus.APPROVED },
+    });
+    const rejected = await this.kycRepo.count({
+      where: { status: KycStatus.REJECTED },
+    });
+    const pending = await this.kycRepo.count({
+      where: { status: KycStatus.PENDING },
+    });
 
     const recentSubmissions = await this.kycRepo.find({
       order: { submittedAt: 'DESC' },
@@ -740,21 +911,30 @@ export class SuperAdminService {
     page?: number;
     limit?: number;
   }) {
-    const { search, type, status, startDate, endDate, page = 1, limit = 20 } = query;
+    const {
+      search,
+      type,
+      status,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = query;
     const qb = this.paymentRepo.createQueryBuilder('p');
 
     if (search) {
-      qb.andWhere(
-        'p.providerReference ILIKE :search',
-        { search: `%${search}%` },
-      );
+      qb.andWhere('p.providerReference ILIKE :search', {
+        search: `%${search}%`,
+      });
     }
     if (type) qb.andWhere('p.provider = :type', { type });
     if (status) qb.andWhere('p.status = :status', { status });
     if (startDate) qb.andWhere('p.createdAt >= :startDate', { startDate });
     if (endDate) qb.andWhere('p.createdAt <= :endDate', { endDate });
 
-    qb.orderBy('p.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+    qb.orderBy('p.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -784,11 +964,14 @@ export class SuperAdminService {
     return this.templateRepo.save(this.templateRepo.create(dto));
   }
 
-  async updateTemplate(id: string, dto: Partial<{
-    subject: string;
-    body: string;
-    variables: string[];
-  }>) {
+  async updateTemplate(
+    id: string,
+    dto: Partial<{
+      subject: string;
+      body: string;
+      variables: string[];
+    }>,
+  ) {
     const tpl = await this.getTemplate(id);
     Object.assign(tpl, dto);
     return this.templateRepo.save(tpl);
@@ -805,14 +988,26 @@ export class SuperAdminService {
     return this.riskRepo.find({ order: { ruleKey: 'ASC' } });
   }
 
-  async updateRiskRule(id: string, dto: Partial<{ enabled: boolean; config: Record<string, any>; description: string }>) {
+  async updateRiskRule(
+    id: string,
+    dto: Partial<{
+      enabled: boolean;
+      config: Record<string, any>;
+      description: string;
+    }>,
+  ) {
     const rule = await this.riskRepo.findOne({ where: { id } });
     if (!rule) throw new NotFoundException('Risk rule not found');
     Object.assign(rule, dto);
     return this.riskRepo.save(rule);
   }
 
-  async createRiskRule(dto: { ruleKey: string; description: string; enabled: boolean; config: Record<string, any> }) {
+  async createRiskRule(dto: {
+    ruleKey: string;
+    description: string;
+    enabled: boolean;
+    config: Record<string, any>;
+  }) {
     return this.riskRepo.save(this.riskRepo.create(dto));
   }
 
@@ -825,7 +1020,13 @@ export class SuperAdminService {
   // ─── Tax / Interest Rate Config ─────────────────────────────
 
   async getFinancialConfig() {
-    const keys = ['interest_rate', 'late_payment_fee', 'tax_rate', 'withholding_tax', 'processing_fee'];
+    const keys = [
+      'interest_rate',
+      'late_payment_fee',
+      'tax_rate',
+      'withholding_tax',
+      'processing_fee',
+    ];
     const settings = await this.settingRepo.find({ where: { key: In(keys) } });
     const map: Record<string, string> = {};
     for (const s of settings) map[s.key] = s.value;
@@ -845,7 +1046,12 @@ export class SuperAdminService {
 
   // ─── Dispute Management ─────────────────────────────────────
 
-  async getDisputes(query: { status?: string; type?: string; page?: number; limit?: number }) {
+  async getDisputes(query: {
+    status?: string;
+    type?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const { status, type, page = 1, limit = 20 } = query;
     const where: any = {};
     if (status) where.status = status;
@@ -859,7 +1065,11 @@ export class SuperAdminService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async resolveDispute(id: string, dto: { status: DisputeStatus; resolution: string }, resolvedBy: string) {
+  async resolveDispute(
+    id: string,
+    dto: { status: DisputeStatus; resolution: string },
+    resolvedBy: string,
+  ) {
     const dispute = await this.disputeRepo.findOne({ where: { id } });
     if (!dispute) throw new NotFoundException('Dispute not found');
     dispute.status = dto.status;
@@ -872,7 +1082,13 @@ export class SuperAdminService {
   // ─── System Config / Backup ─────────────────────────────────
 
   async getSystemConfig() {
-    const keys = ['platform_name', 'support_email', 'support_phone', 'backup_enabled', 'maintenance_mode'];
+    const keys = [
+      'platform_name',
+      'support_email',
+      'support_phone',
+      'backup_enabled',
+      'maintenance_mode',
+    ];
     const settings = await this.settingRepo.find({ where: { key: In(keys) } });
     const map: Record<string, string> = {};
     for (const s of settings) map[s.key] = s.value;
@@ -892,8 +1108,14 @@ export class SuperAdminService {
   async triggerBackup() {
     const host = this.configService.get<string>('database.host', 'localhost');
     const port = this.configService.get<string>('database.port', '5432');
-    const user = this.configService.get<string>('database.username', 'postgres');
-    const password = this.configService.get<string>('database.password', 'postgres');
+    const user = this.configService.get<string>(
+      'database.username',
+      'postgres',
+    );
+    const password = this.configService.get<string>(
+      'database.password',
+      'postgres',
+    );
     const db = this.configService.get<string>('database.database', 'coop_bnpl');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup-${timestamp}.sql.gz`;
@@ -918,13 +1140,22 @@ export class SuperAdminService {
 
   async listBackups() {
     try {
-      const files = readdirSync(this.backupDir).filter((f) => f.endsWith('.sql.gz'));
+      const files = readdirSync(this.backupDir).filter((f) =>
+        f.endsWith('.sql.gz'),
+      );
       return files
         .map((f) => {
           const stats = statSync(join(this.backupDir, f));
-          return { filename: f, size: stats.size, createdAt: stats.birthtime.toISOString() };
+          return {
+            filename: f,
+            size: stats.size,
+            createdAt: stats.birthtime.toISOString(),
+          };
         })
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
     } catch {
       return [];
     }
@@ -932,7 +1163,8 @@ export class SuperAdminService {
 
   getBackupPath(filename: string): string {
     const safe = join(this.backupDir, filename);
-    if (!safe.startsWith(this.backupDir)) throw new BadRequestException('Invalid backup filename');
+    if (!safe.startsWith(this.backupDir))
+      throw new BadRequestException('Invalid backup filename');
     if (!existsSync(safe)) throw new NotFoundException('Backup file not found');
     return safe;
   }
@@ -951,8 +1183,14 @@ export class SuperAdminService {
   async restoreBackup(filename: string) {
     const host = this.configService.get<string>('database.host', 'localhost');
     const port = this.configService.get<string>('database.port', '5432');
-    const user = this.configService.get<string>('database.username', 'postgres');
-    const password = this.configService.get<string>('database.password', 'postgres');
+    const user = this.configService.get<string>(
+      'database.username',
+      'postgres',
+    );
+    const password = this.configService.get<string>(
+      'database.password',
+      'postgres',
+    );
     const db = this.configService.get<string>('database.database', 'coop_bnpl');
     const filepath = this.getBackupPath(filename);
 
@@ -970,11 +1208,18 @@ export class SuperAdminService {
   // ─── Role Feature Permissions ────────────────────────────
 
   async getRolePermissions() {
-    const setting = await this.settingRepo.findOne({ where: { key: 'role_permissions' } });
+    const setting = await this.settingRepo.findOne({
+      where: { key: 'role_permissions' },
+    });
     return setting ? JSON.parse(setting.value) : {};
   }
 
-  async updateRolePermissions(dto: Record<string, { disabledFeatures: string[]; disabledMenuItems: string[] }>) {
+  async updateRolePermissions(
+    dto: Record<
+      string,
+      { disabledFeatures: string[]; disabledMenuItems: string[] }
+    >,
+  ) {
     await this.settingRepo.upsert(
       { key: 'role_permissions', value: JSON.stringify(dto) },
       { conflictPaths: ['key'], skipUpdateIfNoValuesChanged: false },
@@ -998,9 +1243,19 @@ export class SuperAdminService {
       this.userRepo.count(),
       this.userRepo.count({ where: { isActive: true } }),
       this.onboardingRepo.count({
-        where: { createdAt: Between(new Date(now.getFullYear(), now.getMonth(), 1), now) },
+        where: {
+          createdAt: Between(
+            new Date(now.getFullYear(), now.getMonth(), 1),
+            now,
+          ),
+        },
       }),
-      this.incidentRepo.createQueryBuilder('i').where('i.status IN (:...statuses)', { statuses: [IncidentStatus.DETECTED, IncidentStatus.INVESTIGATING] }).getCount(),
+      this.incidentRepo
+        .createQueryBuilder('i')
+        .where('i.status IN (:...statuses)', {
+          statuses: [IncidentStatus.DETECTED, IncidentStatus.INVESTIGATING],
+        })
+        .getCount(),
       this.policyRepo.count({ where: { status: PolicyTemplateStatus.ACTIVE } }),
     ]);
 

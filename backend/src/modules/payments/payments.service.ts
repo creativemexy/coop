@@ -38,9 +38,14 @@ export class PaymentsService {
     purpose?: string;
     callbackUrl?: string;
   }): Promise<{ payment: Payment; authorizationUrl?: string }> {
-    const maxCheck = await this.riskService.checkMinMax('max_payment_amount', dto.amount);
+    const maxCheck = await this.riskService.checkMinMax(
+      'max_payment_amount',
+      dto.amount,
+    );
     if (maxCheck && !maxCheck.allowed) {
-      throw new BadRequestException(`Maximum single payment is ₦${maxCheck.limit.toLocaleString()}`);
+      throw new BadRequestException(
+        `Maximum single payment is ₦${maxCheck.limit.toLocaleString()}`,
+      );
     }
 
     const providerReference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -97,14 +102,18 @@ export class PaymentsService {
     return this.repo.findOneOrFail({ where: { id } });
   }
 
-  async verify(reference: string): Promise<{ status: string; payment?: Payment }> {
+  async verify(
+    reference: string,
+  ): Promise<{ status: string; payment?: Payment }> {
     const paystackData = await this.paystackClient.verifyTransaction(reference);
     const payment = await this.findByProviderReference(reference);
     const paystackStatus = paystackData?.status;
 
     if (paystackStatus === 'success' && payment) {
-      const isRegistration = payment.purpose === 'registration' ||
-        (payment.metadata && (payment.metadata as any).purpose === 'registration');
+      const isRegistration =
+        payment.purpose === 'registration' ||
+        (payment.metadata &&
+          (payment.metadata as any).purpose === 'registration');
       const wasPending = payment.status === PaymentStatus.PENDING;
 
       if (wasPending) {
@@ -116,16 +125,26 @@ export class PaymentsService {
       }
 
       if (isRegistration && payment.userId) {
-        await this.usersService.updateUser(
+        await this.usersService.updateUser(payment.userId, {
+          registrationFeePaid: true,
+          isActive: true,
+        });
+        await this.recordRegistrationLedger(
           payment.userId,
-          { registrationFeePaid: true, isActive: true } as any,
+          payment.id,
+          payment.amount,
         );
-        await this.recordRegistrationLedger(payment.userId, payment.id, payment.amount);
       }
 
-      return { status: 'success', payment: { ...payment, status: PaymentStatus.SUCCESS } };
+      return {
+        status: 'success',
+        payment: { ...payment, status: PaymentStatus.SUCCESS },
+      };
     }
-    return { status: paystackStatus || 'unknown', payment: payment ?? undefined };
+    return {
+      status: paystackStatus || 'unknown',
+      payment: payment ?? undefined,
+    };
   }
 
   async findByUser(userId: string): Promise<Payment[]> {
@@ -177,7 +196,9 @@ export class PaymentsService {
               ],
             });
           } catch (jeErr) {
-            this.logger.warn(`Journal entry creation failed: ${(jeErr as Error).message}`);
+            this.logger.warn(
+              `Journal entry creation failed: ${(jeErr as Error).message}`,
+            );
           }
         }
         await this.feeShareService.recordRegistrationFee({
@@ -188,7 +209,9 @@ export class PaymentsService {
         });
       }
     } catch (err) {
-      this.logger.warn(`Registration ledger recording failed: ${(err as Error).message}`);
+      this.logger.warn(
+        `Registration ledger recording failed: ${(err as Error).message}`,
+      );
     }
   }
 }

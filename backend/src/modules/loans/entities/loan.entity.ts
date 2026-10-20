@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  Index,
+} from 'typeorm';
 import { LoanRepayment } from './loan-repayment.entity';
 
 export enum LoanStatus {
@@ -25,7 +33,13 @@ export class Loan {
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   amount: number;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, name: 'interest_rate', default: 5 })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    name: 'interest_rate',
+    default: 5,
+  })
   interestRate: number;
 
   @Column({ type: 'int' })
@@ -37,10 +51,22 @@ export class Loan {
   @Column({ type: 'decimal', precision: 15, scale: 2, name: 'total_repayment' })
   totalRepayment: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'amount_paid', default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'amount_paid',
+    default: 0,
+  })
   amountPaid: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'service_fee', default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'service_fee',
+    default: 0,
+  })
   serviceFee: number;
 
   @Column({ type: 'boolean', name: 'service_fee_paid', default: false })

@@ -23,6 +23,32 @@ export interface DepositNotificationData {
   recipientAccountNumber: string;
 }
 
+export interface FirstCheckoutAuthResponse {
+  value?: {
+    access_token?: string;
+    expires_in?: number | string;
+  };
+  /** Some FirstChekout responses return the token unwrapped. */
+  access_token?: string;
+  expires_in?: number | string;
+}
+
+export interface ConfirmTransferResult {
+  /** True only when FirstChekout confirms the transfer completed. */
+  confirmed: boolean;
+  paymentStatus?: string;
+  amount?: number;
+  message?: string;
+}
+
+/**
+ * True when the gateway rejected an expired/invalid bearer token (HTTP 401).
+ */
+function isAuthRejection(err: unknown): boolean {
+  const e = err as { response?: { status?: number }; status?: number };
+  return (e?.response?.status ?? e?.status) === 401;
+}
+
 /**
  * FirstCheckout payment gateway client.
  *
@@ -41,6 +67,7 @@ export class FirstCheckoutClient {
   private readonly logger = new Logger(FirstCheckoutClient.name);
 
   private readonly enabled: boolean;
+  private readonly production: boolean;
   private readonly apiUrl: string;
   private readonly publicKey: string;
   private readonly secretKey: string;
@@ -50,11 +77,23 @@ export class FirstCheckoutClient {
 
   private accessToken: string | null = null;
   private accessTokenAt = 0;
+  /** Milliseconds the current token is trusted for, learned from expires_in. */
+  private accessTokenTtlMs = 0;
+
+  /** Refresh this long before the provider's expiry to absorb clock skew/latency. */
+  private static readonly TOKEN_SAFETY_MARGIN_MS = 60 * 1000;
+  /** Sample token response says expires_in: 600 — assume that when absent. */
+  private static readonly TOKEN_FALLBACK_TTL_MS = 10 * 60 * 1000;
+  /** Docs say the token expires after 30 minutes — never trust it longer. */
+  private static readonly TOKEN_MAX_TTL_MS = 30 * 60 * 1000;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
+    this.production =
+      process.env.NODE_ENV === 'production' ||
+      process.env.APP_ENV === 'production';
     this.enabled =
       configService.get<string>('FIRST_BANKOUT_ENABLED') === 'true';
     this.apiUrl = (
@@ -70,10 +109,48 @@ export class FirstCheckoutClient {
     this.clientId = configService.get<string>('FIRST_BANKOUT_CLIENT_ID') || '';
     this.clientSecret =
       configService.get<string>('FIRST_BANKOUT_CLIENT_SECRET') || '';
+
+    if (
+      this.production &&
+      this.enabled &&
+      (!this.publicKey ||
+        !this.secretKey ||
+        !this.merchantId ||
+        !this.clientId ||
+        !this.clientSecret)
+    ) {
+      throw new Error(
+        'All FirstCheckout credentials must be configured when enabled in production',
+      );
+    }
+    if (
+      this.production &&
+      this.enabled &&
+      this.apiUrl.includes('firstchekoutdev.com')
+    ) {
+      throw new Error(
+        'A production FirstCheckout API URL is required when enabled in production',
+      );
+    }
   }
 
   private get isStub(): boolean {
-    return !this.enabled || !this.publicKey || !this.clientId;
+    return (
+      !this.enabled ||
+      !this.publicKey ||
+      !this.secretKey ||
+      !this.merchantId ||
+      !this.clientId ||
+      !this.clientSecret
+    );
+  }
+
+  private shouldUseStub(): boolean {
+    if (!this.isStub) return false;
+    if (this.production) {
+      throw new Error('FirstCheckout stub mode is disabled in production');
+    }
+    return true;
   }
 
   isStubbed(): boolean {
@@ -105,14 +182,23 @@ export class FirstCheckoutClient {
     return { ...draft, accessCode: tx.accessCode };
   }
 
-  private async getAccessToken(): Promise<string> {
-    const ttl = 55 * 60 * 1000;
-    if (this.accessToken && Date.now() - this.accessTokenAt < ttl) {
-      return this.accessToken;
+  private isTokenFresh(): boolean {
+    if (!this.accessToken) return false;
+    const expiresAt = this.accessTokenAt + this.accessTokenTtlMs;
+    return expiresAt - Date.now() > FirstCheckoutClient.TOKEN_SAFETY_MARGIN_MS;
+  }
+
+  /**
+   * @param forceRefresh bypass the cache and request a brand-new token. Used
+   * when the gateway has already rejected the cached token (HTTP 401).
+   */
+  private async getAccessToken(forceRefresh = false): Promise<string> {
+    if (!forceRefresh && this.isTokenFresh()) {
+      return this.accessToken as string;
     }
 
     const { data } = await firstValueFrom(
-      this.httpService.post<{ value: { access_token: string } }>(
+      this.httpService.post<FirstCheckoutAuthResponse>(
         `${this.apiUrl}/identityserver/api/v2/Authenticate/token`,
         new URLSearchParams({
           client_Id: this.clientId,
@@ -123,13 +209,42 @@ export class FirstCheckoutClient {
       ),
     );
 
-    const token = data?.value?.access_token;
+    const token = data?.value?.access_token ?? data?.access_token;
     if (!token) {
       throw new Error('FirstCheckout access token was empty');
     }
+
+    // Cache only as long as the provider actually granted — never longer than
+    // the documented 30-minute expiry, regardless of what it claims.
+    const expiresInSec = Number(data?.value?.expires_in ?? data?.expires_in);
+    const ttlMs =
+      Number.isFinite(expiresInSec) && expiresInSec > 0
+        ? Math.min(expiresInSec * 1000, FirstCheckoutClient.TOKEN_MAX_TTL_MS)
+        : FirstCheckoutClient.TOKEN_FALLBACK_TTL_MS;
+
     this.accessToken = token;
     this.accessTokenAt = Date.now();
+    this.accessTokenTtlMs = ttlMs;
     return token;
+  }
+
+  /**
+   * Run an authenticated request, and if the gateway rejects the token with a
+   * 401, force-refresh the token and retry exactly once. Without this a token
+   * that slips past the cache window would break payment flows until the cache
+   * naturally expired.
+   */
+  private async withAccessToken<T>(
+    request: (token: string) => Promise<T>,
+  ): Promise<T> {
+    const token = await this.getAccessToken();
+    try {
+      return await request(token);
+    } catch (err) {
+      if (!isAuthRejection(err)) throw err;
+      const refreshed = await this.getAccessToken(true);
+      return request(refreshed);
+    }
   }
 
   private stubAccount(seed: string): string {
@@ -144,34 +259,35 @@ export class FirstCheckoutClient {
     name?: string;
     purpose?: string;
   }): Promise<FirstCheckoutTxResult> {
-    if (this.isStub) {
+    if (this.shouldUseStub()) {
       this.logger.warn('FirstCheckout not configured, using stub transaction');
       return {
         accessCode: `TX-${params.reference.slice(0, 26).toUpperCase()}`,
       };
     }
 
-    const token = await this.getAccessToken();
-    const { data } = await firstValueFrom(
-      this.httpService.post<{
-        status: string;
-        data?: { accessCode?: string };
-      }>(
-        `${this.apiUrl}/apigateway/api/v1/transactions/initiate`,
-        {
-          Amount: params.amount,
-          PayerEmail: params.email,
-          PayerName: params.name || '',
-          Purpose: params.purpose || 'savings',
-          PublicKey: this.publicKey,
-          PaymentReference: params.reference,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    const { data } = await this.withAccessToken((token) =>
+      firstValueFrom(
+        this.httpService.post<{
+          status: string;
+          data?: { accessCode?: string };
+        }>(
+          `${this.apiUrl}/apigateway/api/v1/transactions/initiate`,
+          {
+            Amount: params.amount,
+            PayerEmail: params.email,
+            PayerName: params.name || '',
+            Purpose: params.purpose || 'savings',
+            PublicKey: this.publicKey,
+            PaymentReference: params.reference,
           },
-        },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
       ),
     );
 
@@ -186,7 +302,7 @@ export class FirstCheckoutClient {
     transactionReference: string;
     typeId?: number;
   }): Promise<VirtualAccountDraft> {
-    if (this.isStub) {
+    if (this.shouldUseStub()) {
       this.logger.warn(
         'FirstCheckout not configured, using stub virtual account',
       );
@@ -197,30 +313,33 @@ export class FirstCheckoutClient {
       };
     }
 
-    const token = await this.getAccessToken();
-    const { data } = await firstValueFrom(
-      this.httpService.post<{
-        status: string;
-        data?: {
-          accountDetails?: {
-            accountName?: string;
-            virtualAccountNo?: string;
-            virtualAccountName?: string;
+    const { data } = await this.withAccessToken((token) =>
+      firstValueFrom(
+        this.httpService.post<{
+          status?: string;
+          data?: {
+            accountDetails?: {
+              accountName?: string;
+              virtualAccountNo?: string;
+              virtualAccountName?: string;
+            };
+            token?: string;
+            success?: boolean;
+            message?: string;
           };
-          token?: string;
-        };
-      }>(
-        `${this.apiUrl}/apigateway/api/v1/paywithtransfer/initiate`,
-        {
-          TransactionReference: params.transactionReference,
-          TypeId: params.typeId ?? 2,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+        }>(
+          `${this.apiUrl}/apigateway/api/v1/paywithtransfer/initiate`,
+          {
+            TransactionReference: params.transactionReference,
+            TypeId: params.typeId ?? 2,
           },
-        },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
       ),
     );
 
@@ -228,11 +347,19 @@ export class FirstCheckoutClient {
     const accountNumber = details?.virtualAccountNo;
     if (!accountNumber) {
       throw new Error(
-        `FirstCheckout pay-with-transfer failed: ${data?.status}`,
+        `FirstCheckout pay-with-transfer failed: ${
+          data?.data?.message ?? data?.status ?? 'unknown error'
+        }`,
       );
     }
 
-    const bankName = (details?.virtualAccountName || '').split('/')[0].trim();
+    // Sandbox VA names look like "FIRSTCHEKOUT-SANDBOX EMEKA IKE 9288" (no
+    // bank prefix); live ones look like "BANK NAME/Account Holder". Only split
+    // when a slash is present so we never expose the holder as the bank.
+    const rawName = details?.virtualAccountName || '';
+    const bankName = rawName.includes('/')
+      ? (rawName.split('/')[0] || '').trim()
+      : '';
 
     return {
       accountNumber,
@@ -247,31 +374,34 @@ export class FirstCheckoutClient {
     status?: string;
     amount?: number;
   }> {
-    if (this.isStub) {
+    if (this.shouldUseStub()) {
       this.logger.warn(
         'FirstCheckout not configured — queryTransaction blocked (gateway not live)',
       );
       return { transactionReference: reference, status: 'BLOCKED', amount: 0 };
     }
 
-    const { data } = await firstValueFrom(
-      this.httpService.get<{
-        status: string;
-        data?: {
-          transactionReference?: string;
-          status?: string;
-          amount?: number;
-        };
-      }>(
-        `${this.apiUrl}/apigateway/api/v1/transactions/referenceId/${encodeURIComponent(
-          reference,
-        )}`,
-        {
-          headers: {
-            'Merchant-Id': this.merchantId,
-            'Secret-Key': this.secretKey,
+    const { data } = await this.withAccessToken((token) =>
+      firstValueFrom(
+        this.httpService.get<{
+          status: string;
+          data?: {
+            transactionReference?: string;
+            status?: string;
+            amount?: number;
+          };
+        }>(
+          `${this.apiUrl}/apigateway/api/v1/transactions/referenceId/${encodeURIComponent(
+            reference,
+          )}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Merchant-Id': this.merchantId,
+              'Secret-Key': this.secretKey,
+            },
           },
-        },
+        ),
       ),
     );
 
@@ -282,50 +412,69 @@ export class FirstCheckoutClient {
     reference: string;
     accountNumber: string;
     token?: string;
-  }): Promise<{ paymentStatus?: string; amount?: number; message?: string }> {
-    if (this.isStub) {
+  }): Promise<ConfirmTransferResult> {
+    if (this.shouldUseStub()) {
       this.logger.warn(
         'FirstCheckout not configured — confirm blocked (gateway not live)',
       );
       return {
+        confirmed: false,
         paymentStatus: 'BLOCKED',
         amount: 0,
         message: 'Stub confirm-blocked (gateway not live)',
       };
     }
 
-    const token = await this.getAccessToken();
-    const { data } = await firstValueFrom(
-      this.httpService.post<{
-        status: string;
-        data?: {
-          transactions?: Array<{
-            paymentStatus?: string;
-            amount?: number;
+    const { data } = await this.withAccessToken((token) =>
+      firstValueFrom(
+        this.httpService.post<{
+          status?: string;
+          data?: {
             message?: string;
-          }>;
-        };
-      }>(
-        `${this.apiUrl}/apigateway/api/v1/paywithtransfer/confirm-payment`,
-        {
-          UniqueReference: params.reference,
-          VirtualAccountNo: params.accountNumber,
-          VirtualAccountToken: params.token,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            transactions?: Array<{
+              paymentStatus?: string;
+              approvalStatus?: string;
+              amount?: number;
+              message?: string;
+            }>;
+          };
+        }>(
+          `${this.apiUrl}/apigateway/api/v1/paywithtransfer/confirm-payment`,
+          {
+            UniqueReference: params.reference,
+            VirtualAccountNo: params.accountNumber,
+            VirtualAccountToken: params.token,
           },
-        },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
       ),
     );
 
+    // Docs success body: { data: { message: "Successful",
+    // transactions: [{ approvalStatus: "APPROVED" }] }, status: "OK" }.
+    // Error bodies: { status: "error", message: "..." } with no approval.
     const tx = data?.data?.transactions?.[0];
+    const message = data?.data?.message ?? data?.status;
+    const messageLc = (
+      typeof message === 'string' ? message : ''
+    ).toLowerCase();
+    const paymentStatus = tx?.paymentStatus ?? tx?.approvalStatus;
+    const outerOk = data?.status === 'OK';
+    const approved =
+      (tx?.paymentStatus ?? '').toUpperCase() === 'SUCCESSFUL' ||
+      (tx?.approvalStatus ?? '').toUpperCase() === 'APPROVED' ||
+      (outerOk && messageLc.includes('successful'));
+
     return {
-      paymentStatus: tx?.paymentStatus,
+      confirmed: approved,
+      paymentStatus,
       amount: tx?.amount,
-      message: tx?.message || data?.status,
+      message,
     };
   }
 }

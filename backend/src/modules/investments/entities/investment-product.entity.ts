@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum InvestmentType {
   SHARES = 'shares',
@@ -28,7 +34,10 @@ export enum ProductStatus {
   ARCHIVED = 'archived',
 }
 
-export const VALID_LIFECYCLE_TRANSITIONS: Record<ProductStatus, ProductStatus[]> = {
+export const VALID_LIFECYCLE_TRANSITIONS: Record<
+  ProductStatus,
+  ProductStatus[]
+> = {
   [ProductStatus.DRAFT]: [ProductStatus.PENDING_REVIEW, ProductStatus.ARCHIVED],
   [ProductStatus.PENDING_REVIEW]: [ProductStatus.ACTIVE, ProductStatus.DRAFT],
   [ProductStatus.ACTIVE]: [ProductStatus.SUSPENDED, ProductStatus.CLOSED],
@@ -54,22 +63,52 @@ export class InvestmentProduct {
   @Column({ type: 'enum', enum: RiskTier, default: RiskTier.MEDIUM })
   riskTier: RiskTier;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'minimum_investment', default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'minimum_investment',
+    default: 0,
+  })
   minimumInvestment: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'maximum_investment', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'maximum_investment',
+    nullable: true,
+  })
   maximumInvestment: number | null;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'total_capacity', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'total_capacity',
+    nullable: true,
+  })
   totalCapacity: number | null;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'current_capacity', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'current_capacity',
+    nullable: true,
+  })
   currentCapacity: number | null;
 
   @Column({ type: 'jsonb', name: 'per_investor_caps', nullable: true })
   perInvestorCaps: { min?: number; max?: number } | null;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'unit_price', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'unit_price',
+    nullable: true,
+  })
   unitPrice: number | null;
 
   @Column({ type: 'int', name: 'lock_in_days', default: 0 })
@@ -78,16 +117,32 @@ export class InvestmentProduct {
   @Column({ type: 'int', name: 'tenor_days', nullable: true })
   tenorDays: number | null;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, name: 'management_fee_rate', default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    name: 'management_fee_rate',
+    default: 0,
+  })
   managementFeeRate: number;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, name: 'expected_return_rate', default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    name: 'expected_return_rate',
+    default: 0,
+  })
   expectedReturnRate: number;
 
   @Column({ type: 'text', name: 'profit_sharing_rules', nullable: true })
   profitSharingRules: string | null;
 
-  @Column({ type: 'enum', enum: DistributionFrequency, default: DistributionFrequency.MATURITY })
+  @Column({
+    type: 'enum',
+    enum: DistributionFrequency,
+    default: DistributionFrequency.MATURITY,
+  })
   distributionFrequency: DistributionFrequency;
 
   @Column({ type: 'int', name: 'total_units', nullable: true })

@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { Loan } from './loan.entity';
 
 export enum RepaymentStatus {
@@ -32,7 +40,11 @@ export class LoanRepayment {
   @Column({ type: 'varchar', name: 'payment_reference', nullable: true })
   paymentReference: string;
 
-  @Column({ type: 'enum', enum: RepaymentStatus, default: RepaymentStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: RepaymentStatus,
+    default: RepaymentStatus.PENDING,
+  })
   status: RepaymentStatus;
 
   @CreateDateColumn({ name: 'created_at' })

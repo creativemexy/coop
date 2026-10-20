@@ -23,6 +23,13 @@ export class KorapayClient {
     private readonly httpService: HttpService,
   ) {
     this.secretKey = configService.get<string>('KORAPAY_SECRET_KEY') || '';
+    if (
+      (process.env.NODE_ENV === 'production' ||
+        process.env.APP_ENV === 'production') &&
+      !this.secretKey
+    ) {
+      throw new Error('KORAPAY_SECRET_KEY must be configured in production');
+    }
     this.baseUrl = 'https://api.korapay.com/merchant';
   }
 

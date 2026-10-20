@@ -30,18 +30,30 @@ export class EmailService {
     }
   }
 
-  async send(options: { to: string; subject: string; text?: string; html?: string }): Promise<void> {
+  async send(options: {
+    to: string;
+    subject: string;
+    text?: string;
+    html?: string;
+  }): Promise<void> {
     if (!this.configured || !this.transporter) {
-      this.logger.log(`[EMAIL LOG] To: ${maskEmail(options.to)} | Subject: ${options.subject}`);
+      this.logger.log(
+        `[EMAIL LOG] To: ${maskEmail(options.to)} | Subject: ${options.subject}`,
+      );
       return;
     }
 
     try {
-      const from = this.configService.get<string>('smtp.from') || 'noreply@coop.com';
+      const from =
+        this.configService.get<string>('smtp.from') || 'noreply@coop.com';
       await this.transporter.sendMail({ from, ...options });
-      this.logger.log(`Email sent to ${maskEmail(options.to)}: ${options.subject}`);
+      this.logger.log(
+        `Email sent to ${maskEmail(options.to)}: ${options.subject}`,
+      );
     } catch (err) {
-      this.logger.error(`Failed to send email to ${maskEmail(options.to)}: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to send email to ${maskEmail(options.to)}: ${(err as Error).message}`,
+      );
     }
   }
 }

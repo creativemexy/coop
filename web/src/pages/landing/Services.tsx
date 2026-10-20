@@ -1,5 +1,6 @@
 import { ArrowRight, Building2, PiggyBank, TrendingUp, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../../lib/seo'
 
 const serviceCategories = [
   {
@@ -89,6 +90,13 @@ const serviceCategories = [
 ]
 
 export default function Services() {
+  usePageMeta({
+    title: 'Savings, Loans, Investments & BNPL | FENAC COOP',
+    description:
+      'Explore FENAC COOP services: secure savings plans, low-interest loans, cooperative-backed investments and Buy Now Pay Later for associations, clubs and NGOs.',
+    path: '/services',
+  })
+
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
       <section className="relative isolate overflow-hidden bg-[#20120E] text-[#FFF9EF]">

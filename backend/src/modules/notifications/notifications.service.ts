@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { InAppNotification, NotificationType } from './entities/in-app-notification.entity';
+import {
+  InAppNotification,
+  NotificationType,
+} from './entities/in-app-notification.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
 
@@ -21,7 +24,11 @@ export class NotificationsService {
       take: limit,
       skip: offset,
     });
-    return { data, total, unread: await this.repo.count({ where: { userId, isRead: false } }) };
+    return {
+      data,
+      total,
+      unread: await this.repo.count({ where: { userId, isRead: false } }),
+    };
   }
 
   async markAsRead(id: string, userId: string) {
@@ -32,8 +39,17 @@ export class NotificationsService {
     await this.repo.update({ userId, isRead: false }, { isRead: true });
   }
 
-  async create(dto: { userId: string; title: string; message?: string; type?: NotificationType | string; link?: string }) {
-    const notification = this.repo.create({ ...dto, type: (dto.type as NotificationType) || NotificationType.INFO });
+  async create(dto: {
+    userId: string;
+    title: string;
+    message?: string;
+    type?: NotificationType | string;
+    link?: string;
+  }) {
+    const notification = this.repo.create({
+      ...dto,
+      type: (dto.type as NotificationType) || NotificationType.INFO,
+    });
     return this.repo.save(notification);
   }
 
@@ -46,8 +62,15 @@ export class NotificationsService {
   }
 
   /** Broadcast an in-app message to all app users (individual members). */
-  async broadcast(dto: { title: string; message?: string; type?: NotificationType; link?: string }) {
-    const users = await this.userRepo.find({ where: { role: In(Role.INDIVIDUAL ? [Role.INDIVIDUAL] : []) } });
+  async broadcast(dto: {
+    title: string;
+    message?: string;
+    type?: NotificationType;
+    link?: string;
+  }) {
+    const users = await this.userRepo.find({
+      where: { role: In(Role.INDIVIDUAL ? [Role.INDIVIDUAL] : []) },
+    });
     if (users.length === 0) return { sent: 0 };
     const notifications = users.map((u) =>
       this.repo.create({

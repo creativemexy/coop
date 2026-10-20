@@ -28,12 +28,15 @@ export class RealtimeService {
     return sub;
   }
 
-  publish(ticketId: string, event: Omit<TicketEvent, 'ticketId' | 'createdAt'>) {
+  publish(
+    ticketId: string,
+    event: Omit<TicketEvent, 'ticketId' | 'createdAt'>,
+  ) {
     const full = {
       ...event,
       ticketId,
       createdAt: new Date().toISOString(),
-    } as TicketEvent;
+    };
     this.subjectFor(ticketId).next(full);
     this.broadcast.next(full);
   }

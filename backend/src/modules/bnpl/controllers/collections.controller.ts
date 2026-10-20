@@ -9,7 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CollectionsService } from '../services/collections.service';
-import { PriorityLevel, PriorityEntityType } from '../entities/collection-priority.entity';
+import {
+  PriorityLevel,
+  PriorityEntityType,
+} from '../entities/collection-priority.entity';
 import { ExceptionCaseStatus } from '../entities/exception-case.entity';
 import { PlaybookTrigger } from '../entities/collection-playbook.entity';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -44,10 +47,22 @@ export class CollectionsController {
 
   @Post('priority')
   async assignPriority(
-    @Body() dto: { entityType: PriorityEntityType; entityId: string; priority: PriorityLevel; reason: string },
+    @Body()
+    dto: {
+      entityType: PriorityEntityType;
+      entityId: string;
+      priority: PriorityLevel;
+      reason: string;
+    },
     @CurrentUser('sub') userId: string,
   ) {
-    return this.service.assignPriority(dto.entityType, dto.entityId, dto.priority, dto.reason, userId);
+    return this.service.assignPriority(
+      dto.entityType,
+      dto.entityId,
+      dto.priority,
+      dto.reason,
+      userId,
+    );
   }
 
   @Get('priorities')
@@ -62,7 +77,13 @@ export class CollectionsController {
 
   @Post('exception-cases')
   async createExceptionCase(
-    @Body() dto: { subscriptionId: string; reasonId: string; description?: string; assignedTo?: string },
+    @Body()
+    dto: {
+      subscriptionId: string;
+      reasonId: string;
+      description?: string;
+      assignedTo?: string;
+    },
     @CurrentUser('sub') userId: string,
   ) {
     return this.service.createExceptionCase({ ...dto, createdBy: userId });

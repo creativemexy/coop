@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
-import { RiskFlag, RiskFlagStatus, RiskFlagEntityType } from '../entities/risk-flag.entity';
+import {
+  RiskFlag,
+  RiskFlagStatus,
+  RiskFlagEntityType,
+} from '../entities/risk-flag.entity';
 import { ExceptionReason } from '../entities/exception-reason.entity';
 import { AuditLog } from '../entities/audit-log.entity';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
@@ -59,8 +63,12 @@ export class ComplianceService {
     entityType?: string;
   }): Promise<any[]> {
     const qb = this.flagRepo.createQueryBuilder('f');
-    if (filters?.status) qb.andWhere('f.status = :status', { status: filters.status });
-    if (filters?.entityType) qb.andWhere('f.entity_type = :entityType', { entityType: filters.entityType });
+    if (filters?.status)
+      qb.andWhere('f.status = :status', { status: filters.status });
+    if (filters?.entityType)
+      qb.andWhere('f.entity_type = :entityType', {
+        entityType: filters.entityType,
+      });
     qb.orderBy('f.created_at', 'DESC');
     const flags = await qb.getMany();
 
@@ -74,13 +82,22 @@ export class ComplianceService {
             relations: { plan: { catalogItem: true } },
           });
           entityName = sub?.plan?.catalogItem?.name || null;
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       } else if (flag.entityType === RiskFlagEntityType.USER) {
         try {
           const user = await this.usersService.findById(flag.entityId);
-          const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
-          entityName = user.email ? `${maskName(user.firstName)} ${maskName(user.lastName)}`.trim() || maskEmail(user.email) : name;
-        } catch { /* ignore */ }
+          const name =
+            `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+            user.email;
+          entityName = user.email
+            ? `${maskName(user.firstName)} ${maskName(user.lastName)}`.trim() ||
+              maskEmail(user.email)
+            : name;
+        } catch {
+          /* ignore */
+        }
       }
       enriched.push({ ...flag, entityName });
     }
@@ -89,7 +106,11 @@ export class ComplianceService {
 
   async resolveFlag(
     id: string,
-    dto: { status: RiskFlagStatus; resolutionNote?: string; resolvedBy: string },
+    dto: {
+      status: RiskFlagStatus;
+      resolutionNote?: string;
+      resolvedBy: string;
+    },
   ): Promise<RiskFlag> {
     const flag = await this.flagRepo.findOne({ where: { id } });
     if (!flag) throw new NotFoundException('Flag not found');
@@ -226,116 +247,140 @@ export class ComplianceService {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const nowISO = now.toISOString();
 
-    const [
-      activeSubAgg,
-      defaultedSubAgg,
-      instAgg,
-      paidMtdAgg,
-    ] = await Promise.all([
-      this.subRepo
-        .createQueryBuilder('s')
-        .select('COUNT(*)', 'count')
-        .addSelect('COALESCE(SUM(s.total_amount), 0)', 'principal')
-        .addSelect('COALESCE(SUM(s.total_amount - s.amount_paid), 0)', 'outstanding')
-        .where('s.status = :status', { status: SubscriptionStatus.ACTIVE_REPAYMENT })
-        .getRawOne(),
-      this.subRepo
-        .createQueryBuilder('s')
-        .select('COUNT(*)', 'count')
-        .addSelect('COALESCE(SUM(s.total_amount), 0)', 'amount')
-        .where('s.status = :status', { status: SubscriptionStatus.DEFAULTED })
-        .getRawOne(),
-      this.instRepo
-        .createQueryBuilder('i')
-        .select('COUNT(*)', 'count')
-        .addSelect('COALESCE(SUM(i.amount), 0)', 'amount')
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date = :today THEN i.amount ELSE 0 END), 0)`,
-          'dueTodayAmount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date = :today THEN 1 ELSE 0 END), 0)`,
-          'dueTodayCount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in7d THEN i.amount ELSE 0 END), 0)`,
-          'due7dAmount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in7d THEN 1 ELSE 0 END), 0)`,
-          'due7dCount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in30d THEN i.amount ELSE 0 END), 0)`,
-          'due30dAmount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in30d THEN 1 ELSE 0 END), 0)`,
-          'due30dCount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :now THEN i.amount ELSE 0 END), 0)`,
-          'delinquentAmount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :now THEN 1 ELSE 0 END), 0)`,
-          'delinquentCount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :now AND i.due_date >= :b1_30 THEN i.amount ELSE 0 END), 0)`,
-          'delinquent1_30Amount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :now AND i.due_date >= :b1_30 THEN 1 ELSE 0 END), 0)`,
-          'delinquent1_30Count',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :b1_30 AND i.due_date >= :b31_60 THEN i.amount ELSE 0 END), 0)`,
-          'delinquent31_60Amount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :b1_30 AND i.due_date >= :b31_60 THEN 1 ELSE 0 END), 0)`,
-          'delinquent31_60Count',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :b31_60 AND i.due_date >= :b61_90 THEN i.amount ELSE 0 END), 0)`,
-          'delinquent61_90Amount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :b31_60 AND i.due_date >= :b61_90 THEN 1 ELSE 0 END), 0)`,
-          'delinquent61_90Count',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :b61_90 THEN i.amount ELSE 0 END), 0)`,
-          'delinquent90plusAmount',
-        )
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN i.due_date < :b61_90 THEN 1 ELSE 0 END), 0)`,
-          'delinquent90plusCount',
-        )
-        .where('i.status = :status', { status: InstallmentStatus.PENDING })
-        .setParameters({
-          status: InstallmentStatus.PENDING,
-          today: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-          now: nowISO,
-          in7d: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7),
-          in30d: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30),
-          b1_30: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30),
-          b31_60: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60),
-          b61_90: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90),
-        })
-        .getRawOne(),
-      this.instRepo
-        .createQueryBuilder('i')
-        .select('COUNT(*)', 'count')
-        .addSelect('COALESCE(SUM(i.amount), 0)', 'amount')
-        .where('i.status = :status AND i.paid_at >= :from AND i.paid_at <= :to', {
-          status: InstallmentStatus.PAID,
-          from: startOfMonth,
-          to: endOfMonth,
-        })
-        .getRawOne(),
-    ]);
+    const [activeSubAgg, defaultedSubAgg, instAgg, paidMtdAgg] =
+      await Promise.all([
+        this.subRepo
+          .createQueryBuilder('s')
+          .select('COUNT(*)', 'count')
+          .addSelect('COALESCE(SUM(s.total_amount), 0)', 'principal')
+          .addSelect(
+            'COALESCE(SUM(s.total_amount - s.amount_paid), 0)',
+            'outstanding',
+          )
+          .where('s.status = :status', {
+            status: SubscriptionStatus.ACTIVE_REPAYMENT,
+          })
+          .getRawOne(),
+        this.subRepo
+          .createQueryBuilder('s')
+          .select('COUNT(*)', 'count')
+          .addSelect('COALESCE(SUM(s.total_amount), 0)', 'amount')
+          .where('s.status = :status', { status: SubscriptionStatus.DEFAULTED })
+          .getRawOne(),
+        this.instRepo
+          .createQueryBuilder('i')
+          .select('COUNT(*)', 'count')
+          .addSelect('COALESCE(SUM(i.amount), 0)', 'amount')
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date = :today THEN i.amount ELSE 0 END), 0)`,
+            'dueTodayAmount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date = :today THEN 1 ELSE 0 END), 0)`,
+            'dueTodayCount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in7d THEN i.amount ELSE 0 END), 0)`,
+            'due7dAmount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in7d THEN 1 ELSE 0 END), 0)`,
+            'due7dCount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in30d THEN i.amount ELSE 0 END), 0)`,
+            'due30dAmount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date > :now AND i.due_date <= :in30d THEN 1 ELSE 0 END), 0)`,
+            'due30dCount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :now THEN i.amount ELSE 0 END), 0)`,
+            'delinquentAmount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :now THEN 1 ELSE 0 END), 0)`,
+            'delinquentCount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :now AND i.due_date >= :b1_30 THEN i.amount ELSE 0 END), 0)`,
+            'delinquent1_30Amount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :now AND i.due_date >= :b1_30 THEN 1 ELSE 0 END), 0)`,
+            'delinquent1_30Count',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :b1_30 AND i.due_date >= :b31_60 THEN i.amount ELSE 0 END), 0)`,
+            'delinquent31_60Amount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :b1_30 AND i.due_date >= :b31_60 THEN 1 ELSE 0 END), 0)`,
+            'delinquent31_60Count',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :b31_60 AND i.due_date >= :b61_90 THEN i.amount ELSE 0 END), 0)`,
+            'delinquent61_90Amount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :b31_60 AND i.due_date >= :b61_90 THEN 1 ELSE 0 END), 0)`,
+            'delinquent61_90Count',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :b61_90 THEN i.amount ELSE 0 END), 0)`,
+            'delinquent90plusAmount',
+          )
+          .addSelect(
+            `COALESCE(SUM(CASE WHEN i.due_date < :b61_90 THEN 1 ELSE 0 END), 0)`,
+            'delinquent90plusCount',
+          )
+          .where('i.status = :status', { status: InstallmentStatus.PENDING })
+          .setParameters({
+            status: InstallmentStatus.PENDING,
+            today: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            now: nowISO,
+            in7d: new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() + 7,
+            ),
+            in30d: new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() + 30,
+            ),
+            b1_30: new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() - 30,
+            ),
+            b31_60: new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() - 60,
+            ),
+            b61_90: new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() - 90,
+            ),
+          })
+          .getRawOne(),
+        this.instRepo
+          .createQueryBuilder('i')
+          .select('COUNT(*)', 'count')
+          .addSelect('COALESCE(SUM(i.amount), 0)', 'amount')
+          .where(
+            'i.status = :status AND i.paid_at >= :from AND i.paid_at <= :to',
+            {
+              status: InstallmentStatus.PAID,
+              from: startOfMonth,
+              to: endOfMonth,
+            },
+          )
+          .getRawOne(),
+      ]);
 
     const activeSubs = Number(activeSubAgg?.count ?? 0);
     const totalActivePrincipal = Number(activeSubAgg?.principal ?? 0);
@@ -344,7 +389,10 @@ export class ComplianceService {
     const defaultedAmount = Number(defaultedSubAgg?.amount ?? 0);
 
     const totalDelinquentAmount = Number(instAgg?.delinquentAmount ?? 0);
-    const delinquencyRate = totalActivePrincipal > 0 ? totalDelinquentAmount / totalActivePrincipal : 0;
+    const delinquencyRate =
+      totalActivePrincipal > 0
+        ? totalDelinquentAmount / totalActivePrincipal
+        : 0;
     const paidMtdAmount = Number(paidMtdAgg?.amount ?? 0);
 
     return {
@@ -354,16 +402,37 @@ export class ComplianceService {
       defaultedAmount,
       defaultedSubscriptions: defaultedSubs,
       installmentsDue: {
-        today: { count: Number(instAgg?.dueTodayCount ?? 0), amount: Number(instAgg?.dueTodayAmount ?? 0) },
-        next7Days: { count: Number(instAgg?.due7dCount ?? 0), amount: Number(instAgg?.due7dAmount ?? 0) },
-        next30Days: { count: Number(instAgg?.due30dCount ?? 0), amount: Number(instAgg?.due30dAmount ?? 0) },
+        today: {
+          count: Number(instAgg?.dueTodayCount ?? 0),
+          amount: Number(instAgg?.dueTodayAmount ?? 0),
+        },
+        next7Days: {
+          count: Number(instAgg?.due7dCount ?? 0),
+          amount: Number(instAgg?.due7dAmount ?? 0),
+        },
+        next30Days: {
+          count: Number(instAgg?.due30dCount ?? 0),
+          amount: Number(instAgg?.due30dAmount ?? 0),
+        },
       },
       paidMtd: { count: Number(paidMtdAgg?.count ?? 0), amount: paidMtdAmount },
       delinquency: {
-        '1-30days': { count: Number(instAgg?.delinquent1_30Count ?? 0), amount: Number(instAgg?.delinquent1_30Amount ?? 0) },
-        '31-60days': { count: Number(instAgg?.delinquent31_60Count ?? 0), amount: Number(instAgg?.delinquent31_60Amount ?? 0) },
-        '61-90days': { count: Number(instAgg?.delinquent61_90Count ?? 0), amount: Number(instAgg?.delinquent61_90Amount ?? 0) },
-        '90plus': { count: Number(instAgg?.delinquent90plusCount ?? 0), amount: Number(instAgg?.delinquent90plusAmount ?? 0) },
+        '1-30days': {
+          count: Number(instAgg?.delinquent1_30Count ?? 0),
+          amount: Number(instAgg?.delinquent1_30Amount ?? 0),
+        },
+        '31-60days': {
+          count: Number(instAgg?.delinquent31_60Count ?? 0),
+          amount: Number(instAgg?.delinquent31_60Amount ?? 0),
+        },
+        '61-90days': {
+          count: Number(instAgg?.delinquent61_90Count ?? 0),
+          amount: Number(instAgg?.delinquent61_90Amount ?? 0),
+        },
+        '90plus': {
+          count: Number(instAgg?.delinquent90plusCount ?? 0),
+          amount: Number(instAgg?.delinquent90plusAmount ?? 0),
+        },
       },
       delinquencyRate,
       totalDelinquentAmount,
@@ -371,11 +440,7 @@ export class ComplianceService {
   }
 
   async getRevenueSummary() {
-    const [
-      paidAgg,
-      pendingAgg,
-      settledAgg,
-    ] = await Promise.all([
+    const [paidAgg, pendingAgg, settledAgg] = await Promise.all([
       this.instRepo
         .createQueryBuilder('i')
         .select('COUNT(*)', 'count')
@@ -455,13 +520,30 @@ export class ComplianceService {
     category?: string;
   }): Promise<AuditLog[]> {
     const qb = this.auditRepo.createQueryBuilder('a');
-    if (filters?.entityType) qb.andWhere('a.entity_type = :entityType', { entityType: filters.entityType });
-    if (filters?.entityId) qb.andWhere('a.entity_id = :entityId', { entityId: filters.entityId });
-    if (filters?.action) qb.andWhere('a.action = :action', { action: filters.action });
+    if (filters?.entityType)
+      qb.andWhere('a.entity_type = :entityType', {
+        entityType: filters.entityType,
+      });
+    if (filters?.entityId)
+      qb.andWhere('a.entity_id = :entityId', { entityId: filters.entityId });
+    if (filters?.action)
+      qb.andWhere('a.action = :action', { action: filters.action });
     if (filters?.category) {
       const categoryMap: Record<string, string[]> = {
-        product: ['plan', 'catalog_item', 'plan_config', 'catalog', 'bnpl_plan', 'bnpl_catalog_item'],
-        order: ['subscription', 'order', 'bnpl_subscription', 'approval_request'],
+        product: [
+          'plan',
+          'catalog_item',
+          'plan_config',
+          'catalog',
+          'bnpl_plan',
+          'bnpl_catalog_item',
+        ],
+        order: [
+          'subscription',
+          'order',
+          'bnpl_subscription',
+          'approval_request',
+        ],
         repayment: ['installment', 'payment', 'bnpl_installment', 'repayment'],
       };
       const entityTypes = categoryMap[filters.category] || [];
@@ -512,7 +594,10 @@ export class ComplianceService {
       .select("to_char(s.created_at, 'YYYY-MM')", 'period')
       .addSelect('COUNT(DISTINCT s.id)', 'subscriptionCount')
       .addSelect('COALESCE(SUM(s.total_amount), 0)', 'totalPrincipal')
-      .addSelect('COALESCE(SUM(s.total_amount - s.amount_paid), 0)', 'outstandingPrincipal')
+      .addSelect(
+        'COALESCE(SUM(s.total_amount - s.amount_paid), 0)',
+        'outstandingPrincipal',
+      )
       .addSelect(
         `COALESCE(SUM(CASE WHEN i.id IS NOT NULL AND i.status != :paid THEN i.amount ELSE 0 END), 0)`,
         'delinquentAmount',
@@ -557,9 +642,21 @@ export class ComplianceService {
       .setParameters({
         paid: InstallmentStatus.PAID,
         now: nowISO,
-        b1_30: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30).toISOString(),
-        b31_60: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60).toISOString(),
-        b61_90: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90).toISOString(),
+        b1_30: new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 30,
+        ).toISOString(),
+        b31_60: new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 60,
+        ).toISOString(),
+        b61_90: new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 90,
+        ).toISOString(),
       })
       .groupBy("to_char(s.created_at, 'YYYY-MM')")
       .getRawMany();
@@ -575,12 +672,25 @@ export class ComplianceService {
           outstandingPrincipal: Number(r.outstandingPrincipal ?? 0),
           delinquentCount: Number(r.delinquentCount ?? 0),
           delinquentAmount,
-          delinquencyRate: totalPrincipal > 0 ? delinquentAmount / totalPrincipal : 0,
+          delinquencyRate:
+            totalPrincipal > 0 ? delinquentAmount / totalPrincipal : 0,
           bucketBreakdown: {
-            '1-30days': { count: Number(r.b1_30Count ?? 0), amount: Number(r.b1_30Amount ?? 0) },
-            '31-60days': { count: Number(r.b31_60Count ?? 0), amount: Number(r.b31_60Amount ?? 0) },
-            '61-90days': { count: Number(r.b61_90Count ?? 0), amount: Number(r.b61_90Amount ?? 0) },
-            '90plus': { count: Number(r.b90plusCount ?? 0), amount: Number(r.b90plusAmount ?? 0) },
+            '1-30days': {
+              count: Number(r.b1_30Count ?? 0),
+              amount: Number(r.b1_30Amount ?? 0),
+            },
+            '31-60days': {
+              count: Number(r.b31_60Count ?? 0),
+              amount: Number(r.b31_60Amount ?? 0),
+            },
+            '61-90days': {
+              count: Number(r.b61_90Count ?? 0),
+              amount: Number(r.b61_90Amount ?? 0),
+            },
+            '90plus': {
+              count: Number(r.b90plusCount ?? 0),
+              amount: Number(r.b90plusAmount ?? 0),
+            },
           },
         };
       })
@@ -604,13 +714,16 @@ export class ComplianceService {
 
       const subAgg = await this.subRepo
         .createQueryBuilder('s')
-        .select('COALESCE(SUM(s.total_amount - s.amount_paid), 0)', 'outstanding')
+        .select(
+          'COALESCE(SUM(s.total_amount - s.amount_paid), 0)',
+          'outstanding',
+        )
         .addSelect('COALESCE(SUM(s.total_amount), 0)', 'principal')
         .where('s.created_at <= :monthEnd', { monthEnd })
-        .andWhere(
-          '(s.status = :active OR s.status = :settled)',
-          { active: SubscriptionStatus.ACTIVE_REPAYMENT, settled: SubscriptionStatus.SETTLED },
-        )
+        .andWhere('(s.status = :active OR s.status = :settled)', {
+          active: SubscriptionStatus.ACTIVE_REPAYMENT,
+          settled: SubscriptionStatus.SETTLED,
+        })
         .getRawOne();
 
       const totalOutstanding = Number(subAgg?.outstanding ?? 0);
@@ -629,7 +742,8 @@ export class ComplianceService {
 
       trends.push({
         month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
-        delinquencyRate: totalPrincipal > 0 ? delinquentAmount / totalPrincipal : 0,
+        delinquencyRate:
+          totalPrincipal > 0 ? delinquentAmount / totalPrincipal : 0,
         delinquentAmount,
         totalOutstanding,
       });

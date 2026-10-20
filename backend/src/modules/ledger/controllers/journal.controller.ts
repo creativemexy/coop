@@ -14,7 +14,12 @@ export class JournalController {
   constructor(private readonly service: JournalService) {}
 
   @Post()
-  @Roles(Role.ACCOUNTANT, Role.SUPER_ADMIN, Role.BNPL_MANAGER, Role.BUSINESS_MANAGER)
+  @Roles(
+    Role.ACCOUNTANT,
+    Role.SUPER_ADMIN,
+    Role.BNPL_MANAGER,
+    Role.BUSINESS_MANAGER,
+  )
   async postEntry(
     @Body()
     dto: {
@@ -32,7 +37,9 @@ export class JournalController {
     const isPlatform = PLATFORM_ROLES.includes(user.role);
     const lines = dto.lines.map((l) => ({
       ...l,
-      organizationId: isPlatform ? l.organizationId : (l.organizationId || user.organizationId),
+      organizationId: isPlatform
+        ? l.organizationId
+        : l.organizationId || user.organizationId,
     }));
     return this.service.postEntry({
       ...dto,
@@ -45,6 +52,8 @@ export class JournalController {
   @Get()
   async findEntries(@CurrentUser() user: any) {
     const isPlatform = PLATFORM_ROLES.includes(user.role);
-    return this.service.findEntries(isPlatform ? undefined : user.organizationId);
+    return this.service.findEntries(
+      isPlatform ? undefined : user.organizationId,
+    );
   }
 }

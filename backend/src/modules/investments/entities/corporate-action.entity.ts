@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum CorporateActionType {
   SPLIT = 'split',
@@ -28,16 +34,32 @@ export class CorporateAction {
   @Column({ type: 'varchar', length: 500, nullable: true })
   description: string | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'ratio_numerator', default: 1 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 4,
+    name: 'ratio_numerator',
+    default: 1,
+  })
   ratioNumerator: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'ratio_denominator', default: 1 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 4,
+    name: 'ratio_denominator',
+    default: 1,
+  })
   ratioDenominator: number;
 
   @Column({ type: 'date', name: 'effective_date' })
   effectiveDate: Date;
 
-  @Column({ type: 'enum', enum: CorporateActionStatus, default: CorporateActionStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: CorporateActionStatus,
+    default: CorporateActionStatus.PENDING,
+  })
   status: CorporateActionStatus;
 
   @Column({ type: 'jsonb', name: 'execution_result', nullable: true })

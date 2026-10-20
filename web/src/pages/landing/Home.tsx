@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom'
 import { site } from './site.config'
 import { useBranding } from '../../stores/branding.store'
 import { api } from '../../api/client'
+import { usePageMeta } from '../../lib/seo'
 
 const serviceColors = ['#C85B23', '#176B5B', '#D49728', '#7F3F2A']
 const serviceIcons = [Landmark, HandCoins, TrendingUp, ShieldCheck]
@@ -39,6 +40,13 @@ export default function Home() {
   const { branding } = useBranding()
   const [activeSlide, setActiveSlide] = useState(0)
   const [impact, setImpact] = useState<Impact | null>(null)
+
+  usePageMeta({
+    title: "Cooperative Banking for Associations & NGOs | FENAC COOP",
+    description:
+      'FENAC COOP is Nigeria\'s apex smart cooperative federation — savings, low-interest loans, investments and BNPL built for associations, clubs and NGOs.',
+    path: '/',
+  })
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -71,6 +79,8 @@ export default function Home() {
               src={item.image}
               alt={index === activeSlide ? item.alt : ''}
               aria-hidden={index !== activeSlide}
+              loading={index === activeSlide ? 'eager' : 'lazy'}
+              fetchPriority={index === activeSlide ? 'high' : 'low'}
               className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ${index === activeSlide ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}
             />
           ))}

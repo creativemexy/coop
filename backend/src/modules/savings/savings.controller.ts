@@ -30,7 +30,8 @@ export class SavingsController {
   @Roles(Role.INDIVIDUAL)
   async deposit(
     @CurrentUser('sub') userId: string,
-    @Body() dto: { amount: number; description?: string; type?: 'general' | 'goal' },
+    @Body()
+    dto: { amount: number; description?: string; type?: 'general' | 'goal' },
   ) {
     return this.service.deposit(userId, dto.amount, dto.description, dto.type);
   }
@@ -40,7 +41,8 @@ export class SavingsController {
   @Roles(Role.INDIVIDUAL)
   async withdraw(
     @CurrentUser('sub') userId: string,
-    @Body() dto: { amount: number; description?: string; type?: 'general' | 'goal' },
+    @Body()
+    dto: { amount: number; description?: string; type?: 'general' | 'goal' },
   ) {
     return this.service.withdraw(userId, dto.amount, dto.description, dto.type);
   }

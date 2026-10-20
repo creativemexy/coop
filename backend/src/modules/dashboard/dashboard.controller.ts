@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Patch, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -40,7 +49,14 @@ export class DashboardController {
   @Roles(Role.BUSINESS_MANAGER)
   businessManagerBank(
     @CurrentUser('organizationId') organizationId: string,
-    @Body() dto: { bankName?: string; accountName?: string; accountNumber?: string; sortCode?: string; bankCode?: string },
+    @Body()
+    dto: {
+      bankName?: string;
+      accountName?: string;
+      accountNumber?: string;
+      sortCode?: string;
+      bankCode?: string;
+    },
   ) {
     return this.service.updateBusinessManagerOrgBank(organizationId, dto);
   }
@@ -86,10 +102,16 @@ export class DashboardController {
 
   @Get('individual/statement/export')
   @Roles(Role.INDIVIDUAL)
-  async exportMemberStatement(@Res() res: any, @CurrentUser('sub') userId: string) {
+  async exportMemberStatement(
+    @Res() res: any,
+    @CurrentUser('sub') userId: string,
+  ) {
     const csv = await this.service.exportMemberStatementCsv(userId);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="member-statement.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="member-statement.csv"',
+    );
     res.send(csv);
   }
 
@@ -109,7 +131,14 @@ export class DashboardController {
   @Roles(Role.INDIVIDUAL)
   createMemberTicket(
     @CurrentUser('sub') userId: string,
-    @Body() dto: { subject: string; description?: string; category?: TicketCategory; relatedOrderId?: string; relatedPaymentId?: string },
+    @Body()
+    dto: {
+      subject: string;
+      description?: string;
+      category?: TicketCategory;
+      relatedOrderId?: string;
+      relatedPaymentId?: string;
+    },
   ) {
     return this.service.createMemberTicket({ ...dto, createdBy: userId });
   }

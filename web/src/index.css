@@ -119,9 +119,13 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
+    animation: none !important;
     scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
+    transition: none !important;
+  }
+
+  [class*="hover:-translate"]:hover,
+  .group:hover [class*="group-hover:scale"] {
+    transform: none !important;
   }
 }

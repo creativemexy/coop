@@ -245,7 +245,7 @@ export class SavingsService {
           (isGoal ? 'Goal savings withdrawal' : 'Savings withdrawal'),
       }),
     );
-await this.activityService.log(
+    await this.activityService.log(
       userId,
       isGoal ? 'goal_withdrawal' : 'savings_withdrawal',
       { amount, balanceAfter },

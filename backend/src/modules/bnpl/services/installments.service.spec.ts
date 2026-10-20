@@ -54,9 +54,9 @@ describe('InstallmentsService', () => {
   describe('markAsPaid', () => {
     it('should throw if installment not found', async () => {
       repo.findOne.mockResolvedValue(null);
-      await expect(
-        service.markAsPaid('invalid', 'ref-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.markAsPaid('invalid', 'ref-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should mark installment as paid', async () => {
@@ -67,7 +67,7 @@ describe('InstallmentsService', () => {
         paymentReference: 'ref-1',
       };
       repo.findOne.mockResolvedValue(mockInstallment);
-      repo.save.mockResolvedValue(paid as BnplInstallment);
+      repo.save.mockResolvedValue(paid);
 
       const result = await service.markAsPaid('inst-1', 'ref-1');
       expect(result.status).toBe(InstallmentStatus.PAID);

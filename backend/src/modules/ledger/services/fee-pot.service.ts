@@ -18,15 +18,28 @@ export class FeePotService {
     return this.feeShareService.getFeeShareLedger();
   }
 
-  async getScopedFeeSummary(ctx: { organizationId?: string; apexOrgId?: string }) {
+  async getScopedFeeSummary(ctx: {
+    organizationId?: string;
+    apexOrgId?: string;
+  }) {
     return this.feeShareService.getScopedFeeSummary(ctx);
   }
 
-  async withdrawShare(ctx: { userId: string; role: string; organizationId?: string; apexOrgId?: string }) {
+  async withdrawShare(ctx: {
+    userId: string;
+    role: string;
+    organizationId?: string;
+    apexOrgId?: string;
+  }) {
     return this.feeShareService.withdrawShare(ctx);
   }
 
-  async withdrawAdmin(dto: { accountNumber: string; bankCode: string; bankName: string; userId: string }) {
+  async withdrawAdmin(dto: {
+    accountNumber: string;
+    bankCode: string;
+    bankName: string;
+    userId: string;
+  }) {
     return this.feeShareService.withdrawAdmin(dto);
   }
 

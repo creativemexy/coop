@@ -28,7 +28,12 @@ export class AuditLog {
   @Column({ type: 'uuid', name: 'performed_by' })
   performedBy: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'performer_name', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'performer_name',
+    nullable: true,
+  })
   performerName: string;
 
   @Column({ type: 'varchar', length: 45, nullable: true })

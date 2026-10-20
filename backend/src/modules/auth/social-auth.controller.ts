@@ -72,12 +72,14 @@ export class SocialAuthController {
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const profile = (req as unknown as { user: SocialProfile }).user;
 
-    const result = await this.findOrCreateUser(profile);
-    setRefreshCookie(res, result.refreshToken);
+    const { refreshToken } = await this.findOrCreateUser(profile);
+    setRefreshCookie(res, refreshToken);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(
-      `${frontendUrl}/auth/social-callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`,
-    );
+    // Security: the session is delivered exclusively via the HttpOnly cookie,
+    // never via redirect query params (which leak tokens into browser history,
+    // server logs, and Referer headers). The client then restores its session
+    // with the cookie-backed refresh flow.
+    return res.redirect(`${frontendUrl}/auth/social-callback`);
   }
 
   @Get('apple')
@@ -89,12 +91,10 @@ export class SocialAuthController {
   async appleCallback(@Req() req: Request, @Res() res: Response) {
     const profile = (req as unknown as { user: SocialProfile }).user;
 
-    const result = await this.findOrCreateUser(profile);
-    setRefreshCookie(res, result.refreshToken);
+    const { refreshToken } = await this.findOrCreateUser(profile);
+    setRefreshCookie(res, refreshToken);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    return res.redirect(
-      `${frontendUrl}/auth/social-callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`,
-    );
+    return res.redirect(`${frontendUrl}/auth/social-callback`);
   }
 
   private async findOrCreateUser(profile: {

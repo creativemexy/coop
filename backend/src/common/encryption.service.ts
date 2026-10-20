@@ -44,5 +44,8 @@ export class EncryptionService {
 }
 
 export function hashForLookup(value: string): string {
-  return crypto.createHash('sha256').update(value.toLowerCase().trim()).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(value.toLowerCase().trim())
+    .digest('hex');
 }

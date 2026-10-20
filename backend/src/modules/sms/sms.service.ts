@@ -34,7 +34,9 @@ export class SmsService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to send SMS to ${maskPhone(recipient)}: ${errorMessage}`);
+      this.logger.error(
+        `Failed to send SMS to ${maskPhone(recipient)}: ${errorMessage}`,
+      );
       await this.repo.save({
         recipient,
         message,

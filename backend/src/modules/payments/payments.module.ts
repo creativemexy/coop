@@ -13,7 +13,13 @@ import { UsersModule } from '../users/users.module';
 import { LedgerModule } from '../ledger/ledger.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment, User, WebhookLog]), HttpModule, BnplModule, UsersModule, LedgerModule],
+  imports: [
+    TypeOrmModule.forFeature([Payment, User, WebhookLog]),
+    HttpModule,
+    BnplModule,
+    UsersModule,
+    LedgerModule,
+  ],
   controllers: [PaymentsController, WebhooksController],
   providers: [PaymentsService, PaystackClient],
   exports: [PaymentsService, PaystackClient],

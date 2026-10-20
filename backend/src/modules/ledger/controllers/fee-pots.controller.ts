@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { FeePotService } from '../services/fee-pot.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -12,7 +20,12 @@ export class FeePotsController {
   constructor(private readonly service: FeePotService) {}
 
   @Get()
-  @Roles(Role.ACCOUNTANT, Role.SUPER_ADMIN, Role.BUSINESS_MANAGER, Role.APEX_BUSINESS_MANAGER)
+  @Roles(
+    Role.ACCOUNTANT,
+    Role.SUPER_ADMIN,
+    Role.BUSINESS_MANAGER,
+    Role.APEX_BUSINESS_MANAGER,
+  )
   async getPots() {
     return this.service.getPots();
   }
@@ -62,7 +75,8 @@ export class FeePotsController {
   @Roles(Role.ACCOUNTANT)
   async requestPlatformWithdrawal(
     @CurrentUser('sub') userId: string,
-    @Body() dto?: { accountNumber?: string; bankCode?: string; bankName?: string },
+    @Body()
+    dto?: { accountNumber?: string; bankCode?: string; bankName?: string },
   ) {
     return this.service.requestPlatformWithdrawal(userId, dto);
   }
@@ -78,7 +92,8 @@ export class FeePotsController {
   async approveWithdrawal(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
-    @Body() dto?: { accountNumber?: string; bankCode?: string; bankName?: string },
+    @Body()
+    dto?: { accountNumber?: string; bankCode?: string; bankName?: string },
   ) {
     return this.service.approveWithdrawal(id, userId, dto);
   }

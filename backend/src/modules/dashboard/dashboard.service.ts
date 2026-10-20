@@ -1,14 +1,25 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../bnpl/services/subscriptions.service';
 import { FeePotService } from '../ledger/services/fee-pot.service';
 import { SavingsService } from '../savings/savings.service';
-import { SavingsTransaction, TransactionType as SavingsTxType } from '../savings/entities/savings-transaction.entity';
+import {
+  SavingsTransaction,
+  TransactionType as SavingsTxType,
+} from '../savings/entities/savings-transaction.entity';
 import { SavingsAccount } from '../savings/entities/savings-account.entity';
 import { LoansService } from '../loans/loans.service';
-import { LoanRepayment, RepaymentStatus } from '../loans/entities/loan-repayment.entity';
+import {
+  LoanRepayment,
+  RepaymentStatus,
+} from '../loans/entities/loan-repayment.entity';
 import { Loan } from '../loans/entities/loan.entity';
 import { User } from '../users/entities/user.entity';
 import { ApexOrganization } from '../apex-organizations/entities/apex-organization.entity';
@@ -20,9 +31,18 @@ import { BnplInstallment } from '../bnpl/entities/bnpl-installment.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { JournalEntry } from '../ledger/entities/journal-entry.entity';
 import { FeePot } from '../ledger/entities/fee-pot.entity';
-import { InstallmentStatus, PaymentStatus, SubscriptionStatus, PotType } from '../../common/enums/status.enum';
+import {
+  InstallmentStatus,
+  PaymentStatus,
+  SubscriptionStatus,
+  PotType,
+} from '../../common/enums/status.enum';
 import { Role } from '../../common/enums/role.enum';
-import { SupportTicket, TicketStatus, TicketCategory } from '../bnpl/entities/support-ticket.entity';
+import {
+  SupportTicket,
+  TicketStatus,
+  TicketCategory,
+} from '../bnpl/entities/support-ticket.entity';
 import { TicketMessage } from '../support/entities/ticket-message.entity';
 import { InvestmentsService } from '../investments/investments.service';
 import { BnplPlanConfig } from '../bnpl/entities/bnpl-plan-config.entity';
@@ -102,7 +122,10 @@ export class DashboardService {
         .createQueryBuilder('s')
         .select('COALESCE(SUM(s.total_amount), 0)', 'total')
         .where('s.status IN (:...statuses)', {
-          statuses: [SubscriptionStatus.DISBURSED, SubscriptionStatus.ACTIVE_REPAYMENT],
+          statuses: [
+            SubscriptionStatus.DISBURSED,
+            SubscriptionStatus.ACTIVE_REPAYMENT,
+          ],
         })
         .getRawOne<{ total: string }>(),
       this.savingsService.getTotalSavings(),
@@ -166,44 +189,53 @@ export class DashboardService {
   }
 
   async getBusinessManagerDashboard(organizationId: string) {
-    const [orgPot, org, savings, loans, totalMembers] =
-      await Promise.all([
-        this.feePotRepo.findOne({
-          where: { potType: PotType.ORGANIZATION, entityId: organizationId },
-        }),
-        this.orgRepo.findOne({ where: { id: organizationId } }),
-        this.savingsAccountRepo
-          .createQueryBuilder('sa')
-          .innerJoin(User, 'u', 'u.id = sa.user_id')
-          .where('u.organization_id = :orgId AND u.role = :role', {
-            orgId: organizationId,
-            role: Role.INDIVIDUAL,
-          })
-          .select('COALESCE(SUM(sa.balance), 0)', 'total')
-          .getRawOne<{ total: string }>()
-          .catch(() => ({ total: '0' })),
-        this.loanRepo
-          .createQueryBuilder('l')
-          .innerJoin(User, 'u', 'u.id = l.user_id')
-          .where('u.organization_id = :orgId AND u.role = :role', {
-            orgId: organizationId,
-            role: Role.INDIVIDUAL,
-          })
-          .select([
-            'COUNT(l.id) AS total',
-            "COALESCE(SUM(CASE WHEN l.status IN ('active','approved','defaulted') THEN l.total_repayment - l.amount_paid ELSE 0 END), 0) AS balance",
-            "COALESCE(SUM(CASE WHEN l.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending",
-            "COALESCE(SUM(CASE WHEN l.status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected",
-          ])
-          .getRawOne<{ total: string; balance: string; pending: string; rejected: string }>()
-          .catch(() => ({ total: '0', balance: '0', pending: '0', rejected: '0' })),
-        this.userRepo.count({
-          where: {
-            organizationId: organizationId ?? undefined,
-            role: Role.INDIVIDUAL,
-          },
-        }),
-      ]);
+    const [orgPot, org, savings, loans, totalMembers] = await Promise.all([
+      this.feePotRepo.findOne({
+        where: { potType: PotType.ORGANIZATION, entityId: organizationId },
+      }),
+      this.orgRepo.findOne({ where: { id: organizationId } }),
+      this.savingsAccountRepo
+        .createQueryBuilder('sa')
+        .innerJoin(User, 'u', 'u.id = sa.user_id')
+        .where('u.organization_id = :orgId AND u.role = :role', {
+          orgId: organizationId,
+          role: Role.INDIVIDUAL,
+        })
+        .select('COALESCE(SUM(sa.balance), 0)', 'total')
+        .getRawOne<{ total: string }>()
+        .catch(() => ({ total: '0' })),
+      this.loanRepo
+        .createQueryBuilder('l')
+        .innerJoin(User, 'u', 'u.id = l.user_id')
+        .where('u.organization_id = :orgId AND u.role = :role', {
+          orgId: organizationId,
+          role: Role.INDIVIDUAL,
+        })
+        .select([
+          'COUNT(l.id) AS total',
+          "COALESCE(SUM(CASE WHEN l.status IN ('active','approved','defaulted') THEN l.total_repayment - l.amount_paid ELSE 0 END), 0) AS balance",
+          "COALESCE(SUM(CASE WHEN l.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending",
+          "COALESCE(SUM(CASE WHEN l.status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected",
+        ])
+        .getRawOne<{
+          total: string;
+          balance: string;
+          pending: string;
+          rejected: string;
+        }>()
+        .catch(() => ({
+          total: '0',
+          balance: '0',
+          pending: '0',
+          rejected: '0',
+        })),
+      this.userRepo.count({
+        where: {
+          organizationId: organizationId ?? undefined,
+          role: Role.INDIVIDUAL,
+        },
+      }),
+    ]);
 
     const totalSavings = Number(savings?.total || 0);
     const totalLoans = Number(loans?.total || 0);
@@ -235,7 +267,13 @@ export class DashboardService {
 
   async updateBusinessManagerOrgBank(
     organizationId: string,
-    dto: { bankName?: string; accountName?: string; accountNumber?: string; sortCode?: string; bankCode?: string },
+    dto: {
+      bankName?: string;
+      accountName?: string;
+      accountNumber?: string;
+      sortCode?: string;
+      bankCode?: string;
+    },
   ) {
     await this.orgRepo.update(organizationId, dto);
     return this.orgRepo.findOne({ where: { id: organizationId } });
@@ -247,7 +285,12 @@ export class DashboardService {
     });
     const planIds = plans.map((p) => p.id);
 
-    const [activeSubscriptions, installmentStats, totalCatalogItems, subscriptionStats] = await Promise.all([
+    const [
+      activeSubscriptions,
+      installmentStats,
+      totalCatalogItems,
+      subscriptionStats,
+    ] = await Promise.all([
       planIds.length > 0
         ? this.subRepo.count({
             where: planIds.map((id) => ({
@@ -295,14 +338,24 @@ export class DashboardService {
   }
 
   async checkSavingsVesting(userId: string): Promise<boolean> {
-    const vestingMonths = await this.settingsService.getNumber('credit_limit_vesting_months', 6);
+    const vestingMonths = await this.settingsService.getNumber(
+      'credit_limit_vesting_months',
+      6,
+    );
     const account = await this.savingsService.getAccount(userId);
     if (!account?.id) return false;
 
     const now = new Date();
     for (let i = 0; i < vestingMonths; i++) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const monthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() - i + 1,
+        0,
+        23,
+        59,
+        59,
+      );
       const count = await this.savingsTxRepo.count({
         where: {
           accountId: account.id,
@@ -315,7 +368,12 @@ export class DashboardService {
     return true;
   }
 
-  async calculateCreditLimit(userId: string): Promise<{ eligible: boolean; limit: number; used: number; available: number }> {
+  async calculateCreditLimit(userId: string): Promise<{
+    eligible: boolean;
+    limit: number;
+    used: number;
+    available: number;
+  }> {
     const savingsAccount = await this.savingsService.getAccount(userId);
     const savingsBalance = Number(savingsAccount.balance);
     const vested = await this.checkSavingsVesting(userId);
@@ -324,11 +382,21 @@ export class DashboardService {
       return { eligible: false, limit: 0, used: 0, available: 0 };
     }
 
-    const hasActiveLoan = (await this.loansService.getActiveLoans(userId)).length > 0;
+    const hasActiveLoan =
+      (await this.loansService.getActiveLoans(userId)).length > 0;
     const multiplier = hasActiveLoan
-      ? await this.settingsService.getNumber('credit_limit_multiplier_with_loan', 2)
-      : await this.settingsService.getNumber('credit_limit_multiplier_no_loan', 5);
-    const maxCap = await this.settingsService.getNumber('credit_limit_max_cap', 10000000);
+      ? await this.settingsService.getNumber(
+          'credit_limit_multiplier_with_loan',
+          2,
+        )
+      : await this.settingsService.getNumber(
+          'credit_limit_multiplier_no_loan',
+          5,
+        );
+    const maxCap = await this.settingsService.getNumber(
+      'credit_limit_max_cap',
+      10000000,
+    );
 
     const rawLimit = savingsBalance * multiplier;
     const limit = Math.min(rawLimit, maxCap);
@@ -339,9 +407,17 @@ export class DashboardService {
         { userId, status: SubscriptionStatus.ACTIVE_REPAYMENT },
       ],
     });
-    const used = activeSubs.reduce((sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)), 0);
+    const used = activeSubs.reduce(
+      (sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)),
+      0,
+    );
 
-    return { eligible: true, limit, used, available: Math.max(0, limit - used) };
+    return {
+      eligible: true,
+      limit,
+      used,
+      available: Math.max(0, limit - used),
+    };
   }
 
   async getIndividualDashboard(userId: string) {
@@ -385,7 +461,8 @@ export class DashboardService {
     const nextPayment = allUpcoming[0];
 
     const savingsAccount = await this.savingsService.getAccount(userId);
-    const totalOutstanding = await this.loansService.getTotalOutstanding(userId);
+    const totalOutstanding =
+      await this.loansService.getTotalOutstanding(userId);
 
     const portfolio = await this.investmentsService.getPortfolioSummary(userId);
 
@@ -432,14 +509,17 @@ export class DashboardService {
       where: { userId },
       relations: { installments: true },
     });
-    const installmentIds = subs.flatMap((s) => s.installments || []).map((i) => i.id);
-    const installments = installmentIds.length > 0
-      ? await this.instRepo.find({
-          where: installmentIds.map((id) => ({ id })),
-          order: { createdAt: 'DESC' },
-          take: 50,
-        })
-      : [];
+    const installmentIds = subs
+      .flatMap((s) => s.installments || [])
+      .map((i) => i.id);
+    const installments =
+      installmentIds.length > 0
+        ? await this.instRepo.find({
+            where: installmentIds.map((id) => ({ id })),
+            order: { createdAt: 'DESC' },
+            take: 50,
+          })
+        : [];
 
     const loans = await this.loansService.findByUser(userId);
     const loanRepayments = loans.flatMap((l) =>
@@ -463,8 +543,16 @@ export class DashboardService {
     }> = [
       ...savingsTxs.map((tx) => ({
         date: tx.createdAt.toISOString(),
-        type: tx.type === SavingsTxType.DEPOSIT ? 'savings_deposit' : tx.type === SavingsTxType.WITHDRAWAL ? 'savings_withdrawal' : 'savings_interest',
-        amount: tx.type === SavingsTxType.WITHDRAWAL ? -Number(tx.amount) : Number(tx.amount),
+        type:
+          tx.type === SavingsTxType.DEPOSIT
+            ? 'savings_deposit'
+            : tx.type === SavingsTxType.WITHDRAWAL
+              ? 'savings_withdrawal'
+              : 'savings_interest',
+        amount:
+          tx.type === SavingsTxType.WITHDRAWAL
+            ? -Number(tx.amount)
+            : Number(tx.amount),
         description: tx.description || '',
         status: 'completed',
         reference: tx.id,
@@ -488,7 +576,9 @@ export class DashboardService {
       ...loanRepayments,
     ];
 
-    mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    mapped.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
     return mapped.slice(0, 50);
   }
 
@@ -512,23 +602,38 @@ export class DashboardService {
     const allLoans = await this.loansService.findByUser(userId);
 
     const activeSubs = subs.filter(
-      (s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT || s.status === SubscriptionStatus.DISBURSED,
+      (s) =>
+        s.status === SubscriptionStatus.ACTIVE_REPAYMENT ||
+        s.status === SubscriptionStatus.DISBURSED,
     );
 
     const upcomingInstallments = subs
-      .flatMap((s) => (s.installments || []).map((i) => ({ ...i, itemName: s.plan?.catalogItem?.name || 'Unknown' })))
+      .flatMap((s) =>
+        (s.installments || []).map((i) => ({
+          ...i,
+          itemName: s.plan?.catalogItem?.name || 'Unknown',
+        })),
+      )
       .filter((i) => i.status === InstallmentStatus.PENDING)
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      );
 
-    const bnplBalance = activeSubs.reduce((sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)), 0);
-    const loanBalance = activeLoans.reduce((sum, l) => sum + Number(l.totalRepayment) - Number(l.amountPaid), 0);
+    const bnplBalance = activeSubs.reduce(
+      (sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)),
+      0,
+    );
+    const loanBalance = activeLoans.reduce(
+      (sum, l) => sum + Number(l.totalRepayment) - Number(l.amountPaid),
+      0,
+    );
 
     return {
       accountSummary: {
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
-      kycStatus: user.kycStatus,
-      kycImage: user.kycImage,
+        kycStatus: user.kycStatus,
+        kycImage: user.kycImage,
         memberSince: user.createdAt,
         bnplBalance,
         savingsBalance: Number(savingsAccount.balance),
@@ -573,12 +678,16 @@ export class DashboardService {
   async getMemberFinancials(bmUserId: string, memberId: string) {
     const bm = await this.usersService.findById(bmUserId);
     if (bm?.role !== 'business_manager') {
-      throw new ForbiddenException('Only business managers can view member financials');
+      throw new ForbiddenException(
+        'Only business managers can view member financials',
+      );
     }
     const member = await this.usersService.findById(memberId);
     if (!member) throw new NotFoundException('Member not found');
     if (member.organizationId !== bm.organizationId) {
-      throw new ForbiddenException('You can only view members of your own organization');
+      throw new ForbiddenException(
+        'You can only view members of your own organization',
+      );
     }
     return this.getMemberStatement(memberId);
   }
@@ -586,10 +695,15 @@ export class DashboardService {
   async getBusinessManagerMemberTransactions(bmUserId: string) {
     const bm = await this.usersService.findById(bmUserId);
     if (bm?.role !== 'business_manager') {
-      throw new ForbiddenException('Only business managers can view member transactions');
+      throw new ForbiddenException(
+        'Only business managers can view member transactions',
+      );
     }
     const members = await this.userRepo.find({
-      where: { organizationId: bm.organizationId ?? undefined, role: Role.INDIVIDUAL },
+      where: {
+        organizationId: bm.organizationId ?? undefined,
+        role: Role.INDIVIDUAL,
+      },
       order: { createdAt: 'ASC' },
     });
 
@@ -605,7 +719,9 @@ export class DashboardService {
 
     for (const member of members) {
       const txs = await this.getUnifiedTransactions(member.id);
-      const name = `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim() || member.email;
+      const name =
+        `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim() ||
+        member.email;
       for (const tx of txs) {
         rows.push({
           ...tx,
@@ -615,7 +731,9 @@ export class DashboardService {
       }
     }
 
-    rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    rows.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
     return rows.slice(0, 50);
   }
 
@@ -626,7 +744,9 @@ export class DashboardService {
     rows.push('MEMBER STATEMENT');
     rows.push(`Name,${stmt.accountSummary.name}`);
     rows.push(`Email,${stmt.accountSummary.email}`);
-    rows.push(`Member Since,${new Date(stmt.accountSummary.memberSince).toLocaleDateString()}`);
+    rows.push(
+      `Member Since,${new Date(stmt.accountSummary.memberSince).toLocaleDateString()}`,
+    );
     rows.push(`BNPL Balance,${stmt.accountSummary.bnplBalance}`);
     rows.push(`Savings Balance,${stmt.accountSummary.savingsBalance}`);
     rows.push(`Loan Balance,${stmt.accountSummary.loanBalance}`);
@@ -634,13 +754,17 @@ export class DashboardService {
     rows.push('PAYMENT HISTORY');
     rows.push('Date,Amount,Status,Provider,Reference');
     for (const p of stmt.paymentHistory) {
-      rows.push(`${new Date(p.date).toISOString()},${p.amount},${p.status},${p.provider},"${p.reference}"`);
+      rows.push(
+        `${new Date(p.date).toISOString()},${p.amount},${p.status},${p.provider},"${p.reference}"`,
+      );
     }
     rows.push('');
     rows.push('UPCOMING PAYMENTS');
     rows.push('Item,Due Date,Amount,Late Fee');
     for (const p of stmt.upcomingPayments) {
-      rows.push(`"${p.itemName}",${new Date(p.dueDate).toISOString().slice(0, 10)},${p.amount},${p.lateFee}`);
+      rows.push(
+        `"${p.itemName}",${new Date(p.dueDate).toISOString().slice(0, 10)},${p.amount},${p.lateFee}`,
+      );
     }
     return rows.join('\n');
   }
@@ -677,11 +801,18 @@ export class DashboardService {
         amount: Number(r.amount),
         lateFee: 0,
         dueDate: r.dueDate,
-        status: r.status === RepaymentStatus.PAID ? 'paid' : r.status === RepaymentStatus.OVERDUE ? 'overdue' : 'pending',
+        status:
+          r.status === RepaymentStatus.PAID
+            ? 'paid'
+            : r.status === RepaymentStatus.OVERDUE
+              ? 'overdue'
+              : 'pending',
         paidAt: r.paidAt,
         paymentReference: '',
         loanId: l.id,
-        isOverdue: r.status === RepaymentStatus.PENDING && new Date(r.dueDate) < new Date(),
+        isOverdue:
+          r.status === RepaymentStatus.PENDING &&
+          new Date(r.dueDate) < new Date(),
       })),
     );
 
@@ -689,24 +820,39 @@ export class DashboardService {
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
 
-    const upcoming = allItems.filter((i) => i.status === 'pending' || i.status === 'overdue');
+    const upcoming = allItems.filter(
+      (i) => i.status === 'pending' || i.status === 'overdue',
+    );
     const past = allItems.filter((i) => i.status === 'paid');
 
     const overdueCount = upcoming.filter((i) => i.isOverdue).length;
 
     const bnplBalance = subs
-      .filter((s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT || s.status === SubscriptionStatus.DISBURSED)
-      .reduce((sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)), 0);
+      .filter(
+        (s) =>
+          s.status === SubscriptionStatus.ACTIVE_REPAYMENT ||
+          s.status === SubscriptionStatus.DISBURSED,
+      )
+      .reduce(
+        (sum, s) => sum + (Number(s.totalAmount) - Number(s.amountPaid)),
+        0,
+      );
 
     const loanBalance = loans
       .filter((l) => l.status === 'active')
-      .reduce((sum, l) => sum + (Number(l.totalRepayment) - Number(l.amountPaid)), 0);
+      .reduce(
+        (sum, l) => sum + (Number(l.totalRepayment) - Number(l.amountPaid)),
+        0,
+      );
 
-    const nextPayment = upcoming.length > 0
-      ? upcoming.reduce((earliest, item) =>
-          new Date(item.dueDate) < new Date(earliest.dueDate) ? item : earliest,
-        )
-      : null;
+    const nextPayment =
+      upcoming.length > 0
+        ? upcoming.reduce((earliest, item) =>
+            new Date(item.dueDate) < new Date(earliest.dueDate)
+              ? item
+              : earliest,
+          )
+        : null;
 
     return {
       summary: {
@@ -717,7 +863,9 @@ export class DashboardService {
         loanBalance,
         totalOutstanding: bnplBalance + loanBalance,
         nextDueDate: nextPayment?.dueDate || null,
-        nextDueAmount: nextPayment ? nextPayment.amount + nextPayment.lateFee : 0,
+        nextDueAmount: nextPayment
+          ? nextPayment.amount + nextPayment.lateFee
+          : 0,
       },
       upcoming,
       past,
@@ -732,7 +880,8 @@ export class DashboardService {
     return tickets.map((t) => ({
       ...t,
       senderName: 'You',
-      canReply: t.status === TicketStatus.OPEN || t.status === TicketStatus.IN_PROGRESS,
+      canReply:
+        t.status === TicketStatus.OPEN || t.status === TicketStatus.IN_PROGRESS,
     }));
   }
 
@@ -753,12 +902,17 @@ export class DashboardService {
       createdBy: dto.createdBy,
       status: TicketStatus.OPEN,
     } as SupportTicket);
-    await this.activityService.log(dto.createdBy, 'support_ticket_created', { subject: dto.subject, category: dto.category });
+    await this.activityService.log(dto.createdBy, 'support_ticket_created', {
+      subject: dto.subject,
+      category: dto.category,
+    });
     return ticket;
   }
 
   async getMemberTicketMessages(ticketId: string, userId: string) {
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, createdBy: userId } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, createdBy: userId },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
     return this.msgRepo.find({
       where: { ticketId },
@@ -766,12 +920,23 @@ export class DashboardService {
     });
   }
 
-  async addMemberTicketMessage(ticketId: string, userId: string, message: string) {
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, createdBy: userId } });
+  async addMemberTicketMessage(
+    ticketId: string,
+    userId: string,
+    message: string,
+  ) {
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, createdBy: userId },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    if (ticket.status === TicketStatus.RESOLVED || ticket.status === TicketStatus.CLOSED) {
-      throw new BadRequestException('This ticket is closed and can no longer receive replies.');
+    if (
+      ticket.status === TicketStatus.RESOLVED ||
+      ticket.status === TicketStatus.CLOSED
+    ) {
+      throw new BadRequestException(
+        'This ticket is closed and can no longer receive replies.',
+      );
     }
 
     await this.ticketRepo.save({ ...ticket, status: TicketStatus.IN_PROGRESS });

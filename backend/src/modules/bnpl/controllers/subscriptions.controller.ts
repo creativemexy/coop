@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SubscriptionsService } from '../services/subscriptions.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -78,7 +87,12 @@ export class SubscriptionsController {
     @Body() dto: { disbursementReference: string; reason?: string },
     @CurrentUser('sub') userId: string,
   ) {
-    return this.service.markDisbursed(id, dto.disbursementReference, userId, dto.reason);
+    return this.service.markDisbursed(
+      id,
+      dto.disbursementReference,
+      userId,
+      dto.reason,
+    );
   }
 
   @Patch('orders/:id/settle')

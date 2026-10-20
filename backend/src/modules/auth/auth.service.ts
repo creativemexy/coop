@@ -9,7 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User } from '../users/entities/user.entity';
@@ -27,7 +27,6 @@ import { AuditAction } from '../../common/entities/audit-log.entity';
 import { SecurityMonitorService } from '../../common/monitoring/security-monitor.service';
 import { MonitoringService } from '../../common/monitoring/monitoring.service';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { VirtualAccountsService } from '../first-virtual/virtual-accounts.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
 import { SmsService } from '../sms/sms.service';
@@ -39,6 +38,8 @@ interface LoginDeviceInfo {
   os?: string;
   browser?: string;
 }
+
+const FIRST_LOGIN_FAILURE_LIMIT = 5;
 
 function safeEqualTokens(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
@@ -66,7 +67,6 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly securityMonitor: SecurityMonitorService,
     private readonly monitoring: MonitoringService,
-    private readonly virtualAccountService: VirtualAccountsService,
     private readonly notifications: NotificationsService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
@@ -179,10 +179,6 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
-    // Fire-and-forget: every individual member gets a persistent virtual
-    // account (FirstCheckout) which they keep for bank-transfer deposits.
-    this.provisionVirtualAccount(user.id);
-
     await this.auditService.log(AuditAction.USER_CREATE, {
       entityType: 'User',
       entityId: user.id,
@@ -220,25 +216,6 @@ export class AuthService {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };
-  }
-
-  private provisionVirtualAccount(userId: string): void {
-    this.virtualAccountService
-      .provisionForUser(userId)
-      .then((account) => {
-        if (account) {
-          this.logger.log(
-            `Provisioned virtual account ${account.accountNumber} for user ${userId}`,
-          );
-        }
-      })
-      .catch((error: unknown) => {
-        this.logger.warn(
-          `Virtual account provisioning deferred for ${userId}: ${
-            error instanceof Error ? error.message : 'unknown error'
-          }`,
-        );
-      });
   }
 
   async login(
@@ -289,12 +266,7 @@ export class AuthService {
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const remaining = Math.ceil(
-        (Number(user.lockedUntil) - Date.now()) / 60000,
-      );
-      throw new UnauthorizedException(
-        `Account locked. Try again in ${remaining} minute(s)`,
-      );
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -501,10 +473,15 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    const lookupHash = hashForLookup(emailOrPhone);
     const normalizedPhone = emailOrPhone.includes('@')
       ? null
       : normalizePhoneForSms(emailOrPhone);
+    const throttleKey = `first-login:${hashForLookup(
+      normalizedPhone ?? emailOrPhone,
+    )}`;
+    await this.ensureFirstLoginNotThrottled(throttleKey);
+
+    const lookupHash = hashForLookup(emailOrPhone);
     const phoneLookupHash =
       normalizedPhone && normalizedPhone !== emailOrPhone
         ? hashForLookup(normalizedPhone)
@@ -519,7 +496,7 @@ export class AuthService {
       ],
     });
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      return this.rejectFirstLoginPassword(throttleKey);
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -527,9 +504,14 @@ export class AuthService {
       user.passwordHash,
     );
     if (!isPasswordValid) {
-      throw new BadRequestException('Current password is incorrect');
+      await this.rejectFirstLoginPassword(throttleKey);
     }
 
+    await this.ensureFirstLoginNotThrottled(throttleKey);
+    await this.userRepository.query(
+      'DELETE FROM throttle_counters WHERE key = $1',
+      [throttleKey],
+    );
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.userRepository.update(user.id, {
       passwordHash,
@@ -556,6 +538,57 @@ export class AuthService {
       message:
         'Password set successfully. Please sign in with your new password.',
     };
+  }
+
+  private async ensureFirstLoginNotThrottled(key: string): Promise<void> {
+    const rows: Array<{ blocked: boolean }> = await this.userRepository.query(
+      `SELECT blocked_until > now() AS blocked
+       FROM throttle_counters
+       WHERE key = $1`,
+      [key],
+    );
+    if (rows[0]?.blocked) {
+      throw new HttpException(
+        'Too many attempts. Try again in 15 minutes.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
+  private async rejectFirstLoginPassword(key: string): Promise<never> {
+    const rows: Array<{ blocked: boolean }> = await this.userRepository.query(
+      `INSERT INTO throttle_counters AS counter
+         (key, count, expires_at, blocked_until)
+       VALUES ($1, 1, now() + interval '15 minutes', NULL)
+       ON CONFLICT (key) DO UPDATE SET
+         count = CASE
+           WHEN counter.expires_at <= now() THEN 1
+           ELSE counter.count + 1
+         END,
+         expires_at = CASE
+           WHEN counter.expires_at <= now()
+             OR (counter.blocked_until IS NULL
+                 AND counter.count + 1 >= $2)
+             THEN now() + interval '15 minutes'
+           ELSE counter.expires_at
+         END,
+         blocked_until = CASE
+           WHEN counter.expires_at <= now() THEN NULL
+           WHEN counter.blocked_until > now() THEN counter.blocked_until
+           WHEN counter.count + 1 >= $2
+             THEN now() + interval '15 minutes'
+           ELSE counter.blocked_until
+         END
+       RETURNING blocked_until > now() AS blocked`,
+      [key, FIRST_LOGIN_FAILURE_LIMIT],
+    );
+    if (rows[0]?.blocked) {
+      throw new HttpException(
+        'Too many attempts. Try again in 15 minutes.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    throw new BadRequestException('Current password is incorrect');
   }
 
   async adminResetPassword(
@@ -589,32 +622,35 @@ export class AuthService {
   async forgotPassword(
     emailOrPhone: string,
   ): Promise<{ message: string; token?: string }> {
+    // The exact same response shape is returned for unknown, cooling-down, and
+    // rate-limited identifiers so an unauthenticated caller can never tell
+    // which emails or phone numbers are registered (account enumeration).
+    const generic = {
+      message: 'If that account exists, a reset code has been sent',
+    } as const;
+
     const user = await this.findUserByIdentifier(emailOrPhone);
     if (!user) {
-      return { message: 'If that account exists, a reset code has been sent' };
+      return generic;
     }
 
     // Per-account rate limiting (independent of IP throttling): max 1 code per
     // 60s and max 5 per rolling hour, so an attacker cannot SMS-bomb a victim
-    // or rotate out a legitimate pending reset code.
+    // or rotate out a legitimate pending reset code. Capped accounts get the
+    // generic response and no code is sent; the throttling only shows up in
+    // internal audit/metrics, never in the HTTP response.
     const now = Date.now();
     const HOUR = 60 * 60 * 1000;
     const lastResetAt = user.lastResetAt ? Number(user.lastResetAt) : 0;
     if (now - lastResetAt < 60 * 1000) {
-      throw new HttpException(
-        'Please wait a minute before requesting another reset code.',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+      return generic;
     }
     const sameHour =
       lastResetAt > 0 &&
       Math.floor(lastResetAt / HOUR) === Math.floor(now / HOUR);
     const hourlyCount = sameHour ? Number(user.resetHourlyCount ?? 0) : 0;
     if (hourlyCount >= 5) {
-      throw new HttpException(
-        'Too many reset codes requested. Please try again later.',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+      return generic;
     }
 
     const token = crypto.randomInt(0, 100000000).toString().padStart(8, '0');
@@ -634,12 +670,9 @@ export class AuthService {
     // behind an explicit opt-in flag rather than NODE_ENV so a mislabeled
     // staging/development instance can never leak live reset codes.
     if (process.env.ENABLE_DEV_RESET_CODE === '1') {
-      return {
-        message: 'If that account exists, a reset code has been sent',
-        token,
-      };
+      return { ...generic, token };
     }
-    return { message: 'If that account exists, a reset code has been sent' };
+    return generic;
   }
 
   /**
@@ -718,8 +751,11 @@ export class AuthService {
     newPassword: string,
   ): Promise<{ message: string }> {
     const user = await this.findUserByIdentifier(emailOrPhone);
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset code');
+    }
+
     const codeIsValid = Boolean(
-      user &&
       user.resetToken &&
       user.resetTokenExpiry &&
       user.resetTokenExpiry >= new Date() &&
@@ -727,36 +763,117 @@ export class AuthService {
     );
 
     if (!codeIsValid) {
-      if (user?.resetToken) {
-        const attempts = Number(user.resetAttempts ?? 0) + 1;
-        const update: Partial<User> = { resetAttempts: attempts };
-        if (attempts >= 5) {
-          // Burn the code after repeated failures so the attacker cannot keep guessing.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          update.resetToken = null as any;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          update.resetTokenExpiry = null as any;
-        }
-        await this.userRepository.update(user.id, update);
+      if (user.resetToken) {
+        await this.countFailedResetAttempt(user);
       }
       throw new BadRequestException('Invalid or expired reset code');
     }
 
-    if (!user) {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const consumed = await this.consumeResetCode(user, passwordHash);
+    if (!consumed) {
+      // A concurrent request already used or rotated this code — never reset
+      // twice, and never reuse a consumed token.
       throw new BadRequestException('Invalid or expired reset code');
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    await this.userRepository.update(user.id, {
-      passwordHash,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      resetToken: null as any,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      resetTokenExpiry: null as any,
-      resetAttempts: 0,
-    });
-
     return { message: 'Password reset successfully' };
+  }
+
+  /**
+   * Count a failed reset guess atomically in the database. The increment is a
+   * single conditional UPDATE ... RETURNING, so concurrent requests cannot all
+   * read the same starting count and each write 1 (the classic cap bypass).
+   * When the returned count reaches the cap, the token is burned in the same
+   * transaction so a race between "count reached five" and "invalidate code"
+   * cannot leave the code guessable.
+   */
+  private async countFailedResetAttempt(user: User): Promise<void> {
+    const activeCode = user.resetToken;
+    await this.userRepository.manager.transaction(async (em) => {
+      const repo = em.getRepository(User);
+      const result = await repo
+        .createQueryBuilder()
+        .update(User)
+        .set({ resetAttempts: () => '"reset_attempts" + 1' })
+        .where(
+          'id = :id AND reset_token = :code AND reset_token_expiry > :now',
+          {
+            id: user.id,
+            code: activeCode,
+            now: new Date(),
+          },
+        )
+        .returning('reset_attempts')
+        .execute();
+
+      const attempts = this.readReturnedInt(result, 'reset_attempts');
+      if (attempts >= 5) {
+        await repo
+          .createQueryBuilder()
+          .update(User)
+          .set({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            resetToken: null as any,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            resetTokenExpiry: null as any,
+          })
+          .where('id = :id AND reset_token = :code', {
+            id: user.id,
+            code: activeCode,
+          })
+          .execute();
+      }
+    });
+  }
+
+  /**
+   * Apply the password change and consume the reset code in one conditional
+   * UPDATE. The WHERE guards on the same unexpired token that was validated,
+   * so a parallel successful reset that already consumed the code makes this
+   * update affect zero rows and the token can never be reused.
+   */
+  private async consumeResetCode(
+    user: User,
+    passwordHash: string,
+  ): Promise<boolean> {
+    const activeCode = user.resetToken;
+    let affected = 0;
+    await this.userRepository.manager.transaction(async (em) => {
+      const repo = em.getRepository(User);
+      const result = await repo
+        .createQueryBuilder()
+        .update(User)
+        .set({
+          passwordHash,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          resetToken: null as any,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          resetTokenExpiry: null as any,
+          resetAttempts: 0,
+        })
+        .where(
+          'id = :id AND reset_token = :code AND reset_token_expiry > :now',
+          {
+            id: user.id,
+            code: activeCode,
+            now: new Date(),
+          },
+        )
+        .execute();
+      affected = result.affected ?? 0;
+    });
+    return affected === 1;
+  }
+
+  private readReturnedInt(result: UpdateResult, column: string): number {
+    const rows =
+      (Array.isArray(result.raw) ? result.raw : undefined) ??
+      result.generatedMaps ??
+      [];
+    const first = rows[0] as Record<string, unknown> | undefined;
+    if (!first) return 0;
+    return Number(first[column] ?? 0);
   }
 
   async logout(userId: string): Promise<void> {

@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { InvestmentProduct } from './investment-product.entity';
 
 @Entity('investment_holdings')
@@ -26,7 +35,13 @@ export class InvestmentHolding {
   @Column({ type: 'decimal', precision: 15, scale: 2, name: 'cost_basis' })
   costBasis: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'current_value', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'current_value',
+    nullable: true,
+  })
   currentValue: number | null;
 
   @Column({ type: 'date', name: 'locked_until', nullable: true })

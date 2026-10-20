@@ -36,8 +36,10 @@ export class ApexBusinessManagerService {
 
     const qb = this.userRepo.createQueryBuilder('u');
     if (orgIds.length > 0) {
-      qb.where('u.apex_org_id = :apexOrgId', { apexOrgId })
-        .orWhere('u.organization_id IN (:...orgIds)', { orgIds });
+      qb.where('u.apex_org_id = :apexOrgId', { apexOrgId }).orWhere(
+        'u.organization_id IN (:...orgIds)',
+        { orgIds },
+      );
     } else {
       qb.where('u.apex_org_id = :apexOrgId', { apexOrgId });
     }
@@ -63,7 +65,9 @@ export class ApexBusinessManagerService {
             .getRawMany<{ organizationId: string; count: string }>()
         : [];
 
-    const countMap = new Map(memberCounts.map((m) => [m.organizationId, Number(m.count)]));
+    const countMap = new Map(
+      memberCounts.map((m) => [m.organizationId, Number(m.count)]),
+    );
 
     return {
       organizations: orgs.map((o) => ({
@@ -113,10 +117,15 @@ export class ApexBusinessManagerService {
 
     const totalFees = feeLedger.reduce((s, l) => s + Number(l.totalFee), 0);
     const apexShare = feeLedger.reduce((s, l) => s + Number(l.apexShare), 0);
-    const orgShares = feeLedger.reduce((s, l) => s + Number(l.organizationShare), 0);
+    const orgShares = feeLedger.reduce(
+      (s, l) => s + Number(l.organizationShare),
+      0,
+    );
 
     // Apex fee pot balance
-    const apexPot = await this.potRepo.findOne({ where: { potType: PotType.APEX, entityId: apexOrgId } });
+    const apexPot = await this.potRepo.findOne({
+      where: { potType: PotType.APEX, entityId: apexOrgId },
+    });
     const apexBalance = apexPot ? Number(apexPot.balance) : 0;
 
     return {
@@ -131,14 +140,26 @@ export class ApexBusinessManagerService {
         bankCode: apexOrg.bankCode,
       },
       stats: { organizations: orgIds.length, members: memberCount },
-      fees: { totalFees, apexShare, orgShares, apexBalance, ledgerEntries: feeLedger.length },
+      fees: {
+        totalFees,
+        apexShare,
+        orgShares,
+        apexBalance,
+        ledgerEntries: feeLedger.length,
+      },
       recentLedger: feeLedger.slice(0, 10),
     };
   }
 
   async updateBankDetails(
     apexOrgId: string,
-    dto: { bankName?: string; accountName?: string; accountNumber?: string; sortCode?: string; bankCode?: string },
+    dto: {
+      bankName?: string;
+      accountName?: string;
+      accountNumber?: string;
+      sortCode?: string;
+      bankCode?: string;
+    },
   ) {
     await this.apexOrgRepo.update(apexOrgId, dto);
     return this.apexOrgRepo.findOne({ where: { id: apexOrgId } });

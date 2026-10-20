@@ -41,7 +41,13 @@ export class ProcessingStep {
   })
   status: ProcessingStepStatus;
 
-  @Column({ type: 'varchar', length: 255, name: 'idempotency_key', nullable: true, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'idempotency_key',
+    nullable: true,
+    unique: true,
+  })
   idempotencyKey: string;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -53,7 +59,12 @@ export class ProcessingStep {
   @Column({ type: 'int', default: 0, name: 'retry_count' })
   retryCount: number;
 
-  @Column({ type: 'varchar', length: 255, name: 'external_reference', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'external_reference',
+    nullable: true,
+  })
   externalReference: string;
 
   @Column({ type: 'timestamp', name: 'completed_at', nullable: true })

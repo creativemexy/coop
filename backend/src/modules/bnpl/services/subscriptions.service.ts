@@ -1,13 +1,24 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
 import { BnplPlan, PlanStatus } from '../entities/bnpl-plan.entity';
-import { BnplPlanConfig, InterestModel, DueDateRule, LateFeeType } from '../entities/bnpl-plan-config.entity';
+import {
+  BnplPlanConfig,
+  InterestModel,
+  DueDateRule,
+  LateFeeType,
+} from '../entities/bnpl-plan-config.entity';
 import { AuditLog } from '../entities/audit-log.entity';
 import { UsersService } from '../../users/users.service';
 import {
+  KycStatus,
   SubscriptionStatus,
   InstallmentStatus,
   PayoutStatus,
@@ -40,15 +51,49 @@ export class SubscriptionsService {
     if (!plan) {
       return {
         eligible: false,
-        reasons: [{ key: 'plan_not_found', label: 'Plan not found or inactive', passed: false }],
+        reasons: [
+          {
+            key: 'plan_not_found',
+            label: 'Plan not found or inactive',
+            passed: false,
+          },
+        ],
       };
     }
 
-    const config = await this.configRepo.findOne({ where: { organizationId: plan.organizationId } });
     const user = await this.usersService.findById(userId);
+    const kycExpired =
+      user.kycVerifiedAt &&
+      Date.now() - user.kycVerifiedAt.getTime() > 365 * 24 * 60 * 60 * 1000;
+    if (user.kycStatus !== KycStatus.APPROVED || kycExpired) {
+      return {
+        eligible: false,
+        reasons: [
+          {
+            key: 'kyc',
+            label: 'Approved KYC verification',
+            passed: false,
+            detail: kycExpired
+              ? 'KYC verification has expired. Please re-verify.'
+              : 'Complete KYC verification before applying.',
+          },
+        ],
+      };
+    }
+
+    const config = user.organizationId
+      ? await this.configRepo.findOne({
+          where: { organizationId: user.organizationId },
+        })
+      : null;
     const itemPrice = Number(plan.catalogItem?.price || 0);
     const userScore = (user as any).creditScore;
-    const reasons: Array<{ key: string; label: string; passed: boolean; detail?: string }> = [];
+    const reasons: Array<{
+      key: string;
+      label: string;
+      passed: boolean;
+      detail?: string;
+    }> = [];
 
     // Membership check
     const membershipOk = !config?.requireMembership || !!user?.organizationId;
@@ -61,13 +106,16 @@ export class SubscriptionsService {
 
     // Principal limits
     const minOk = !plan.minPrincipal || itemPrice >= Number(plan.minPrincipal);
-    const maxOk = (!plan.maxPrincipal || itemPrice <= Number(plan.maxPrincipal));
-    const orgMaxOk = !config?.maxPrincipal || itemPrice <= Number(config.maxPrincipal);
+    const maxOk = !plan.maxPrincipal || itemPrice <= Number(plan.maxPrincipal);
+    const orgMaxOk =
+      !config?.maxPrincipal || itemPrice <= Number(config.maxPrincipal);
     reasons.push({
       key: 'principal_min',
       label: `Minimum principal (₦${Number(plan.minPrincipal || 0).toLocaleString()})`,
       passed: minOk,
-      detail: minOk ? undefined : `Item price ₦${itemPrice.toLocaleString()} below minimum ₦${Number(plan.minPrincipal).toLocaleString()}`,
+      detail: minOk
+        ? undefined
+        : `Item price ₦${itemPrice.toLocaleString()} below minimum ₦${Number(plan.minPrincipal).toLocaleString()}`,
     });
     reasons.push({
       key: 'principal_max',
@@ -84,13 +132,18 @@ export class SubscriptionsService {
     let scoreOk = true;
     if (plan.eligibilityBands?.length && userScore !== undefined) {
       scoreOk = plan.eligibilityBands.some(
-        (band) => userScore >= band.minScore && userScore <= band.maxScore && itemPrice <= band.maxPrincipal,
+        (band) =>
+          userScore >= band.minScore &&
+          userScore <= band.maxScore &&
+          itemPrice <= band.maxPrincipal,
       );
       reasons.push({
         key: 'credit_score',
         label: `Credit score (${userScore})`,
         passed: scoreOk,
-        detail: scoreOk ? undefined : `Score ${userScore} doesn't match any eligibility tier`,
+        detail: scoreOk
+          ? undefined
+          : `Score ${userScore} doesn't match any eligibility tier`,
       });
     } else if (plan.eligibilityBands?.length && userScore === undefined) {
       scoreOk = false;
@@ -111,7 +164,10 @@ export class SubscriptionsService {
     const { eligible, reasons } = await this.checkEligibility(userId, planId);
     if (!eligible) {
       throw new BadRequestException(
-        `Not eligible: ${reasons.filter((r) => !r.passed).map((r) => r.label).join(', ')}`,
+        `Not eligible: ${reasons
+          .filter((r) => !r.passed)
+          .map((r) => r.label)
+          .join(', ')}`,
       );
     }
 
@@ -121,7 +177,11 @@ export class SubscriptionsService {
     });
     if (!plan) throw new NotFoundException('Plan not found or inactive');
 
-    const config = await this.configRepo.findOne({ where: { organizationId: plan.organizationId } });
+    const user = await this.usersService.findById(userId);
+    const organizationId = user.organizationId ?? null;
+    const config = organizationId
+      ? await this.configRepo.findOne({ where: { organizationId } })
+      : null;
     const itemPrice = Number(plan.catalogItem?.price || 0);
 
     const totalAmount = this._calculateTotalAmount(
@@ -133,6 +193,7 @@ export class SubscriptionsService {
 
     const subscription = this.subRepo.create({
       userId,
+      organizationId,
       planId,
       status: SubscriptionStatus.CREATED,
       downPayment: 0,
@@ -169,7 +230,7 @@ export class SubscriptionsService {
       .leftJoinAndSelect('sub.plan', 'plan')
       .leftJoinAndSelect('plan.catalogItem', 'catalogItem')
       .leftJoinAndSelect('sub.installments', 'installments')
-      .where('plan.organizationId = :orgId', { orgId: organizationId })
+      .where('sub.organizationId = :orgId', { orgId: organizationId })
       .orderBy('sub.created_at', 'DESC')
       .getMany();
   }
@@ -234,7 +295,11 @@ export class SubscriptionsService {
     const subs = await qb.getMany();
     const ids = subs.map((s) => s.id);
 
-    const rows: Array<{ entity_id: string; active_cnt: string; open_cnt: string }> = ids.length
+    const rows: Array<{
+      entity_id: string;
+      active_cnt: string;
+      open_cnt: string;
+    }> = ids.length
       ? await this.auditRepo.manager.query(
           `SELECT entity_id,
                   COUNT(*) FILTER (WHERE status = 'open' OR status = 'investigating') AS active_cnt,
@@ -262,15 +327,20 @@ export class SubscriptionsService {
       const openRiskCount = riskByEntity.get(sub.id)?.open ?? 0;
 
       const overdueInst = (sub.installments || []).filter(
-        (i) => i.status === InstallmentStatus.PENDING && new Date(i.dueDate) < new Date(),
+        (i) =>
+          i.status === InstallmentStatus.PENDING &&
+          new Date(i.dueDate) < new Date(),
       );
-      const paidInst = (sub.installments || []).filter((i) => i.status === InstallmentStatus.PAID);
+      const paidInst = (sub.installments || []).filter(
+        (i) => i.status === InstallmentStatus.PAID,
+      );
 
       enriched.push({
         ...sub,
         riskFlagCount: riskCount,
         openRiskFlagCount: openRiskCount,
-        riskLevel: openRiskCount > 0 ? 'high' : riskCount > 0 ? 'medium' : 'low',
+        riskLevel:
+          openRiskCount > 0 ? 'high' : riskCount > 0 ? 'medium' : 'low',
         overdueInstallmentCount: overdueInst.length,
         totalInstallmentCount: (sub.installments || []).length,
         paidInstallmentCount: paidInst.length,
@@ -312,9 +382,15 @@ export class SubscriptionsService {
 
     const allowedTransitions: Record<SubscriptionStatus, SubscriptionStatus[]> =
       {
-        [SubscriptionStatus.CREATED]: [SubscriptionStatus.PENDING_PAYMENT, SubscriptionStatus.DEFAULTED],
+        [SubscriptionStatus.CREATED]: [
+          SubscriptionStatus.PENDING_PAYMENT,
+          SubscriptionStatus.DEFAULTED,
+        ],
         [SubscriptionStatus.PENDING_PAYMENT]: [SubscriptionStatus.DEFAULTED],
-        [SubscriptionStatus.DISBURSED]: [SubscriptionStatus.ACTIVE_REPAYMENT, SubscriptionStatus.DEFAULTED],
+        [SubscriptionStatus.DISBURSED]: [
+          SubscriptionStatus.ACTIVE_REPAYMENT,
+          SubscriptionStatus.DEFAULTED,
+        ],
         [SubscriptionStatus.ACTIVE_REPAYMENT]: [SubscriptionStatus.DEFAULTED],
         [SubscriptionStatus.SETTLED]: [],
         [SubscriptionStatus.DEFAULTED]: [SubscriptionStatus.PENDING_PAYMENT],
@@ -348,7 +424,12 @@ export class SubscriptionsService {
   }
 
   async approve(id: string, performedBy?: string): Promise<BnplSubscription> {
-    return this.updateOrderStatus(id, SubscriptionStatus.PENDING_PAYMENT, performedBy, 'Approved via approve()');
+    return this.updateOrderStatus(
+      id,
+      SubscriptionStatus.PENDING_PAYMENT,
+      performedBy,
+      'Approved via approve()',
+    );
   }
 
   async markDisbursed(
@@ -360,7 +441,9 @@ export class SubscriptionsService {
     const sub = await this.subRepo.findOne({ where: { id } });
     if (!sub) throw new NotFoundException('Order not found');
     if (sub.status !== SubscriptionStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('Order must be in pending_payment to disburse');
+      throw new BadRequestException(
+        'Order must be in pending_payment to disburse',
+      );
     }
 
     const plan = await this.planRepo.findOne({
@@ -369,7 +452,11 @@ export class SubscriptionsService {
     });
     if (!plan) throw new NotFoundException('Plan not found');
 
-    const config = await this.configRepo.findOne({ where: { organizationId: plan.organizationId } });
+    const config = sub.organizationId
+      ? await this.configRepo.findOne({
+          where: { organizationId: sub.organizationId },
+        })
+      : null;
     const itemPrice = Number(plan.catalogItem?.price || 0);
     const downPayment = (itemPrice * Number(plan.downPaymentPercent)) / 100;
 
@@ -425,7 +512,10 @@ export class SubscriptionsService {
       entityId: id,
       action: 'disburse',
       changes: {
-        status: { from: SubscriptionStatus.PENDING_PAYMENT, to: SubscriptionStatus.DISBURSED },
+        status: {
+          from: SubscriptionStatus.PENDING_PAYMENT,
+          to: SubscriptionStatus.DISBURSED,
+        },
         disbursementReference: { from: null, to: disbursementReference },
         downPayment: { from: sub.downPayment, to: downPayment },
       },
@@ -436,7 +526,11 @@ export class SubscriptionsService {
     return result;
   }
 
-  async markSettled(id: string, performedBy?: string, reason?: string): Promise<BnplSubscription> {
+  async markSettled(
+    id: string,
+    performedBy?: string,
+    reason?: string,
+  ): Promise<BnplSubscription> {
     const sub = await this.subRepo.findOne({ where: { id } });
     if (!sub) throw new NotFoundException('Order not found');
     const oldStatus = sub.status;
@@ -483,8 +577,13 @@ export class SubscriptionsService {
       if (dto.performedBy) {
         try {
           const user = await this.usersService.findById(dto.performedBy);
-          performerName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email || dto.performedBy;
-        } catch { /* ignore */ }
+          performerName =
+            `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+            user?.email ||
+            dto.performedBy;
+        } catch {
+          /* ignore */
+        }
       }
       await this.auditRepo.save({
         entityType: dto.entityType,

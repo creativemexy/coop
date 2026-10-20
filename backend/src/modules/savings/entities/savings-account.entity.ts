@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  Index,
+} from 'typeorm';
 import { SavingsTransaction } from './savings-transaction.entity';
 
 @Entity('savings_accounts')
@@ -13,10 +21,22 @@ export class SavingsAccount {
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   balance: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'goal_balance', default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'goal_balance',
+    default: 0,
+  })
   goalBalance: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'target_amount', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'target_amount',
+    nullable: true,
+  })
   targetAmount: number;
 
   @Column({ type: 'varchar', default: 'active' })

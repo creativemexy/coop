@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { InvestmentProduct } from './investment-product.entity';
 
 export enum KycLevel {
@@ -19,7 +27,12 @@ export class InvestmentEligibilityRule {
   @JoinColumn({ name: 'product_id' })
   product: InvestmentProduct;
 
-  @Column({ type: 'enum', enum: KycLevel, name: 'kyc_required_level', default: KycLevel.BASIC })
+  @Column({
+    type: 'enum',
+    enum: KycLevel,
+    name: 'kyc_required_level',
+    default: KycLevel.BASIC,
+  })
   kycRequiredLevel: KycLevel;
 
   @Column({ type: 'boolean', name: 'require_membership', default: false })

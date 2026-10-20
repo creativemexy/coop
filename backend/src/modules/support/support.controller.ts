@@ -14,7 +14,10 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
-import { TicketStatus, TicketCategory } from '../bnpl/entities/support-ticket.entity';
+import {
+  TicketStatus,
+  TicketCategory,
+} from '../bnpl/entities/support-ticket.entity';
 
 @Controller('api/v1/support')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -49,7 +52,11 @@ export class SupportController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.getWebhookLogs({ provider, status, limit: limit ? Number(limit) : undefined });
+    return this.service.getWebhookLogs({
+      provider,
+      status,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('webhook-logs/:id')
@@ -76,7 +83,8 @@ export class SupportController {
 
   @Post('tickets')
   async createTicket(
-    @Body() dto: {
+    @Body()
+    dto: {
       subject: string;
       description?: string;
       category?: TicketCategory;

@@ -8,7 +8,11 @@ import { PaymentsModule } from '../payments/payments.module';
 import { SmsModule } from '../sms/sms.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ApexOrganization, User]), PaymentsModule, SmsModule],
+  imports: [
+    TypeOrmModule.forFeature([ApexOrganization, User]),
+    PaymentsModule,
+    SmsModule,
+  ],
   controllers: [ApexOrganizationsController],
   providers: [ApexOrganizationsService],
   exports: [ApexOrganizationsService],

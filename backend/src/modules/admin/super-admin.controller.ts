@@ -24,10 +24,17 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
-import { PolicyTemplateType, PolicyTemplateStatus } from './entities/policy-template.entity';
+import {
+  PolicyTemplateType,
+  PolicyTemplateStatus,
+} from './entities/policy-template.entity';
 import { OnboardingStatus } from './entities/tenant-onboarding-request.entity';
 import { FeatureFlagStatus } from './entities/feature-flag.entity';
-import { IncidentStatus, IncidentSeverity, IncidentSource } from './entities/incident.entity';
+import {
+  IncidentStatus,
+  IncidentSeverity,
+  IncidentSource,
+} from './entities/incident.entity';
 import { SecretCategory } from './entities/secret.entity';
 import { TemplateType } from './entities/notification-template.entity';
 import { DisputeStatus } from './entities/dispute.entity';
@@ -42,7 +49,8 @@ export class SuperAdminController {
 
   @Post('users')
   async createUser(
-    @Body() dto: {
+    @Body()
+    dto: {
       email: string;
       password?: string;
       firstName?: string;
@@ -80,7 +88,8 @@ export class SuperAdminController {
 
   @Post('policies')
   async createPolicy(
-    @Body() dto: {
+    @Body()
+    dto: {
       name: string;
       description?: string;
       templateType: PolicyTemplateType;
@@ -110,7 +119,8 @@ export class SuperAdminController {
   @Patch('policies/:id')
   async updatePolicy(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       name?: string;
       description?: string;
       rules?: Record<string, any>;
@@ -139,18 +149,12 @@ export class SuperAdminController {
   }
 
   @Post('policies/:id/approve')
-  async approvePolicy(
-    @Param('id') id: string,
-    @CurrentUser() user: any,
-  ) {
+  async approvePolicy(@Param('id') id: string, @CurrentUser() user: any) {
     return this.sa.approvePolicyTemplate(id, user.sub);
   }
 
   @Post('policies/:id/reject')
-  async rejectPolicy(
-    @Param('id') id: string,
-    @Body() dto: { reason: string },
-  ) {
+  async rejectPolicy(@Param('id') id: string, @Body() dto: { reason: string }) {
     return this.sa.rejectPolicyTemplate(id, dto.reason);
   }
 
@@ -158,7 +162,8 @@ export class SuperAdminController {
 
   @Post('onboarding')
   async createOnboarding(
-    @Body() dto: {
+    @Body()
+    dto: {
       orgName: string;
       orgCode: string;
       apexOrgId: string;
@@ -185,7 +190,8 @@ export class SuperAdminController {
   @Patch('onboarding/:id')
   async updateOnboarding(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       complianceDocs?: Record<string, any>;
       kycRequirements?: Record<string, any>;
       productConfig?: Record<string, any>;
@@ -227,7 +233,8 @@ export class SuperAdminController {
 
   @Post('feature-flags')
   async createFeatureFlag(
-    @Body() dto: {
+    @Body()
+    dto: {
       key: string;
       name: string;
       description?: string;
@@ -253,7 +260,8 @@ export class SuperAdminController {
   @Patch('feature-flags/:id')
   async updateFeatureFlag(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       name?: string;
       description?: string;
       status?: FeatureFlagStatus;
@@ -285,7 +293,8 @@ export class SuperAdminController {
 
   @Post('incidents')
   async createIncident(
-    @Body() dto: {
+    @Body()
+    dto: {
       title: string;
       description?: string;
       severity: IncidentSeverity;
@@ -304,9 +313,10 @@ export class SuperAdminController {
     @Query('status') status?: IncidentStatus | string,
     @Query('severity') severity?: IncidentSeverity,
   ) {
-    const statusArray = typeof status === 'string' && status.includes(',')
-      ? status.split(',').map((s) => s.trim()) as IncidentStatus[]
-      : status as IncidentStatus | undefined;
+    const statusArray =
+      typeof status === 'string' && status.includes(',')
+        ? (status.split(',').map((s) => s.trim()) as IncidentStatus[])
+        : (status as IncidentStatus | undefined);
     return this.sa.listIncidents(statusArray, severity);
   }
 
@@ -323,7 +333,8 @@ export class SuperAdminController {
   @Patch('incidents/:id')
   async updateIncident(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       status?: IncidentStatus;
       assignedTo?: string;
       resolutionSteps?: Record<string, any>[];
@@ -352,7 +363,13 @@ export class SuperAdminController {
 
   @Post('security')
   async setSecurityConfig(
-    @Body() dto: { key: string; value: string; description?: string; valueType?: string },
+    @Body()
+    dto: {
+      key: string;
+      value: string;
+      description?: string;
+      valueType?: string;
+    },
     @CurrentUser() user: any,
   ) {
     return this.sa.setSecurityConfig(dto.key, { ...dto, updatedBy: user.sub });
@@ -367,7 +384,8 @@ export class SuperAdminController {
 
   @Post('secrets')
   async createSecret(
-    @Body() dto: {
+    @Body()
+    dto: {
       key: string;
       encryptedValue: string;
       category: SecretCategory;
@@ -393,7 +411,8 @@ export class SuperAdminController {
   @Patch('secrets/:id')
   async updateSecret(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       encryptedValue?: string;
       description?: string;
       category?: SecretCategory;
@@ -463,20 +482,24 @@ export class SuperAdminController {
   }
 
   @Post('templates')
-  async createTemplate(@Body() dto: {
-    key: string;
-    type: TemplateType;
-    subject?: string;
-    body: string;
-    variables?: string[];
-  }) {
+  async createTemplate(
+    @Body()
+    dto: {
+      key: string;
+      type: TemplateType;
+      subject?: string;
+      body: string;
+      variables?: string[];
+    },
+  ) {
     return this.sa.createTemplate(dto);
   }
 
   @Patch('templates/:id')
   async updateTemplate(
     @Param('id') id: string,
-    @Body() dto: Partial<{ subject: string; body: string; variables: string[] }>,
+    @Body()
+    dto: Partial<{ subject: string; body: string; variables: string[] }>,
   ) {
     return this.sa.updateTemplate(id, dto);
   }
@@ -494,12 +517,28 @@ export class SuperAdminController {
   }
 
   @Post('risk-rules')
-  async createRiskRule(@Body() dto: { ruleKey: string; description: string; enabled: boolean; config: Record<string, any> }) {
+  async createRiskRule(
+    @Body()
+    dto: {
+      ruleKey: string;
+      description: string;
+      enabled: boolean;
+      config: Record<string, any>;
+    },
+  ) {
     return this.sa.createRiskRule(dto);
   }
 
   @Patch('risk-rules/:id')
-  async updateRiskRule(@Param('id') id: string, @Body() dto: Partial<{ enabled: boolean; config: Record<string, any>; description: string }>) {
+  async updateRiskRule(
+    @Param('id') id: string,
+    @Body()
+    dto: Partial<{
+      enabled: boolean;
+      config: Record<string, any>;
+      description: string;
+    }>,
+  ) {
     return this.sa.updateRiskRule(id, dto);
   }
 
@@ -591,16 +630,30 @@ export class SuperAdminController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: join(process.cwd(), 'storage', 'backups'),
-        filename: (_req: any, file: any, cb: (err: Error | null, name: string) => void) => {
+        filename: (
+          _req: any,
+          file: any,
+          cb: (err: Error | null, name: string) => void,
+        ) => {
           const timestamp = Date.now();
           const originalName = file.originalname.replace(/\s+/g, '_');
           cb(null, `${timestamp}-${originalName}`);
         },
       }),
       limits: { fileSize: 500 * 1024 * 1024 },
-      fileFilter: (_req: any, file: any, cb: (err: Error | null, allowed: boolean) => void) => {
-        if (!file.originalname.endsWith('.sql.gz') && !file.originalname.endsWith('.sql')) {
-          cb(new BadRequestException('Only .sql.gz and .sql files are allowed'), false);
+      fileFilter: (
+        _req: any,
+        file: any,
+        cb: (err: Error | null, allowed: boolean) => void,
+      ) => {
+        if (
+          !file.originalname.endsWith('.sql.gz') &&
+          !file.originalname.endsWith('.sql')
+        ) {
+          cb(
+            new BadRequestException('Only .sql.gz and .sql files are allowed'),
+            false,
+          );
           return;
         }
         cb(null, true);
@@ -609,7 +662,11 @@ export class SuperAdminController {
   )
   async uploadBackup(@UploadedFile() file: any) {
     if (!file) throw new BadRequestException('No file uploaded');
-    return { message: 'File uploaded', filename: file.filename, size: file.size };
+    return {
+      message: 'File uploaded',
+      filename: file.filename,
+      size: file.size,
+    };
   }
 
   // ─── Role Feature Permissions ────────────────────────────
@@ -620,7 +677,13 @@ export class SuperAdminController {
   }
 
   @Put('role-permissions')
-  async updateRolePermissions(@Body() dto: Record<string, { disabledFeatures: string[]; disabledMenuItems: string[] }>) {
+  async updateRolePermissions(
+    @Body()
+    dto: Record<
+      string,
+      { disabledFeatures: string[]; disabledMenuItems: string[] }
+    >,
+  ) {
     return this.sa.updateRolePermissions(dto);
   }
 }

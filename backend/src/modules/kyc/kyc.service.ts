@@ -5,7 +5,10 @@ import { KycSubmission } from './entities/kyc-submission.entity';
 import { KycStatus, KycProvider } from '../../common/enums/status.enum';
 import { UsersService } from '../users/users.service';
 import { KorapayClient } from './korapay/korapay.client';
-import { KorapayIdentityType, KorapayLookupData } from './korapay/korapay.types';
+import {
+  KorapayIdentityType,
+  KorapayLookupData,
+} from './korapay/korapay.types';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const KYC_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -35,7 +38,10 @@ export class KycService {
     return (str ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
-  private matchField(userVal: string | null | undefined, korapayVal: string | null | undefined): boolean {
+  private matchField(
+    userVal: string | null | undefined,
+    korapayVal: string | null | undefined,
+  ): boolean {
     if (!userVal || !korapayVal) return false;
     return this.normalize(userVal) === this.normalize(korapayVal);
   }
@@ -44,9 +50,17 @@ export class KycService {
     userId: string,
     id: string,
     identityType?: KorapayIdentityType,
-  ): Promise<{ status: KycStatus; reference: string; match?: any; korapayData?: any }> {
+  ): Promise<{
+    status: KycStatus;
+    reference: string;
+    match?: any;
+    korapayData?: any;
+  }> {
     const user = await this.usersService.findById(userId);
-    if (user.kycStatus === KycStatus.APPROVED && !KycService.isKycExpired(user.kycVerifiedAt)) {
+    if (
+      user.kycStatus === KycStatus.APPROVED &&
+      !KycService.isKycExpired(user.kycVerifiedAt)
+    ) {
       throw new BadRequestException('KYC already approved');
     }
 
@@ -71,14 +85,32 @@ export class KycService {
       if (user.phone) {
         const userPhone = user.phone.replace(/\D/g, '');
         const resultPhone = (result.phone_number || '').replace(/\D/g, '');
-        phoneMatch = resultPhone.length > 0 && (resultPhone.includes(userPhone) || userPhone.includes(resultPhone));
+        phoneMatch =
+          resultPhone.length > 0 &&
+          (resultPhone.includes(userPhone) || userPhone.includes(resultPhone));
       }
 
       const match = {
-        firstName: { user: user.firstName, korapay: result.first_name, match: firstNameMatch },
-        lastName: { user: user.lastName, korapay: result.last_name, match: lastNameMatch },
-        email: user.email ? { user: user.email, korapay: result.email, match: emailMatch } : null,
-        phone: user.phone ? { user: user.phone, korapay: result.phone_number, match: phoneMatch } : null,
+        firstName: {
+          user: user.firstName,
+          korapay: result.first_name,
+          match: firstNameMatch,
+        },
+        lastName: {
+          user: user.lastName,
+          korapay: result.last_name,
+          match: lastNameMatch,
+        },
+        email: user.email
+          ? { user: user.email, korapay: result.email, match: emailMatch }
+          : null,
+        phone: user.phone
+          ? {
+              user: user.phone,
+              korapay: result.phone_number,
+              match: phoneMatch,
+            }
+          : null,
       };
 
       const kycImage = result.image || null;
@@ -90,7 +122,15 @@ export class KycService {
         reference,
         status: KycStatus.PENDING,
         submittedAt: new Date(),
-        providerResponse: { korapayData: result, userData: { firstName: user.firstName, lastName: user.lastName, phone: user.phone }, match },
+        providerResponse: {
+          korapayData: result,
+          userData: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+          },
+          match,
+        },
       });
       await this.repo.save(submission);
 
@@ -104,15 +144,23 @@ export class KycService {
         userId,
         title: 'KYC Verification Submitted',
         message: `Your ${identityType || 'BVN'} verification has been submitted for review.`,
-        type: 'info' as any,
+        type: 'info',
         link: '/individual/kyc',
       });
 
-      this.logger.log(`KYC initiated for user ${userId}, type: ${identityType || 'bvn'}, reference: ${reference}`);
+      this.logger.log(
+        `KYC initiated for user ${userId}, type: ${identityType || 'bvn'}, reference: ${reference}`,
+      );
 
-      return { status: KycStatus.PENDING, reference, match, korapayData: result };
+      return {
+        status: KycStatus.PENDING,
+        reference,
+        match,
+        korapayData: result,
+      };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       const submission = this.repo.create({
         userId,
@@ -133,7 +181,9 @@ export class KycService {
         kycVerifiedAt: null,
       });
 
-      this.logger.warn(`KYC submission failed for user ${userId}: ${errorMessage}`);
+      this.logger.warn(
+        `KYC submission failed for user ${userId}: ${errorMessage}`,
+      );
 
       return { status: KycStatus.REJECTED, reference };
     }
@@ -153,7 +203,9 @@ export class KycService {
     }
 
     const kycStatus =
-      parsed.data.status === 'success' ? KycStatus.APPROVED : KycStatus.REJECTED;
+      parsed.data.status === 'success'
+        ? KycStatus.APPROVED
+        : KycStatus.REJECTED;
     submission.status = kycStatus;
     submission.processedAt = new Date();
     submission.providerResponse = payload;
@@ -225,11 +277,13 @@ export class KycService {
     const isApproved = dto.status === KycStatus.APPROVED;
     await this.notifications.create({
       userId: submission.userId,
-      title: isApproved ? 'KYC Verification Approved' : 'KYC Verification Rejected',
+      title: isApproved
+        ? 'KYC Verification Approved'
+        : 'KYC Verification Rejected',
       message: isApproved
         ? 'Your identity has been verified successfully.'
         : `Your KYC verification was rejected.${dto.rejectionReason ? ` Reason: ${dto.rejectionReason}` : ''}`,
-      type: isApproved ? 'success' as any : 'error' as any,
+      type: isApproved ? 'success' : 'error',
       link: '/individual/kyc',
     });
 

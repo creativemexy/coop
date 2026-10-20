@@ -1,18 +1,41 @@
 import { DataSource } from 'typeorm';
 import { InvestmentProduct } from '../../modules/investments/entities/investment-product.entity';
-import { ShareIssuanceCycle, CycleStatus } from '../../modules/investments/entities/share-issuance-cycle.entity';
+import {
+  ShareIssuanceCycle,
+  CycleStatus,
+} from '../../modules/investments/entities/share-issuance-cycle.entity';
 import { NavSnapshot } from '../../modules/investments/entities/nav-snapshot.entity';
-import { Distribution, DistributionType, DistributionStatus } from '../../modules/investments/entities/distribution.entity';
-import { CorporateAction, CorporateActionType, CorporateActionStatus } from '../../modules/investments/entities/corporate-action.entity';
+import {
+  Distribution,
+  DistributionType,
+  DistributionStatus,
+} from '../../modules/investments/entities/distribution.entity';
+import {
+  CorporateAction,
+  CorporateActionType,
+  CorporateActionStatus,
+} from '../../modules/investments/entities/corporate-action.entity';
 
 const SYS_ADMIN = '00000000-0000-0000-0000-000000000001';
 
 interface AugmentSpec {
   productName: string;
-  cycles?: Array<Omit<ShareIssuanceCycle, 'id' | 'product' | 'productId' | 'createdAt' | 'updatedAt'>>;
+  cycles?: Array<
+    Omit<
+      ShareIssuanceCycle,
+      'id' | 'product' | 'productId' | 'createdAt' | 'updatedAt'
+    >
+  >;
   nav?: Array<Omit<NavSnapshot, 'id' | 'productId' | 'createdAt'>>;
-  distributions?: Array<Omit<Distribution, 'id' | 'productId' | 'createdAt' | 'product'>>;
-  corporateActions?: Array<Omit<CorporateAction, 'id' | 'productId' | 'createdAt' | 'updatedAt' | 'product'>>;
+  distributions?: Array<
+    Omit<Distribution, 'id' | 'productId' | 'createdAt' | 'product'>
+  >;
+  corporateActions?: Array<
+    Omit<
+      CorporateAction,
+      'id' | 'productId' | 'createdAt' | 'updatedAt' | 'product'
+    >
+  >;
 }
 
 const AUGMENT: AugmentSpec[] = [
@@ -34,9 +57,24 @@ const AUGMENT: AugmentSpec[] = [
       },
     ],
     nav: [
-      { nav: 100, unitPrice: 100, snapshotDate: new Date('2026-07-30'), createdBy: SYS_ADMIN },
-      { nav: 100, unitPrice: 100, snapshotDate: new Date('2026-07-23'), createdBy: SYS_ADMIN },
-      { nav: 100, unitPrice: 100, snapshotDate: new Date('2026-07-16'), createdBy: SYS_ADMIN },
+      {
+        nav: 100,
+        unitPrice: 100,
+        snapshotDate: new Date('2026-07-30'),
+        createdBy: SYS_ADMIN,
+      },
+      {
+        nav: 100,
+        unitPrice: 100,
+        snapshotDate: new Date('2026-07-23'),
+        createdBy: SYS_ADMIN,
+      },
+      {
+        nav: 100,
+        unitPrice: 100,
+        snapshotDate: new Date('2026-07-16'),
+        createdBy: SYS_ADMIN,
+      },
     ],
     distributions: [
       {
@@ -72,9 +110,24 @@ const AUGMENT: AugmentSpec[] = [
       },
     ],
     nav: [
-      { nav: 512.4, unitPrice: 512.4, snapshotDate: new Date('2026-07-30'), createdBy: SYS_ADMIN },
-      { nav: 506.15, unitPrice: 506.15, snapshotDate: new Date('2026-07-15'), createdBy: SYS_ADMIN },
-      { nav: 500, unitPrice: 500, snapshotDate: new Date('2026-06-30'), createdBy: SYS_ADMIN },
+      {
+        nav: 512.4,
+        unitPrice: 512.4,
+        snapshotDate: new Date('2026-07-30'),
+        createdBy: SYS_ADMIN,
+      },
+      {
+        nav: 506.15,
+        unitPrice: 506.15,
+        snapshotDate: new Date('2026-07-15'),
+        createdBy: SYS_ADMIN,
+      },
+      {
+        nav: 500,
+        unitPrice: 500,
+        snapshotDate: new Date('2026-06-30'),
+        createdBy: SYS_ADMIN,
+      },
     ],
     distributions: [
       {
@@ -126,9 +179,24 @@ const AUGMENT: AugmentSpec[] = [
       },
     ],
     nav: [
-      { nav: 252.5, unitPrice: 252.5, snapshotDate: new Date('2026-07-30'), createdBy: SYS_ADMIN },
-      { nav: 251.2, unitPrice: 251.2, snapshotDate: new Date('2026-07-16'), createdBy: SYS_ADMIN },
-      { nav: 250, unitPrice: 250, snapshotDate: new Date('2026-06-30'), createdBy: SYS_ADMIN },
+      {
+        nav: 252.5,
+        unitPrice: 252.5,
+        snapshotDate: new Date('2026-07-30'),
+        createdBy: SYS_ADMIN,
+      },
+      {
+        nav: 251.2,
+        unitPrice: 251.2,
+        snapshotDate: new Date('2026-07-16'),
+        createdBy: SYS_ADMIN,
+      },
+      {
+        nav: 250,
+        unitPrice: 250,
+        snapshotDate: new Date('2026-06-30'),
+        createdBy: SYS_ADMIN,
+      },
     ],
     distributions: [
       {
@@ -182,7 +250,9 @@ const AUGMENT: AugmentSpec[] = [
   },
 ];
 
-export async function augmentInvestmentGovernance(dataSource: DataSource): Promise<void> {
+export async function augmentInvestmentGovernance(
+  dataSource: DataSource,
+): Promise<void> {
   const productRepo = dataSource.getRepository(InvestmentProduct);
   const cycleRepo = dataSource.getRepository(ShareIssuanceCycle);
   const navRepo = dataSource.getRepository(NavSnapshot);
@@ -195,7 +265,9 @@ export async function augmentInvestmentGovernance(dataSource: DataSource): Promi
   let addedCorp = 0;
 
   for (const spec of AUGMENT) {
-    const product = await productRepo.findOne({ where: { name: spec.productName } });
+    const product = await productRepo.findOne({
+      where: { name: spec.productName },
+    });
     if (!product) {
       console.log(`Augment skip: product not found "${spec.productName}"`);
       continue;
@@ -203,9 +275,13 @@ export async function augmentInvestmentGovernance(dataSource: DataSource): Promi
 
     if (spec.cycles) {
       for (const cycle of spec.cycles) {
-        const existing = await cycleRepo.findOne({ where: { productId: product.id, cycleName: cycle.cycleName } });
+        const existing = await cycleRepo.findOne({
+          where: { productId: product.id, cycleName: cycle.cycleName },
+        });
         if (!existing) {
-          await cycleRepo.save(cycleRepo.create({ ...cycle, productId: product.id }));
+          await cycleRepo.save(
+            cycleRepo.create({ ...cycle, productId: product.id }),
+          );
           addedCycles++;
         }
       }
@@ -213,9 +289,13 @@ export async function augmentInvestmentGovernance(dataSource: DataSource): Promi
 
     if (spec.nav) {
       for (const snap of spec.nav) {
-        const existing = await navRepo.findOne({ where: { productId: product.id, snapshotDate: snap.snapshotDate } });
+        const existing = await navRepo.findOne({
+          where: { productId: product.id, snapshotDate: snap.snapshotDate },
+        });
         if (!existing) {
-          await navRepo.save(navRepo.create({ ...snap, productId: product.id }));
+          await navRepo.save(
+            navRepo.create({ ...snap, productId: product.id }),
+          );
           addedNav++;
         }
       }
@@ -223,9 +303,16 @@ export async function augmentInvestmentGovernance(dataSource: DataSource): Promi
 
     if (spec.distributions) {
       for (const dist of spec.distributions) {
-        const existing = await distRepo.findOne({ where: { productId: product.id, description: dist.description ?? '' } as any });
+        const existing = await distRepo.findOne({
+          where: {
+            productId: product.id,
+            description: dist.description ?? '',
+          },
+        });
         if (!existing) {
-          await distRepo.save(distRepo.create({ ...dist, productId: product.id }));
+          await distRepo.save(
+            distRepo.create({ ...dist, productId: product.id }),
+          );
           addedDist++;
         }
       }
@@ -233,14 +320,23 @@ export async function augmentInvestmentGovernance(dataSource: DataSource): Promi
 
     if (spec.corporateActions) {
       for (const action of spec.corporateActions) {
-        const existing = await corporateRepo.findOne({ where: { productId: product.id, description: action.description ?? '' } as any });
+        const existing = await corporateRepo.findOne({
+          where: {
+            productId: product.id,
+            description: action.description ?? '',
+          },
+        });
         if (!existing) {
-          await corporateRepo.save(corporateRepo.create({ ...action, productId: product.id }));
+          await corporateRepo.save(
+            corporateRepo.create({ ...action, productId: product.id }),
+          );
           addedCorp++;
         }
       }
     }
   }
 
-  console.log(`Augmented investment governance: +${addedCycles} cycles, +${addedNav} NAV snapshots, +${addedDist} distributions, +${addedCorp} corporate actions`);
+  console.log(
+    `Augmented investment governance: +${addedCycles} cycles, +${addedNav} NAV snapshots, +${addedDist} distributions, +${addedCorp} corporate actions`,
+  );
 }

@@ -8,6 +8,19 @@ import {
 import { Request, Response } from 'express';
 import { MonitoringService } from '../monitoring/monitoring.service';
 
+function buildMonitoringContext(request: Request) {
+  return {
+    method: request.method,
+    url: request.originalUrl || request.url,
+    route: request.route?.path || request.path,
+    ip: request.ip,
+    requestId:
+      (request.headers['x-request-id'] as string | undefined) ??
+      (request.headers['x-correlation-id'] as string | undefined) ??
+      null,
+  };
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(private readonly monitoring: MonitoringService) {}
@@ -25,24 +38,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = exception.getResponse();
     }
 
-    const errorMessage = exception instanceof Error ? exception.message : 'Unknown error';
+    const errorMessage =
+      exception instanceof Error ? exception.message : 'Unknown error';
     const errorResponse = {
       statusCode: status,
-      message: typeof message === 'string' ? message : (message as any).message || message,
+      message:
+        typeof message === 'string'
+          ? message
+          : (message as any).message || message,
       error: typeof message === 'string' ? undefined : (message as any).error,
       timestamp: new Date().toISOString(),
       path: request.url,
     };
 
     if (status >= 500 && this.monitoring) {
-      const context = {
-        url: request.url,
-        method: request.method,
-        ip: request.ip,
-        body: request.body,
-        query: request.query,
-        params: request.params,
-      };
+      const context = buildMonitoringContext(request);
       if (exception instanceof Error) {
         this.monitoring.captureException(exception, context);
       }

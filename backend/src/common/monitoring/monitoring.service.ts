@@ -12,7 +12,8 @@ export class MonitoringService {
     if (dsn) {
       Sentry.init({
         dsn,
-        environment: this.configService.get<string>('NODE_ENV') || 'development',
+        environment:
+          this.configService.get<string>('NODE_ENV') || 'development',
         tracesSampleRate: 0.1,
         integrations: [],
       });
@@ -34,7 +35,11 @@ export class MonitoringService {
     });
   }
 
-  captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>): void {
+  captureMessage(
+    message: string,
+    level: Sentry.SeverityLevel = 'info',
+    context?: Record<string, any>,
+  ): void {
     if (!this.initialized) {
       this.logger.log(`[${level}] ${message}`);
       return;
@@ -47,7 +52,11 @@ export class MonitoringService {
     });
   }
 
-  captureSecurityEvent(event: string, userId?: string, metadata?: Record<string, any>): void {
+  captureSecurityEvent(
+    event: string,
+    userId?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.captureMessage(`[SECURITY] ${event}`, 'warning', {
       userId,
       ...metadata,

@@ -15,7 +15,10 @@ export function sanitizeInput(input: string): string {
   return sanitizeHtml(input, SANITIZE_OPTIONS).trim();
 }
 
-export function sanitizeObject<T extends Record<string, any>>(obj: T, fields: (keyof T)[]): T {
+export function sanitizeObject<T extends Record<string, any>>(
+  obj: T,
+  fields: (keyof T)[],
+): T {
   const result = { ...obj };
   for (const field of fields) {
     const val = result[field];

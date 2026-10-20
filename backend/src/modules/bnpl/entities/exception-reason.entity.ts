@@ -33,7 +33,12 @@ export class ExceptionReason {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'enum', enum: ExceptionCategory, name: 'category', default: ExceptionCategory.OTHER })
+  @Column({
+    type: 'enum',
+    enum: ExceptionCategory,
+    name: 'category',
+    default: ExceptionCategory.OTHER,
+  })
   category: ExceptionCategory;
 
   @Column({ type: 'int', name: 'escalation_threshold_days', nullable: true })
@@ -42,7 +47,12 @@ export class ExceptionReason {
   @Column({ type: 'int', name: 'escalation_threshold_count', nullable: true })
   escalationThresholdCount: number;
 
-  @Column({ type: 'enum', enum: EscalationAction, name: 'escalation_action', default: EscalationAction.MANUAL_REVIEW })
+  @Column({
+    type: 'enum',
+    enum: EscalationAction,
+    name: 'escalation_action',
+    default: EscalationAction.MANUAL_REVIEW,
+  })
   escalationAction: EscalationAction;
 
   @Column({ type: 'varchar', length: 50, default: 'active' })

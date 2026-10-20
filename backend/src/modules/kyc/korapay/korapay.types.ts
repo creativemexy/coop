@@ -37,7 +37,10 @@ export interface KorapayLookupData {
     state?: string;
     street?: string;
   };
-  validation?: Record<string, { value: string; match: boolean; confidence_rating?: number }>;
+  validation?: Record<
+    string,
+    { value: string; match: boolean; confidence_rating?: number }
+  >;
   requested_by?: string;
 }
 

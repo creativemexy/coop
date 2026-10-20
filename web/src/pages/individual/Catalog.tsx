@@ -170,6 +170,8 @@ export function Catalog() {
   const [loading, setLoading] = useState(true)
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [plansError, setPlansError] = useState<string | null>(null)
   const [planModal, setPlanModal] = useState<Plan | null>(null)
   const [subscribing, setSubscribing] = useState(false)
   const [eligibility, setEligibility] = useState<Record<string, Eligibility>>({})
@@ -189,15 +191,28 @@ export function Catalog() {
 
   const viewPlans = async (item: CatalogItem) => {
     setSelectedItem(item)
+    setPlans([])
+    setPlansLoading(true)
+    setPlansError(null)
     setEligibility({})
-    const { data } = await api.get('/bnpl/plans')
-    const active = data.filter((p: Plan) => p.catalogItemId === item.id && p.status === 'active')
-    setPlans(active)
-    active.forEach((p: Plan) => {
-      api.get('/bnpl/compliance/eligibility', { params: { planId: p.id } })
-        .then((r) => setEligibility((prev) => ({ ...prev, [p.id]: r.data })))
-        .catch(() => {})
-    })
+    try {
+      const { data } = await api.get('/bnpl/plans')
+      const active = data.filter((p: Plan) => p.catalogItemId === item.id && p.status === 'active')
+      setPlans(active)
+      active.forEach((p: Plan) => {
+        api.get('/bnpl/compliance/eligibility', { params: { planId: p.id } })
+          .then((r) => setEligibility((prev) => ({ ...prev, [p.id]: r.data })))
+          .catch(() => {})
+      })
+    } catch (error: any) {
+      setPlansError(
+        error?.response?.status === 403
+          ? 'Complete KYC verification to view repayment plans.'
+          : 'Unable to load repayment plans. Please try again.',
+      )
+    } finally {
+      setPlansLoading(false)
+    }
   }
 
   const handleSubscribe = async (plan: Plan) => {
@@ -347,11 +362,19 @@ export function Catalog() {
 
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#6B5245]">Available Plans</p>
-              {plans.length === 0 && (
+              {plansLoading ? (
+                <p className="rounded-2xl border border-dashed border-[#E7DCCB] px-4 py-8 text-center text-sm text-[#6B5245]">
+                  Loading plans...
+                </p>
+              ) : plansError ? (
+                <p className="rounded-2xl border border-dashed border-[#E7DCCB] px-4 py-8 text-center text-sm text-[#6B5245]">
+                  {plansError}
+                </p>
+              ) : plans.length === 0 ? (
                 <p className="rounded-2xl border border-dashed border-[#E7DCCB] px-4 py-8 text-center text-sm text-[#C9B89F]">
                   No plans available for this item
                 </p>
-              )}
+              ) : null}
               <div className="space-y-3">
                 {plans.map((plan) => {
                   const el = eligibility[plan.id]

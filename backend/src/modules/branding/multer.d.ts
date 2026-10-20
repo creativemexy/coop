@@ -1,3 +1,3 @@
 declare module 'multer' {
-  export function diskStorage(opts: any): any
+  export function diskStorage(opts: any): any;
 }

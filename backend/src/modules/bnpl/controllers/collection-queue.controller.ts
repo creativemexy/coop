@@ -1,6 +1,18 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CollectionQueueService } from '../services/collection-queue.service';
-import { QueueStatus, QueuePriority } from '../entities/collection-queue.entity';
+import {
+  QueueStatus,
+  QueuePriority,
+} from '../entities/collection-queue.entity';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -39,10 +51,7 @@ export class CollectionQueueController {
   }
 
   @Patch(':id/assign')
-  async assignTo(
-    @Param('id') id: string,
-    @Body() dto: { assignedTo: string },
-  ) {
+  async assignTo(@Param('id') id: string, @Body() dto: { assignedTo: string }) {
     return this.service.assignTo(id, dto.assignedTo);
   }
 

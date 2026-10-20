@@ -97,10 +97,12 @@ export class CatalogService {
     const sanitized = sanitizeObject(dto, ['name', 'description']);
     const updateData: Record<string, any> = {};
     if (sanitized.name !== undefined) updateData.name = sanitized.name;
-    if (sanitized.description !== undefined) updateData.description = sanitized.description;
+    if (sanitized.description !== undefined)
+      updateData.description = sanitized.description;
     if (dto.price !== undefined) updateData.price = dto.price;
     if (dto.status !== undefined) updateData.status = dto.status;
-    if (dto.imageUrls !== undefined) updateData.imageUrl = dto.imageUrls[0] || null;
+    if (dto.imageUrls !== undefined)
+      updateData.imageUrl = dto.imageUrls[0] || null;
 
     await this.catalogRepo.update(id, updateData);
 

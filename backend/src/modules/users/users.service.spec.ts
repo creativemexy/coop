@@ -80,7 +80,10 @@ describe('UsersService', () => {
 
     it('should create BM', async () => {
       userRepo.findOne.mockResolvedValue(null);
-      userRepo.save.mockResolvedValue({ ...mockUser, role: Role.BUSINESS_MANAGER });
+      userRepo.save.mockResolvedValue({
+        ...mockUser,
+        role: Role.BUSINESS_MANAGER,
+      });
       const result = await service.createBusinessManager({
         email: 'bm@test.com',
         password: 'pass',

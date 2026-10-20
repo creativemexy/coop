@@ -46,7 +46,13 @@ export class AdminController {
     @Body() dto: { role: Role; organizationId?: string; apexOrgId?: string },
     @CurrentUser() user: any,
   ) {
-    return this.adminService.assignRole(id, dto.role, user.role, dto.organizationId, dto.apexOrgId);
+    return this.adminService.assignRole(
+      id,
+      dto.role,
+      user.role,
+      dto.organizationId,
+      dto.apexOrgId,
+    );
   }
 
   // ─── Tenant management (base) ───────────────────────────────────
@@ -71,7 +77,8 @@ export class AdminController {
   @Patch('tenants/:id/settings')
   async updateTenantSettings(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       name?: string;
       status?: string;
       supportedProducts?: string[];
@@ -97,11 +104,23 @@ export class AdminController {
   @Patch('tenants/:id/config')
   async updateTenantConfig(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       bnplEnabled?: boolean;
       kycRequirementLevel?: string;
-      repaymentRetryPolicy?: { maxAttempts: number; cooldownHours: number; autoRetryOnFailure: boolean };
-      webhookProviders?: { paystack: { endpoint: string; enabled: boolean; retryOnFailure: boolean; retryMaxAttempts: number } };
+      repaymentRetryPolicy?: {
+        maxAttempts: number;
+        cooldownHours: number;
+        autoRetryOnFailure: boolean;
+      };
+      webhookProviders?: {
+        paystack: {
+          endpoint: string;
+          enabled: boolean;
+          retryOnFailure: boolean;
+          retryMaxAttempts: number;
+        };
+      };
       logRetentionDays?: number;
       name?: string;
       status?: string;
@@ -182,7 +201,10 @@ export class AdminController {
   async exportTenantReport(@Param('id') id: string, @Res() res: any) {
     const csv = await this.adminService.exportTenantReport(id);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="tenant-${id}-report.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="tenant-${id}-report.csv"`,
+    );
     res.send(csv);
   }
 
@@ -194,10 +216,11 @@ export class AdminController {
   // ─── Operational Monitoring ─────────────────────────────────────
 
   @Get('monitoring/webhooks')
-  async getWebhookDeliveryStatus(
-    @Query('days') days?: string,
-  ) {
-    return this.adminService.getWebhookDeliveryStatus(undefined, days ? Number(days) : 7);
+  async getWebhookDeliveryStatus(@Query('days') days?: string) {
+    return this.adminService.getWebhookDeliveryStatus(
+      undefined,
+      days ? Number(days) : 7,
+    );
   }
 
   @Get('monitoring/failed-jobs')

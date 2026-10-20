@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../stores/auth.store'
 import { DesignCredit } from '../../components/layout/DesignCredit'
+import { usePageMeta } from '../../lib/seo'
 
 const ROLE_ROUTES: Record<string, string> = {
   apex_business_manager: '/apex-bm',
@@ -9,25 +10,34 @@ const ROLE_ROUTES: Record<string, string> = {
 const rolePath = (role: string) => ROLE_ROUTES[role] ?? `/${role.replace(/_/g, '-')}`
 
 export function SocialCallback() {
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { loginWithToken, user } = useAuth()
+  const user = useAuth((s) => s.user)
+  const restoreSession = useAuth((s) => s.restoreSession)
+
+  usePageMeta({
+    title: 'Completing Sign In | FENAC COOP',
+    description: 'Completing your FENAC COOP sign in.',
+    noindex: true,
+  })
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    const refreshToken = searchParams.get('refreshToken')
-    if (token && refreshToken) {
-      loginWithToken(token, refreshToken).then((u) => {
-        navigate(rolePath(u.role), { replace: true })
-      })
-    } else {
-      navigate('/login', { replace: true })
+    if (user) {
+      navigate(rolePath(user.role), { replace: true })
+      return
     }
-  }, [searchParams, navigate, loginWithToken])
-
-  if (user) {
-    navigate(rolePath(user.role), { replace: true })
-  }
+    let cancelled = false
+    // No tokens arrive in the URL. The backend delivered the refresh token as
+    // an HttpOnly cookie during the OAuth redirect; we restore the session via
+    // the cookie-backed refresh flow.
+    restoreSession().then(() => {
+      if (cancelled) return
+      const u = useAuth.getState().user
+      navigate(u ? rolePath(u.role) : '/login', { replace: true })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user, navigate, restoreSession])
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">

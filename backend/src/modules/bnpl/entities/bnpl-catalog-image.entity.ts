@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { BnplCatalogItem } from './bnpl-catalog-item.entity';
 
 @Entity('bnpl_catalog_images')
@@ -9,7 +16,9 @@ export class BnplCatalogImage {
   @Column({ type: 'uuid', name: 'catalog_item_id' })
   catalogItemId: string;
 
-  @ManyToOne(() => BnplCatalogItem, (item) => item.images, { onDelete: 'CASCADE' })
+  @ManyToOne(() => BnplCatalogItem, (item) => item.images, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'catalog_item_id' })
   catalogItem: BnplCatalogItem;
 

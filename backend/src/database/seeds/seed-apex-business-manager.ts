@@ -5,7 +5,9 @@ import { User } from '../../modules/users/entities/user.entity';
 import { ApexOrganization } from '../../modules/apex-organizations/entities/apex-organization.entity';
 import { hashForLookup } from '../../common/encryption.service';
 
-export async function seedApexBusinessManager(dataSource: DataSource): Promise<void> {
+export async function seedApexBusinessManager(
+  dataSource: DataSource,
+): Promise<void> {
   const userRepo = dataSource.getRepository(User);
   const apexRepo = dataSource.getRepository(ApexOrganization);
 
@@ -40,7 +42,9 @@ export async function seedApexBusinessManager(dataSource: DataSource): Promise<v
       isActive: true,
     });
 
-    console.log(`Apex BM seeded for ${apexOrg.code}: apexbm-${slug}@coop.com / ApexBM@123456`);
+    console.log(
+      `Apex BM seeded for ${apexOrg.code}: apexbm-${slug}@coop.com / ApexBM@123456`,
+    );
     seeded++;
   }
 

@@ -1,5 +1,6 @@
 import { ArrowRight, BadgeCheck, Building2, CheckCircle2, FileCheck2, Handshake, Landmark, ShieldCheck, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../../lib/seo'
 
 const membershipBenefits = [
   {
@@ -78,6 +79,13 @@ const eligibilityCriteria = [
 ]
 
 export default function Membership() {
+  usePageMeta({
+    title: 'Membership for Associations, Clubs & NGOs | FENAC COOP',
+    description:
+      'Join FENAC COOP, Nigeria\'s apex cooperative federation. Scale-based membership for associations, clubs and NGOs with transparent fees and member-first governance.',
+    path: '/membership',
+  })
+
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
       <section className="relative isolate overflow-hidden bg-[#20120E] text-[#FFF9EF]">

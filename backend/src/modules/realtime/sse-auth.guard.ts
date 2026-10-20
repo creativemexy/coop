@@ -18,19 +18,29 @@ export class SseAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<Request & {
-      headers: Record<string, string>;
-      query: Record<string, string>;
-      user?: any;
-    }>();
+    const req = context.switchToHttp().getRequest<
+      Request & {
+        headers: Record<string, string>;
+        query: Record<string, string>;
+        user?: any;
+      }
+    >();
+
+    if (req.query?.token) {
+      throw new UnauthorizedException(
+        'JWT must be supplied in the Authorization header for SSE streams',
+      );
+    }
 
     const authHeader = req.headers?.authorization;
-    const queryToken = req.query?.token;
-    let token = queryToken;
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.slice(7);
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Missing bearer token');
     }
-    if (!token) throw new UnauthorizedException('Missing token');
+
+    const token = authHeader.slice(7);
+    if (!token) {
+      throw new UnauthorizedException('Missing bearer token');
+    }
 
     let payload: any;
     try {

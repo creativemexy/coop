@@ -35,7 +35,13 @@ export class ReconciliationResult {
   @Column({ type: 'decimal', name: 'expected_amount', precision: 15, scale: 2 })
   expectedAmount: number;
 
-  @Column({ type: 'decimal', name: 'actual_amount', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'actual_amount',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   actualAmount: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })

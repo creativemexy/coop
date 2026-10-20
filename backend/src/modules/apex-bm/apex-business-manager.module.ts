@@ -10,7 +10,13 @@ import { FeePot } from '../ledger/entities/fee-pot.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ApexOrganization, Organization, User, FeeShareLedger, FeePot]),
+    TypeOrmModule.forFeature([
+      ApexOrganization,
+      Organization,
+      User,
+      FeeShareLedger,
+      FeePot,
+    ]),
   ],
   controllers: [ApexBusinessManagerController],
   providers: [ApexBusinessManagerService],

@@ -1,15 +1,27 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FeeShareLedger } from '../entities/fee-share-ledger.entity';
 import { FeePot } from '../entities/fee-pot.entity';
 import { FeeWithdrawalRequest } from '../entities/fee-withdrawal-request.entity';
-import { PotType, FeeSource, PayoutStatus } from '../../../common/enums/status.enum';
+import {
+  PotType,
+  FeeSource,
+  PayoutStatus,
+} from '../../../common/enums/status.enum';
 import { Role } from '../../../common/enums/role.enum';
 import { SettingsService } from '../../settings/settings.service';
 import { Organization } from '../../organizations/entities/organization.entity';
 import { ApexOrganization } from '../../apex-organizations/entities/apex-organization.entity';
-import { PaystackClient, PaystackTransferResult } from '../../payments/providers/paystack/paystack.client';
+import {
+  PaystackClient,
+  PaystackTransferResult,
+} from '../../payments/providers/paystack/paystack.client';
 
 @Injectable()
 export class FeeShareService {
@@ -52,7 +64,10 @@ export class FeeShareService {
       verified = null;
     }
 
-    if (verified && (verified.status === 'failed' || verified.status === 'reversed')) {
+    if (
+      verified &&
+      (verified.status === 'failed' || verified.status === 'reversed')
+    ) {
       request.status = PayoutStatus.FAILED;
       request.paystackReference = verified.reference;
       request.note = `Payout failed: ${errorMessage}`;
@@ -69,7 +84,8 @@ export class FeeShareService {
       request.status = PayoutStatus.COMPLETED;
       request.approvedBy = actorId;
       request.paystackReference = reference;
-      request.note = 'Payout status uncertain — verify on Paystack dashboard before any retry';
+      request.note =
+        'Payout status uncertain — verify on Paystack dashboard before any retry';
     }
     await this.withdrawalRepo.save(request);
     pot.balance = 0;
@@ -90,14 +106,16 @@ export class FeeShareService {
       return existing;
     }
 
-    const platformPercent = await this.settingsService
-      .getNumber('fee_platform_percent', 30) / 100;
-    const superAdminPercent = await this.settingsService
-      .getNumber('fee_super_admin_percent', 20) / 100;
-    const orgPercent = await this.settingsService
-      .getNumber('fee_organization_percent', 35) / 100;
-    const apexPercent = await this.settingsService
-      .getNumber('fee_apex_percent', 15) / 100;
+    const platformPercent =
+      (await this.settingsService.getNumber('fee_platform_percent', 30)) / 100;
+    const superAdminPercent =
+      (await this.settingsService.getNumber('fee_super_admin_percent', 20)) /
+      100;
+    const orgPercent =
+      (await this.settingsService.getNumber('fee_organization_percent', 35)) /
+      100;
+    const apexPercent =
+      (await this.settingsService.getNumber('fee_apex_percent', 15)) / 100;
 
     const superAdminShare = params.totalFee * superAdminPercent;
     const platformShare = params.totalFee * platformPercent;
@@ -122,7 +140,11 @@ export class FeeShareService {
     await this.creditPot(PotType.PLATFORM, 'PLATFORM', platformShare);
     await this.creditPot(PotType.ADMIN, 'ADMIN', superAdminShare);
     if (params.organizationId) {
-      await this.creditPot(PotType.ORGANIZATION, params.organizationId, orgShare);
+      await this.creditPot(
+        PotType.ORGANIZATION,
+        params.organizationId,
+        orgShare,
+      );
     }
     if (params.apexOrgId) {
       await this.creditPot(PotType.APEX, params.apexOrgId, apexShare);
@@ -172,7 +194,10 @@ export class FeeShareService {
           take: 50,
         }),
         this.potRepo.findOne({
-          where: { potType: PotType.ORGANIZATION, entityId: ctx.organizationId },
+          where: {
+            potType: PotType.ORGANIZATION,
+            entityId: ctx.organizationId,
+          },
         }),
       ]);
 
@@ -247,12 +272,21 @@ export class FeeShareService {
   }): Promise<{ withdrawn: number; remaining: number }> {
     let potType: PotType;
     let entityId: string;
-    let bank: { bankName?: string; accountName?: string; accountNumber?: string; bankCode?: string } | null = null;
+    let bank: {
+      bankName?: string;
+      accountName?: string;
+      accountNumber?: string;
+      bankCode?: string;
+    } | null = null;
 
     if (ctx.role === Role.APEX_BUSINESS_MANAGER && ctx.apexOrgId) {
-      const apexOrg = await this.apexOrgRepo.findOne({ where: { id: ctx.apexOrgId } });
+      const apexOrg = await this.apexOrgRepo.findOne({
+        where: { id: ctx.apexOrgId },
+      });
       if (!apexOrg?.accountNumber) {
-        throw new BadRequestException('Apex organization must store bank account details before withdrawing');
+        throw new BadRequestException(
+          'Apex organization must store bank account details before withdrawing',
+        );
       }
       bank = {
         bankName: apexOrg.bankName,
@@ -263,9 +297,13 @@ export class FeeShareService {
       potType = PotType.APEX;
       entityId = ctx.apexOrgId;
     } else if (ctx.role === Role.BUSINESS_MANAGER && ctx.organizationId) {
-      const org = await this.orgRepo.findOne({ where: { id: ctx.organizationId } });
+      const org = await this.orgRepo.findOne({
+        where: { id: ctx.organizationId },
+      });
       if (!org?.accountNumber) {
-        throw new BadRequestException('Organization must store a bank account before withdrawing');
+        throw new BadRequestException(
+          'Organization must store a bank account before withdrawing',
+        );
       }
       bank = {
         bankName: org.bankName,
@@ -282,7 +320,9 @@ export class FeeShareService {
 
     const lockKey = this.potLockKey(potType, entityId);
     if (this.payoutInFlight.has(lockKey)) {
-      throw new BadRequestException('A payout for this pot is already being processed — please wait');
+      throw new BadRequestException(
+        'A payout for this pot is already being processed — please wait',
+      );
     }
     this.payoutInFlight.add(lockKey);
     try {
@@ -308,11 +348,13 @@ export class FeeShareService {
       await this.withdrawalRepo.save(savedRequest);
 
       try {
-        const recipientCode = await this.paystackClient.createTransferRecipient({
-          name: bank?.accountName || 'Coop Beneficiary',
-          accountNumber: bank?.accountNumber || '',
-          bankCode: bank?.bankCode || '',
-        });
+        const recipientCode = await this.paystackClient.createTransferRecipient(
+          {
+            name: bank?.accountName || 'Coop Beneficiary',
+            accountNumber: bank?.accountNumber || '',
+            bankCode: bank?.bankCode || '',
+          },
+        );
         const transfer = await this.paystackClient.initiateTransfer({
           amount,
           recipient: recipientCode,
@@ -347,8 +389,12 @@ export class FeeShareService {
           );
           return { withdrawn: amount, remaining: 0 };
         }
-        this.logger.error(`Auto-payout failed for ${potType} pot ${entityId}: ${(error as Error).message}`);
-        throw new BadRequestException('Payout failed — fee balance retained, you can retry');
+        this.logger.error(
+          `Auto-payout failed for ${potType} pot ${entityId}: ${(error as Error).message}`,
+        );
+        throw new BadRequestException(
+          'Payout failed — fee balance retained, you can retry',
+        );
       }
     } finally {
       this.payoutInFlight.delete(lockKey);
@@ -362,16 +408,22 @@ export class FeeShareService {
     userId: string;
   }): Promise<FeeWithdrawalRequest> {
     if (!dto.accountNumber || !dto.bankCode || !dto.bankName) {
-      throw new BadRequestException('Destination account details are required to withdraw from the admin pot');
+      throw new BadRequestException(
+        'Destination account details are required to withdraw from the admin pot',
+      );
     }
 
     const lockKey = this.potLockKey(PotType.ADMIN, 'ADMIN');
     if (this.payoutInFlight.has(lockKey)) {
-      throw new BadRequestException('A payout for this pot is already being processed — please wait');
+      throw new BadRequestException(
+        'A payout for this pot is already being processed — please wait',
+      );
     }
     this.payoutInFlight.add(lockKey);
     try {
-      const pot = await this.potRepo.findOne({ where: { potType: PotType.ADMIN, entityId: 'ADMIN' } });
+      const pot = await this.potRepo.findOne({
+        where: { potType: PotType.ADMIN, entityId: 'ADMIN' },
+      });
       if (!pot || Number(pot.balance) <= 0) {
         throw new BadRequestException('Admin pot is empty');
       }
@@ -394,11 +446,13 @@ export class FeeShareService {
       await this.withdrawalRepo.save(savedRequest);
 
       try {
-        const recipientCode = await this.paystackClient.createTransferRecipient({
-          name: dto.bankName || 'Coop Admin Beneficiary',
-          accountNumber: dto.accountNumber,
-          bankCode: dto.bankCode,
-        });
+        const recipientCode = await this.paystackClient.createTransferRecipient(
+          {
+            name: dto.bankName || 'Coop Admin Beneficiary',
+            accountNumber: dto.accountNumber,
+            bankCode: dto.bankCode,
+          },
+        );
         const transfer = await this.paystackClient.initiateTransfer({
           amount,
           recipient: recipientCode,
@@ -414,7 +468,9 @@ export class FeeShareService {
         pot.balance = 0;
         await this.potRepo.save(pot);
 
-        this.logger.log(`Admin pot paid ₦${amount} via Paystack transfer ${transfer.reference}`);
+        this.logger.log(
+          `Admin pot paid ₦${amount} via Paystack transfer ${transfer.reference}`,
+        );
         return savedRequest;
       } catch (error: unknown) {
         const settled = await this.settleAmbiguousOutcome(
@@ -425,11 +481,15 @@ export class FeeShareService {
           dto.userId,
         );
         if (settled) {
-          this.logger.warn(`Admin payout ${reference} recorded as settled after verify`);
+          this.logger.warn(
+            `Admin payout ${reference} recorded as settled after verify`,
+          );
           return savedRequest;
         }
         this.logger.error(`Admin payout failed: ${(error as Error).message}`);
-        throw new BadRequestException('Admin payout failed — fee balance retained, you can retry');
+        throw new BadRequestException(
+          'Admin payout failed — fee balance retained, you can retry',
+        );
       }
     } finally {
       this.payoutInFlight.delete(lockKey);
@@ -440,14 +500,20 @@ export class FeeShareService {
     userId: string,
     dto?: { accountNumber?: string; bankCode?: string; bankName?: string },
   ): Promise<FeeWithdrawalRequest> {
-    const pot = await this.potRepo.findOne({ where: { potType: PotType.PLATFORM, entityId: 'PLATFORM' } });
+    const pot = await this.potRepo.findOne({
+      where: { potType: PotType.PLATFORM, entityId: 'PLATFORM' },
+    });
     if (!pot || Number(pot.balance) <= 0) {
       throw new BadRequestException('Platform pot is empty');
     }
 
-    const existing = await this.withdrawalRepo.findOne({ where: { potType: PotType.PLATFORM, status: PayoutStatus.PENDING } });
+    const existing = await this.withdrawalRepo.findOne({
+      where: { potType: PotType.PLATFORM, status: PayoutStatus.PENDING },
+    });
     if (existing) {
-      throw new BadRequestException('A pending platform withdrawal request already exists');
+      throw new BadRequestException(
+        'A pending platform withdrawal request already exists',
+      );
     }
 
     return this.withdrawalRepo.save(
@@ -475,23 +541,30 @@ export class FeeShareService {
   ): Promise<FeeWithdrawalRequest> {
     const req = await this.withdrawalRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Withdrawal request not found');
-    if (req.status !== PayoutStatus.PENDING) throw new BadRequestException('Request is not pending');
+    if (req.status !== PayoutStatus.PENDING)
+      throw new BadRequestException('Request is not pending');
 
     if (dto?.accountNumber) req.accountNumber = dto.accountNumber;
     if (dto?.bankCode) req.bankCode = dto.bankCode;
     if (dto?.bankName) req.bankName = dto.bankName;
 
     if (!req.accountNumber || !req.bankCode) {
-      throw new BadRequestException('Destination account details are required to approve the platform withdrawal');
+      throw new BadRequestException(
+        'Destination account details are required to approve the platform withdrawal',
+      );
     }
 
     const lockKey = this.potLockKey(PotType.PLATFORM, 'PLATFORM');
     if (this.payoutInFlight.has(lockKey)) {
-      throw new BadRequestException('A payout for this pot is already being processed — please wait');
+      throw new BadRequestException(
+        'A payout for this pot is already being processed — please wait',
+      );
     }
     this.payoutInFlight.add(lockKey);
     try {
-      const pot = await this.potRepo.findOne({ where: { potType: PotType.PLATFORM, entityId: 'PLATFORM' } });
+      const pot = await this.potRepo.findOne({
+        where: { potType: PotType.PLATFORM, entityId: 'PLATFORM' },
+      });
       if (!pot || Number(pot.balance) <= 0) {
         throw new BadRequestException('Platform pot is empty');
       }
@@ -501,11 +574,13 @@ export class FeeShareService {
       await this.withdrawalRepo.save(req);
 
       try {
-        const recipientCode = await this.paystackClient.createTransferRecipient({
-          name: req.bankName || 'Coop Platform Beneficiary',
-          accountNumber: req.accountNumber,
-          bankCode: req.bankCode,
-        });
+        const recipientCode = await this.paystackClient.createTransferRecipient(
+          {
+            name: req.bankName || 'Coop Platform Beneficiary',
+            accountNumber: req.accountNumber,
+            bankCode: req.bankCode,
+          },
+        );
         const transfer = await this.paystackClient.initiateTransfer({
           amount,
           recipient: recipientCode,
@@ -523,7 +598,9 @@ export class FeeShareService {
         pot.balance = 0;
         await this.potRepo.save(pot);
 
-        this.logger.log(`Platform pot paid ₦${amount} via Paystack transfer ${transfer.reference}`);
+        this.logger.log(
+          `Platform pot paid ₦${amount} via Paystack transfer ${transfer.reference}`,
+        );
         return req;
       } catch (error: unknown) {
         const settled = await this.settleAmbiguousOutcome(
@@ -534,11 +611,17 @@ export class FeeShareService {
           approvedBy,
         );
         if (settled) {
-          this.logger.warn(`Platform payout ${reference} recorded as settled after verify`);
+          this.logger.warn(
+            `Platform payout ${reference} recorded as settled after verify`,
+          );
           return req;
         }
-        this.logger.error(`Platform payout failed for request ${id}: ${(error as Error).message}`);
-        throw new BadRequestException('Platform payout failed — pot balance retained, you can retry');
+        this.logger.error(
+          `Platform payout failed for request ${id}: ${(error as Error).message}`,
+        );
+        throw new BadRequestException(
+          'Platform payout failed — pot balance retained, you can retry',
+        );
       }
     } finally {
       this.payoutInFlight.delete(lockKey);
@@ -548,7 +631,8 @@ export class FeeShareService {
   async rejectWithdrawal(id: string): Promise<FeeWithdrawalRequest> {
     const req = await this.withdrawalRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Withdrawal request not found');
-    if (req.status !== PayoutStatus.PENDING) throw new BadRequestException('Request is not pending');
+    if (req.status !== PayoutStatus.PENDING)
+      throw new BadRequestException('Request is not pending');
 
     req.status = PayoutStatus.FAILED;
     await this.withdrawalRepo.save(req);

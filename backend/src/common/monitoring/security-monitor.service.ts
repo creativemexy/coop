@@ -31,15 +31,18 @@ export class SecurityMonitorService {
     });
 
     if (recentFails >= SUSPICIOUS_THRESHOLD) {
-      await this.alert.alertSecurity(
-        'Rapid failed login attempts',
-        userId,
-        { ipAddress, count: recentFails, windowMinutes: 5 },
-      );
+      await this.alert.alertSecurity('Rapid failed login attempts', userId, {
+        ipAddress,
+        count: recentFails,
+        windowMinutes: 5,
+      });
     }
   }
 
-  async checkSuspiciousUserId(ipAddress: string, userIds: string[]): Promise<void> {
+  async checkSuspiciousUserId(
+    ipAddress: string,
+    userIds: string[],
+  ): Promise<void> {
     if (userIds.length <= 1) return;
     await this.alert.alertSecurity(
       'Multiple user accounts from same IP',
@@ -50,14 +53,18 @@ export class SecurityMonitorService {
 
   @Cron(CronExpression.EVERY_30_MINUTES)
   async periodicScan(): Promise<void> {
-    await this.schedulerLock.runExclusive('security:periodic-scan', 1800, async () => {
-      this.logger.log('Running security scan...');
-      try {
-        await this.checkAbnormalPatterns();
-      } catch (err) {
-        this.logger.error(`Security scan failed: ${(err as Error).message}`);
-      }
-    });
+    await this.schedulerLock.runExclusive(
+      'security:periodic-scan',
+      1800,
+      async () => {
+        this.logger.log('Running security scan...');
+        try {
+          await this.checkAbnormalPatterns();
+        } catch (err) {
+          this.logger.error(`Security scan failed: ${(err as Error).message}`);
+        }
+      },
+    );
   }
 
   private async checkAbnormalPatterns(): Promise<void> {

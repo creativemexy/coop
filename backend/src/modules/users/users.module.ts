@@ -10,7 +10,10 @@ import { UserActivityService } from './user-activity.service';
 import { RetentionModule } from '../../common/retention.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Referral, UserActivity]), RetentionModule],
+  imports: [
+    TypeOrmModule.forFeature([User, Referral, UserActivity]),
+    RetentionModule,
+  ],
   controllers: [UsersController],
   providers: [UsersService, ReferralsService, UserActivityService],
   exports: [UsersService, ReferralsService, UserActivityService],

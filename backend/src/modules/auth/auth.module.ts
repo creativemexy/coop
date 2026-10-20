@@ -17,7 +17,6 @@ import { DeviceSession } from './entities/device-session.entity';
 import { DeviceSessionService } from './device-session.service';
 import { UsersModule } from '../users/users.module';
 import { RetentionModule } from '../../common/retention.module';
-import { FirstVirtualModule } from '../first-virtual/first-virtual.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SmsModule } from '../sms/sms.module';
 
@@ -45,7 +44,6 @@ import { SmsModule } from '../sms/sms.module';
     }),
     UsersModule,
     RetentionModule,
-    FirstVirtualModule,
     NotificationsModule,
     SmsModule,
   ],

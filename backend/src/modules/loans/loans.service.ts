@@ -1,9 +1,20 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Loan, LoanStatus } from './entities/loan.entity';
-import { LoanRepayment, RepaymentStatus } from './entities/loan-repayment.entity';
-import { SavingsTransaction, TransactionType } from '../savings/entities/savings-transaction.entity';
+import {
+  LoanRepayment,
+  RepaymentStatus,
+} from './entities/loan-repayment.entity';
+import {
+  SavingsTransaction,
+  TransactionType,
+} from '../savings/entities/savings-transaction.entity';
 import { SavingsService } from '../savings/savings.service';
 import { SavingsAccount } from '../savings/entities/savings-account.entity';
 import { SettingsService } from '../settings/settings.service';
@@ -36,8 +47,14 @@ export class LoansService {
   ) {}
 
   async checkEligibility(userId: string) {
-    const vestingMonths = await this.settingsService.getNumber('loan_vesting_months', 4);
-    const multiplier = await this.settingsService.getNumber('loan_multiplier', 3);
+    const vestingMonths = await this.settingsService.getNumber(
+      'loan_vesting_months',
+      4,
+    );
+    const multiplier = await this.settingsService.getNumber(
+      'loan_multiplier',
+      3,
+    );
 
     const user = await this.usersService.findById(userId);
     const kycApproved = user.kycStatus === KycStatus.APPROVED;
@@ -51,25 +68,34 @@ export class LoansService {
       const months: string[] = [];
       for (let i = 0; i < vestingMonths; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        months.push(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        );
       }
-      const earliest = new Date(now.getFullYear(), now.getMonth() - (vestingMonths - 1), 1);
+      const earliest = new Date(
+        now.getFullYear(),
+        now.getMonth() - (vestingMonths - 1),
+        1,
+      );
 
-      const rows: Array<{ month: string }> = await this.savingsTxRepo.manager.query(
-        `SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month
+      const rows: Array<{ month: string }> =
+        await this.savingsTxRepo.manager.query(
+          `SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month
          FROM savings_transactions
          WHERE account_id = $1
            AND type = $2
            AND created_at >= $3`,
-        [account.id, TransactionType.DEPOSIT, earliest],
-      );
+          [account.id, TransactionType.DEPOSIT, earliest],
+        );
 
       const present = new Set(rows.map((r) => r.month));
       vested = months.every((m) => present.has(m));
     }
 
     const maxAmount = savingsBalance * multiplier;
-    const activeLoans = await this.loanRepo.count({ where: { userId, status: LoanStatus.ACTIVE } });
+    const activeLoans = await this.loanRepo.count({
+      where: { userId, status: LoanStatus.ACTIVE },
+    });
 
     return {
       eligible: vested && savingsBalance > 0 && kycApproved,
@@ -80,57 +106,99 @@ export class LoansService {
       maxAmount: vested ? maxAmount : 0,
       activeLoans,
       reasons: [
-        { key: 'kyc', label: 'KYC verification completed', passed: kycApproved },
-        { key: 'savings', label: `Minimum ${vestingMonths} months of savings`, passed: vested },
-        { key: 'balance', label: 'Positive savings balance', passed: savingsBalance > 0 },
+        {
+          key: 'kyc',
+          label: 'KYC verification completed',
+          passed: kycApproved,
+        },
+        {
+          key: 'savings',
+          label: `Minimum ${vestingMonths} months of savings`,
+          passed: vested,
+        },
+        {
+          key: 'balance',
+          label: 'Positive savings balance',
+          passed: savingsBalance > 0,
+        },
       ],
     };
   }
 
-  async apply(userId: string, dto: { amount: number; duration: number; purpose?: string }) {
+  async apply(
+    userId: string,
+    dto: { amount: number; duration: number; purpose?: string },
+  ) {
     const { amount, duration, purpose } = dto;
     if (amount <= 0) throw new BadRequestException('Amount must be positive');
-    if (duration < 1 || duration > 12) throw new BadRequestException('Duration must be 1-12 months');
+    if (duration < 1 || duration > 12)
+      throw new BadRequestException('Duration must be 1-12 months');
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const todayCount = await this.loanRepo.count({
       where: { userId, createdAt: Between(startOfDay, new Date()) },
     });
-    const dailyCountCheck = await this.riskService.checkCountLimit('max_daily_loan_applications', todayCount);
+    const dailyCountCheck = await this.riskService.checkCountLimit(
+      'max_daily_loan_applications',
+      todayCount,
+    );
     if (dailyCountCheck && !dailyCountCheck.allowed) {
-      throw new BadRequestException(`Maximum ${dailyCountCheck.limit} loan applications per day`);
+      throw new BadRequestException(
+        `Maximum ${dailyCountCheck.limit} loan applications per day`,
+      );
     }
 
     const eligibility = await this.checkEligibility(userId);
     if (!eligibility.eligible) {
       throw new BadRequestException(
         'You are not eligible for a loan. You need to save consistently for at least ' +
-        `${eligibility.vestingMonths} months to qualify.`,
+          `${eligibility.vestingMonths} months to qualify.`,
       );
     }
     if (amount > eligibility.maxAmount) {
       throw new BadRequestException(
         `Loan amount exceeds maximum. Based on your savings of ₦${eligibility.savingsBalance.toLocaleString()}, ` +
-        `the maximum loan is ₦${eligibility.maxAmount.toLocaleString()} (${eligibility.multiplier}x your savings).`,
+          `the maximum loan is ₦${eligibility.maxAmount.toLocaleString()} (${eligibility.multiplier}x your savings).`,
       );
     }
 
-    const maxAmountCheck = await this.riskService.checkMinMax('max_loan_amount', amount);
+    const maxAmountCheck = await this.riskService.checkMinMax(
+      'max_loan_amount',
+      amount,
+    );
     if (maxAmountCheck && !maxAmountCheck.allowed) {
-      throw new BadRequestException(`Maximum loan amount is ₦${maxAmountCheck.limit.toLocaleString()}`);
+      throw new BadRequestException(
+        `Maximum loan amount is ₦${maxAmountCheck.limit.toLocaleString()}`,
+      );
     }
-    const minAmountCheck = await this.riskService.checkMin('min_loan_amount', amount);
+    const minAmountCheck = await this.riskService.checkMin(
+      'min_loan_amount',
+      amount,
+    );
     if (minAmountCheck && !minAmountCheck.allowed) {
-      throw new BadRequestException(`Minimum loan amount is ₦${minAmountCheck.min.toLocaleString()}`);
+      throw new BadRequestException(
+        `Minimum loan amount is ₦${minAmountCheck.min.toLocaleString()}`,
+      );
     }
-    const durationCheck = await this.riskService.checkMinMax('max_loan_duration_months', duration, 'months');
+    const durationCheck = await this.riskService.checkMinMax(
+      'max_loan_duration_months',
+      duration,
+      'months',
+    );
     if (durationCheck && !durationCheck.allowed) {
-      throw new BadRequestException(`Maximum loan duration is ${durationCheck.limit} months`);
+      throw new BadRequestException(
+        `Maximum loan duration is ${durationCheck.limit} months`,
+      );
     }
-    const savingsCheck = await this.riskService.checkMin('min_savings_for_loan', eligibility.savingsBalance);
+    const savingsCheck = await this.riskService.checkMin(
+      'min_savings_for_loan',
+      eligibility.savingsBalance,
+    );
     if (savingsCheck && !savingsCheck.allowed) {
-      throw new BadRequestException(`Minimum savings balance of ₦${savingsCheck.min.toLocaleString()} required for a loan`);
+      throw new BadRequestException(
+        `Minimum savings balance of ₦${savingsCheck.min.toLocaleString()} required for a loan`,
+      );
     }
 
     const interestRate = 5;
@@ -138,8 +206,12 @@ export class LoansService {
     const totalRepayment = amount + totalInterest;
     const monthlyPayment = Math.round((totalRepayment / duration) * 100) / 100;
 
-    const serviceFeePercent = await this.settingsService.getNumber('loan_service_fee_percent', 1);
-    const serviceFee = Math.round((amount * serviceFeePercent) / 100 * 100) / 100;
+    const serviceFeePercent = await this.settingsService.getNumber(
+      'loan_service_fee_percent',
+      1,
+    );
+    const serviceFee =
+      Math.round(((amount * serviceFeePercent) / 100) * 100) / 100;
 
     const loan = this.loanRepo.create({
       userId,
@@ -156,18 +228,24 @@ export class LoansService {
     });
     const saved = await this.loanRepo.save(loan);
     const loanId = (saved as any).id ?? (saved as any)[0]?.id;
-    await this.activityService.log(userId, 'loan_apply', { amount, duration, serviceFee });
+    await this.activityService.log(userId, 'loan_apply', {
+      amount,
+      duration,
+      serviceFee,
+    });
 
     const repayments: LoanRepayment[] = [];
     for (let i = 1; i <= duration; i++) {
       const dueDate = new Date();
       dueDate.setMonth(dueDate.getMonth() + i);
-      repayments.push(this.repaymentRepo.create({
-        loanId,
-        dueDate,
-        amount: monthlyPayment,
-        status: RepaymentStatus.PENDING,
-      }));
+      repayments.push(
+        this.repaymentRepo.create({
+          loanId,
+          dueDate,
+          amount: monthlyPayment,
+          status: RepaymentStatus.PENDING,
+        }),
+      );
     }
     await this.repaymentRepo.save(repayments);
 
@@ -206,7 +284,10 @@ export class LoansService {
     const active = await this.loanRepo.find({
       where: { userId, status: LoanStatus.ACTIVE },
     });
-    return active.reduce((sum, l) => sum + (Number(l.totalRepayment) - Number(l.amountPaid)), 0);
+    return active.reduce(
+      (sum, l) => sum + (Number(l.totalRepayment) - Number(l.amountPaid)),
+      0,
+    );
   }
 
   async findPending() {
@@ -257,7 +338,10 @@ export class LoansService {
       loan.borrower = {
         apexOrgId: borrower?.apexOrgId ?? null,
         organizationId: borrower?.organizationId ?? null,
-        name: borrower ? `${borrower.firstName ?? ''} ${borrower.lastName ?? ''}`.trim() || borrower.email : undefined,
+        name: borrower
+          ? `${borrower.firstName ?? ''} ${borrower.lastName ?? ''}`.trim() ||
+            borrower.email
+          : undefined,
         email: borrower?.email,
       };
     }
@@ -274,11 +358,16 @@ export class LoansService {
   private async loadLoanWithBorrower(id: string) {
     const loan = await this.loanRepo.findOne({ where: { id } });
     if (!loan) throw new NotFoundException('Loan not found');
-    const borrower = await this.usersService.findById(loan.userId).catch(() => null);
+    const borrower = await this.usersService
+      .findById(loan.userId)
+      .catch(() => null);
     loan.borrower = {
       apexOrgId: borrower?.apexOrgId ?? null,
       organizationId: borrower?.organizationId ?? null,
-      name: borrower ? `${borrower.firstName ?? ''} ${borrower.lastName ?? ''}`.trim() || borrower.email : undefined,
+      name: borrower
+        ? `${borrower.firstName ?? ''} ${borrower.lastName ?? ''}`.trim() ||
+          borrower.email
+        : undefined,
       email: borrower?.email,
     };
     return loan;
@@ -292,69 +381,136 @@ export class LoansService {
     loan: Loan,
     reviewer: { apexOrgId?: string; organizationId?: string; role: Role },
   ): boolean {
-    if (reviewer.role === Role.SUPER_ADMIN || reviewer.role === Role.OPERATIONAL_ADMIN) return true;
+    if (
+      reviewer.role === Role.SUPER_ADMIN ||
+      reviewer.role === Role.OPERATIONAL_ADMIN
+    )
+      return true;
     if (loan.borrower) {
       if (reviewer.role === Role.APEX_BUSINESS_MANAGER) {
-        return !!loan.borrower.apexOrgId && loan.borrower.apexOrgId === reviewer.apexOrgId;
+        return (
+          !!loan.borrower.apexOrgId &&
+          loan.borrower.apexOrgId === reviewer.apexOrgId
+        );
       }
       if (reviewer.role === Role.BUSINESS_MANAGER) {
-        return !!loan.borrower.organizationId && loan.borrower.organizationId === reviewer.organizationId;
+        return (
+          !!loan.borrower.organizationId &&
+          loan.borrower.organizationId === reviewer.organizationId
+        );
       }
       if (reviewer.role === Role.ACCOUNTANT) {
-        return !!loan.borrower.organizationId && loan.borrower.organizationId === reviewer.organizationId;
+        return (
+          !!loan.borrower.organizationId &&
+          loan.borrower.organizationId === reviewer.organizationId
+        );
       }
     }
     return reviewer.role === Role.LOAN_MANAGER;
   }
 
   /** Stage 1 — final approval by the apex organization the borrower belongs to. */
-  async approveApex(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+  async approveApex(
+    loanId: string,
+    reviewer: {
+      sub: string;
+      role: Role;
+      apexOrgId?: string;
+      organizationId?: string;
+    },
+  ) {
     const loan = await this.loadLoanWithBorrower(loanId);
-    if (loan.status !== LoanStatus.PENDING) throw new BadRequestException('Loan is not awaiting apex approval');
-    if (!this.scopeForLoan(loan, reviewer)) throw new ForbiddenException('Loan is not in your apex organization scope');
+    if (loan.status !== LoanStatus.PENDING)
+      throw new BadRequestException('Loan is not awaiting apex approval');
+    if (!this.scopeForLoan(loan, reviewer))
+      throw new ForbiddenException(
+        'Loan is not in your apex organization scope',
+      );
     loan.status = LoanStatus.APEX_APPROVED;
     loan.apexApprovedBy = reviewer.sub;
     loan.apexApprovedAt = new Date();
     await this.loanRepo.save(loan);
-    await this.activityService.log(loan.userId, 'loan_apex_approve', { loanId, by: reviewer.sub });
+    await this.activityService.log(loan.userId, 'loan_apex_approve', {
+      loanId,
+      by: reviewer.sub,
+    });
     await this.auditService.log(AuditAction.LOAN_APPROVE, {
-      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
+      entityType: 'loan',
+      entityId: loan.id,
+      performedBy: reviewer.sub,
       metadata: { stage: 'apex', userId: loan.userId, amount: loan.amount },
     });
     return this.loadLoanWithRepayments(loan.id);
   }
 
   /** Stage 2 — approval by the organization the borrower belongs to. */
-  async approveOrganization(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+  async approveOrganization(
+    loanId: string,
+    reviewer: {
+      sub: string;
+      role: Role;
+      apexOrgId?: string;
+      organizationId?: string;
+    },
+  ) {
     const loan = await this.loadLoanWithBorrower(loanId);
-    if (loan.status !== LoanStatus.APEX_APPROVED) throw new BadRequestException('Loan is not awaiting organization approval');
-    if (!this.scopeForLoan(loan, reviewer)) throw new ForbiddenException('Loan is not in your organization scope');
+    if (loan.status !== LoanStatus.APEX_APPROVED)
+      throw new BadRequestException(
+        'Loan is not awaiting organization approval',
+      );
+    if (!this.scopeForLoan(loan, reviewer))
+      throw new ForbiddenException('Loan is not in your organization scope');
     loan.status = LoanStatus.ORG_APPROVED;
     loan.orgApprovedBy = reviewer.sub;
     loan.orgApprovedAt = new Date();
     await this.loanRepo.save(loan);
-    await this.activityService.log(loan.userId, 'loan_org_approve', { loanId, by: reviewer.sub });
+    await this.activityService.log(loan.userId, 'loan_org_approve', {
+      loanId,
+      by: reviewer.sub,
+    });
     await this.auditService.log(AuditAction.LOAN_APPROVE, {
-      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
-      metadata: { stage: 'organization', userId: loan.userId, amount: loan.amount },
+      entityType: 'loan',
+      entityId: loan.id,
+      performedBy: reviewer.sub,
+      metadata: {
+        stage: 'organization',
+        userId: loan.userId,
+        amount: loan.amount,
+      },
     });
     return this.loadLoanWithRepayments(loan.id);
   }
 
   /** Stage 3 — final approval by admin / super-admin. */
-  async approveFinal(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+  async approveFinal(
+    loanId: string,
+    reviewer: {
+      sub: string;
+      role: Role;
+      apexOrgId?: string;
+      organizationId?: string;
+    },
+  ) {
     const loan = await this.loadLoanWithBorrower(loanId);
-    if (loan.status !== LoanStatus.ORG_APPROVED) throw new BadRequestException('Loan is not awaiting admin approval');
-    if (!this.scopeForLoan(loan, { ...reviewer, role: Role.OPERATIONAL_ADMIN })) {
+    if (loan.status !== LoanStatus.ORG_APPROVED)
+      throw new BadRequestException('Loan is not awaiting admin approval');
+    if (
+      !this.scopeForLoan(loan, { ...reviewer, role: Role.OPERATIONAL_ADMIN })
+    ) {
       throw new ForbiddenException('Loan is not in your scope');
     }
     loan.status = LoanStatus.APPROVED;
     loan.adminApprovedBy = reviewer.sub;
     loan.adminApprovedAt = new Date();
     await this.loanRepo.save(loan);
-    await this.activityService.log(loan.userId, 'loan_admin_approve', { loanId, by: reviewer.sub });
+    await this.activityService.log(loan.userId, 'loan_admin_approve', {
+      loanId,
+      by: reviewer.sub,
+    });
     await this.auditService.log(AuditAction.LOAN_APPROVE, {
-      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
+      entityType: 'loan',
+      entityId: loan.id,
+      performedBy: reviewer.sub,
       metadata: { stage: 'admin', userId: loan.userId, amount: loan.amount },
     });
     return this.loadLoanWithRepayments(loan.id);
@@ -364,10 +520,20 @@ export class LoansService {
    * Stage 4 — accountant disburses. Fees and charges are deducted from the
    * loaned amount; net difference is the exact amount disbursed.
    */
-  async disburse(loanId: string, reviewer: { sub: string; role: Role; apexOrgId?: string; organizationId?: string }) {
+  async disburse(
+    loanId: string,
+    reviewer: {
+      sub: string;
+      role: Role;
+      apexOrgId?: string;
+      organizationId?: string;
+    },
+  ) {
     const loan = await this.loadLoanWithBorrower(loanId);
-    if (loan.status !== LoanStatus.APPROVED) throw new BadRequestException('Loan is not awaiting disbursement');
-    if (!this.scopeForLoan(loan, reviewer)) throw new ForbiddenException('Loan is not in your organization scope');
+    if (loan.status !== LoanStatus.APPROVED)
+      throw new BadRequestException('Loan is not awaiting disbursement');
+    if (!this.scopeForLoan(loan, reviewer))
+      throw new ForbiddenException('Loan is not in your organization scope');
 
     const charges = [Number(loan.serviceFee || 0)].filter((c) => c > 0);
     const gross = Number(loan.amount);
@@ -379,14 +545,16 @@ export class LoansService {
     const balanceBefore = Number(account.balance);
     const balanceAfter = balanceBefore + payoutAmount;
     await this.accountRepo.update(account.id, { balance: balanceAfter });
-    await this.savingsTxRepo.save(this.savingsTxRepo.create({
-      accountId: account.id,
-      type: TransactionType.LOAN_DISBURSEMENT,
-      amount: payoutAmount,
-      balanceBefore,
-      balanceAfter,
-      description: `Loan disbursement for loan ${loan.id} (gross ₦${gross.toLocaleString()} less charges ₦${totalCharges.toLocaleString()})`,
-    }));
+    await this.savingsTxRepo.save(
+      this.savingsTxRepo.create({
+        accountId: account.id,
+        type: TransactionType.LOAN_DISBURSEMENT,
+        amount: payoutAmount,
+        balanceBefore,
+        balanceAfter,
+        description: `Loan disbursement for loan ${loan.id} (gross ₦${gross.toLocaleString()} less charges ₦${totalCharges.toLocaleString()})`,
+      }),
+    );
 
     loan.disbursedAmount = payoutAmount;
     loan.disbursedBy = reviewer.sub;
@@ -397,11 +565,23 @@ export class LoansService {
     await this.loanRepo.save(loan);
 
     await this.activityService.log(loan.userId, 'loan_disburse', {
-      loanId, by: reviewer.sub, gross, charges: totalCharges, payoutAmount,
+      loanId,
+      by: reviewer.sub,
+      gross,
+      charges: totalCharges,
+      payoutAmount,
     });
     await this.auditService.log(AuditAction.LOAN_APPROVE, {
-      entityType: 'loan', entityId: loan.id, performedBy: reviewer.sub,
-      metadata: { stage: 'disbursement', userId: loan.userId, gross, charges: totalCharges, payoutAmount },
+      entityType: 'loan',
+      entityId: loan.id,
+      performedBy: reviewer.sub,
+      metadata: {
+        stage: 'disbursement',
+        userId: loan.userId,
+        gross,
+        charges: totalCharges,
+        payoutAmount,
+      },
     });
 
     return this.loadLoanWithRepayments(loan.id);
@@ -411,7 +591,13 @@ export class LoansService {
   async reject(loanId: string, rejectedBy: string, reason?: string) {
     const loan = await this.loanRepo.findOne({ where: { id: loanId } });
     if (!loan) throw new NotFoundException('Loan not found');
-    if ([LoanStatus.COMPLETED, LoanStatus.REJECTED, LoanStatus.DEFAULTED].includes(loan.status)) {
+    if (
+      [
+        LoanStatus.COMPLETED,
+        LoanStatus.REJECTED,
+        LoanStatus.DEFAULTED,
+      ].includes(loan.status)
+    ) {
       throw new BadRequestException('Loan has already been decided');
     }
 
@@ -421,7 +607,11 @@ export class LoansService {
     loan.rejectionReason = reason ?? null;
     await this.loanRepo.save(loan);
 
-    await this.activityService.log(loan.userId, 'loan_reject', { loanId, rejectedBy, reason });
+    await this.activityService.log(loan.userId, 'loan_reject', {
+      loanId,
+      rejectedBy,
+      reason,
+    });
     await this.auditService.log(AuditAction.LOAN_REJECT, {
       entityType: 'loan',
       entityId: loan.id,
@@ -466,9 +656,12 @@ export class LoansService {
       relations: { loan: true },
     });
     if (!repayment) throw new NotFoundException('Repayment not found');
-    if (repayment.loan.userId !== userId) throw new NotFoundException('Repayment not found');
-    if (repayment.status === RepaymentStatus.PAID) return { paid: false, loan: null };
-    if (repayment.loan.status !== LoanStatus.ACTIVE) throw new BadRequestException('Loan is not active');
+    if (repayment.loan.userId !== userId)
+      throw new NotFoundException('Repayment not found');
+    if (repayment.status === RepaymentStatus.PAID)
+      return { paid: false, loan: null };
+    if (repayment.loan.status !== LoanStatus.ACTIVE)
+      throw new BadRequestException('Loan is not active');
 
     const now = new Date();
     repayment.status = RepaymentStatus.PAID;

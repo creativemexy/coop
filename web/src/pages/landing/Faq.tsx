@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ArrowRight, ChevronDown, CircleHelp, Handshake, MessageCircle, Phone, ShieldCheck, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import type { JsonLd } from '../../lib/seo'
+import { usePageMeta } from '../../lib/seo'
 
 const faqCategories = [
   {
@@ -172,6 +174,26 @@ export default function Faq() {
   const [openQuestion, setOpenQuestion] = useState<number | null>(0)
 
   const activeCategory = faqCategories.find(cat => cat.category === openCategory)
+
+  const faqJsonLd: JsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqCategories.flatMap((category) =>
+      category.questions.map((entry) => ({
+        '@type': 'Question',
+        name: entry.q,
+        acceptedAnswer: { '@type': 'Answer', text: entry.a },
+      })),
+    ),
+  }
+
+  usePageMeta({
+    title: 'FAQ | FENAC COOP — Smart Cooperative Banking Answers',
+    description:
+      'Answers on FENAC COOP membership, services, security, fees and support for Nigerian associations, clubs and NGOs.',
+    path: '/faq',
+    jsonLd: faqJsonLd,
+  })
 
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">

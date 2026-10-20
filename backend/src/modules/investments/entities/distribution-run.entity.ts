@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum DistRunStatus {
   COMPUTING = 'computing',
@@ -9,7 +15,10 @@ export enum DistRunStatus {
 }
 
 @Entity('distribution_runs')
-@Index('UQ_distribution_runs_active', ['distributionId'], { unique: true, where: `status NOT IN ('paid', 'failed')` })
+@Index('UQ_distribution_runs_active', ['distributionId'], {
+  unique: true,
+  where: `status NOT IN ('paid', 'failed')`,
+})
 export class DistributionRun {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -41,7 +50,11 @@ export class DistributionRun {
   @Column({ type: 'int', name: 'failed_count', default: 0 })
   failedCount: number;
 
-  @Column({ type: 'enum', enum: DistRunStatus, default: DistRunStatus.COMPUTING })
+  @Column({
+    type: 'enum',
+    enum: DistRunStatus,
+    default: DistRunStatus.COMPUTING,
+  })
   status: DistRunStatus;
 
   @Column({ type: 'jsonb', name: 'run_summary', nullable: true })

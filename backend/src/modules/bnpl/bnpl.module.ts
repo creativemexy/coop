@@ -94,6 +94,16 @@ import { UsersModule } from '../users/users.module';
     ProcessingEngineService,
     CollectionQueueService,
   ],
-  exports: [CatalogService, PlansService, SubscriptionsService, ComplianceService, ApprovalService, RepaymentService, CollectionsService, ProcessingEngineService, CollectionQueueService],
+  exports: [
+    CatalogService,
+    PlansService,
+    SubscriptionsService,
+    ComplianceService,
+    ApprovalService,
+    RepaymentService,
+    CollectionsService,
+    ProcessingEngineService,
+    CollectionQueueService,
+  ],
 })
 export class BnplModule {}

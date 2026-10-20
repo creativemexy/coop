@@ -12,7 +12,12 @@ import { RetentionModule } from '../../common/retention.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Loan, LoanRepayment, SavingsTransaction, SavingsAccount]),
+    TypeOrmModule.forFeature([
+      Loan,
+      LoanRepayment,
+      SavingsTransaction,
+      SavingsAccount,
+    ]),
     SavingsModule,
     UsersModule,
     RetentionModule,

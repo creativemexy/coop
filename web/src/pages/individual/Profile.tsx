@@ -357,16 +357,16 @@ export function Profile() {
           <form onSubmit={handlePasswordChange} className="space-y-4">
             <div>
               <Label>Current password</Label>
-              <input id="pw-current" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required className={fieldCls} />
+              <input id="pw-current" type="password" autoComplete="current-password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required className={fieldCls} />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>New password</Label>
-                <input id="pw-new" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required className={fieldCls} />
+                <input id="pw-new" type="password" autoComplete="new-password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required className={fieldCls} />
               </div>
               <div>
                 <Label>Confirm new password</Label>
-                <input id="pw-confirm" type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} required className={fieldCls} />
+                <input id="pw-confirm" type="password" autoComplete="new-password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} required className={fieldCls} />
               </div>
             </div>
             {passwordMsg && (

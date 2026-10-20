@@ -61,7 +61,9 @@ export class RealtimeController {
   ) {
     const { sub, role } = req.user;
     if (role !== 'individual') throw new ForbiddenException('Access denied');
-    const ticket = await this.ticketRepo.findOne({ where: { id, createdBy: sub } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id, createdBy: sub },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
     return this.realtime.stream(id);
   }

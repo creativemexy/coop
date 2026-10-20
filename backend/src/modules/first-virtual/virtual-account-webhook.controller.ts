@@ -6,18 +6,17 @@ import {
   HttpCode,
   HttpStatus,
   Req,
-  UseGuards,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { SkipCsrf } from '../../common/guards/csrf.guard';
-import { WebhookAuthGuard } from '../../common/guards/webhook-auth.guard';
 import { DepositNotificationData } from './firstcheckout.client';
 import { VirtualAccountsService } from './virtual-accounts.service';
 import type { Request } from 'express';
 
 function safeEqualHex(expected: string, provided: string): boolean {
+  if (!/^[a-f0-9]{128}$/i.test(provided)) return false;
   const a = Buffer.from(expected.toLowerCase(), 'hex');
   const b = Buffer.from(provided.toLowerCase(), 'hex');
   if (a.length === 0 || a.length !== b.length) return false;
@@ -39,7 +38,6 @@ function safeEqualHex(expected: string, provided: string): boolean {
  */
 @Controller('api/v1/payments/webhook')
 @SkipCsrf()
-@UseGuards(WebhookAuthGuard)
 export class VirtualAccountWebhookController {
   private readonly secretKey: string;
 
@@ -56,10 +54,8 @@ export class VirtualAccountWebhookController {
   async handleDeposit(
     @Req() req: Request,
     @Body() payload: Record<string, unknown>,
-    @Headers('x-fch-signature') signature?: string,
-    @Headers('x-fch-x-signature') altSignature?: string,
+    @Headers('x-firstchekout-signature') signature?: string,
   ) {
-    const headerSignature = signature || altSignature;
     if (!this.secretKey) {
       // Fail closed: never process a deposit callback without the gateway key.
       throw new ServiceUnavailableException(
@@ -67,7 +63,7 @@ export class VirtualAccountWebhookController {
       );
     }
 
-    if (!headerSignature) {
+    if (!signature) {
       return { status: 'invalid_signature' };
     }
 
@@ -79,7 +75,7 @@ export class VirtualAccountWebhookController {
       .update(rawBody)
       .digest('hex');
 
-    if (!safeEqualHex(expected, headerSignature)) {
+    if (!safeEqualHex(expected, signature)) {
       return { status: 'invalid_signature' };
     }
 

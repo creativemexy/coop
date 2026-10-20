@@ -22,7 +22,11 @@ export class PlanConfigService {
   async upsert(
     organizationId: string,
     dto: {
-      availableTenors: { installmentCount: number; frequency: string; label: string }[];
+      availableTenors: {
+        installmentCount: number;
+        frequency: string;
+        label: string;
+      }[];
       interestModel: InterestModel;
       maxPrincipal?: number;
       requireMembership?: boolean;
@@ -50,7 +54,9 @@ export class PlanConfigService {
 
     if (existing) {
       await this.repo.update(existing.id, payload);
-      return this.repo.findOne({ where: { organizationId } }) as Promise<BnplPlanConfig>;
+      return this.repo.findOne({
+        where: { organizationId },
+      }) as Promise<BnplPlanConfig>;
     }
     const entity = this.repo.create(payload);
     return this.repo.save(entity);

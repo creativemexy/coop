@@ -1,5 +1,6 @@
 import { ArrowRight, Building2, Eye, HeartHandshake, ShieldCheck, Target, UsersRound, Zap } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../../lib/seo'
 
 const values = [
   {
@@ -43,6 +44,13 @@ const storyBlocks = [
 ]
 
 export default function About() {
+  usePageMeta({
+    title: "About Us | FENAC COOP — Nigeria's Apex Cooperative Federation",
+    description:
+      'Learn how FENAC COOP, an apex and umbrella cooperative registered under Nigerian law, unites associations, clubs and NGOs through shared digital financial services.',
+    path: '/about',
+  })
+
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">
       <section className="relative isolate overflow-hidden bg-[#20120E] text-[#FFF9EF]">

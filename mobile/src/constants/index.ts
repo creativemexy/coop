@@ -58,7 +58,6 @@ export const ENDPOINTS = {
     target: `${API_PREFIX}/savings/target`,
   },
   virtualAccounts: {
-    me: `${API_PREFIX}/virtual-accounts/me`,
     depositsInitiate: `${API_PREFIX}/virtual-accounts/deposits/initiate`,
     depositsLatest: `${API_PREFIX}/virtual-accounts/deposits/latest`,
     depositsVerify: (id: string) =>

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In, LessThan, Raw } from 'typeorm';
 import { BnplSubscription } from '../bnpl/entities/bnpl-subscription.entity';
@@ -8,16 +12,36 @@ import { BnplCatalogItem } from '../bnpl/entities/bnpl-catalog-item.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { FeeShareLedger } from '../ledger/entities/fee-share-ledger.entity';
 import { FeePot } from '../ledger/entities/fee-pot.entity';
-import { Distribution, DistributionStatus } from '../investments/entities/distribution.entity';
+import {
+  Distribution,
+  DistributionStatus,
+} from '../investments/entities/distribution.entity';
 import { FeeWithdrawalRequest } from '../ledger/entities/fee-withdrawal-request.entity';
 import { TransactionType } from '../savings/entities/savings-transaction.entity';
 import { Organization } from '../organizations/entities/organization.entity';
 import { User } from '../users/entities/user.entity';
 import { AuditLog } from '../bnpl/entities/audit-log.entity';
-import { ReconciliationRun, ReconciliationStatus } from './entities/reconciliation-run.entity';
-import { ReconciliationResult, ResultStatus } from './entities/reconciliation-result.entity';
-import { AdjustmentRequest, AdjustmentType, AdjustmentStatus } from './entities/adjustment-request.entity';
-import { SubscriptionStatus, InstallmentStatus, PaymentStatus, JournalStatus, PayoutStatus, PotType } from '../../common/enums/status.enum';
+import {
+  ReconciliationRun,
+  ReconciliationStatus,
+} from './entities/reconciliation-run.entity';
+import {
+  ReconciliationResult,
+  ResultStatus,
+} from './entities/reconciliation-result.entity';
+import {
+  AdjustmentRequest,
+  AdjustmentType,
+  AdjustmentStatus,
+} from './entities/adjustment-request.entity';
+import {
+  SubscriptionStatus,
+  InstallmentStatus,
+  PaymentStatus,
+  JournalStatus,
+  PayoutStatus,
+  PotType,
+} from '../../common/enums/status.enum';
 import { Loan, LoanStatus } from '../loans/entities/loan.entity';
 import { LoanRepayment } from '../loans/entities/loan-repayment.entity';
 import { SavingsAccount } from '../savings/entities/savings-account.entity';
@@ -26,7 +50,8 @@ import { JournalEntry } from '../ledger/entities/journal-entry.entity';
 import { JournalLine } from '../ledger/entities/journal-line.entity';
 import { ApexOrganization } from '../apex-organizations/entities/apex-organization.entity';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class AccountantService {
@@ -84,7 +109,9 @@ export class AccountantService {
   async getOrderLedger(orgId?: string, days?: number) {
     const where: any = {};
     if (orgId) {
-      const plans = await this.planRepo.find({ where: { organizationId: orgId } });
+      const plans = await this.planRepo.find({
+        where: { organizationId: orgId },
+      });
       where.planId = In(plans.map((p) => p.id));
     }
     const subs = await this.subRepo.find({
@@ -108,7 +135,8 @@ export class AccountantService {
       planName: s.plan?.catalogItem?.name || 'Unknown',
       planOrgId: s.plan?.organizationId || null,
       installmentCount: s.installments?.length || 0,
-      paidInstallments: s.installments?.filter((i) => i.status === 'paid').length || 0,
+      paidInstallments:
+        s.installments?.filter((i) => i.status === 'paid').length || 0,
     }));
   }
 
@@ -123,7 +151,10 @@ export class AccountantService {
       take: 1000,
     });
     let filtered = insts;
-    if (orgId) filtered = insts.filter((i) => i.subscription?.plan?.organizationId === orgId);
+    if (orgId)
+      filtered = insts.filter(
+        (i) => i.subscription?.plan?.organizationId === orgId,
+      );
     return filtered.map((i) => ({
       id: i.id,
       subscriptionId: i.subscriptionId,
@@ -143,14 +174,26 @@ export class AccountantService {
     const since = days ? new Date(Date.now() - days * 86400000) : undefined;
     const where: any = {};
     if (since) where.createdAt = Between(since, new Date());
-    const payments = await this.paymentRepo.find({ where, order: { createdAt: 'DESC' }, take: 500 });
+    const payments = await this.paymentRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      take: 500,
+    });
     let filtered = payments;
     if (orgId) {
       const subs = await this.subRepo.find({
-        where: { planId: In((await this.planRepo.find({ where: { organizationId: orgId } })).map((p) => p.id)) },
+        where: {
+          planId: In(
+            (
+              await this.planRepo.find({ where: { organizationId: orgId } })
+            ).map((p) => p.id),
+          ),
+        },
       });
       const subIds = new Set(subs.map((s) => s.id));
-      filtered = payments.filter((p) => p.subscriptionId && subIds.has(p.subscriptionId));
+      filtered = payments.filter(
+        (p) => p.subscriptionId && subIds.has(p.subscriptionId),
+      );
     }
     return filtered.map((p) => ({
       id: p.id,
@@ -170,14 +213,26 @@ export class AccountantService {
     const since = days ? new Date(Date.now() - days * 86400000) : undefined;
     const where: any = { payoutStatus: 'completed' };
     if (since) where.createdAt = Between(since, new Date());
-    const payments = await this.paymentRepo.find({ where, order: { createdAt: 'DESC' }, take: 500 });
+    const payments = await this.paymentRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      take: 500,
+    });
     let filtered = payments;
     if (orgId) {
       const subs = await this.subRepo.find({
-        where: { planId: In((await this.planRepo.find({ where: { organizationId: orgId } })).map((p) => p.id)) },
+        where: {
+          planId: In(
+            (
+              await this.planRepo.find({ where: { organizationId: orgId } })
+            ).map((p) => p.id),
+          ),
+        },
       });
       const subIds = new Set(subs.map((s) => s.id));
-      filtered = payments.filter((p) => p.subscriptionId && subIds.has(p.subscriptionId));
+      filtered = payments.filter(
+        (p) => p.subscriptionId && subIds.has(p.subscriptionId),
+      );
     }
     return filtered.map((p) => ({
       id: p.id,
@@ -192,39 +247,79 @@ export class AccountantService {
   }
 
   async getTenants() {
-    return this.orgRepo.find({ select: { id: true, name: true, code: true }, order: { name: 'ASC' } });
+    return this.orgRepo.find({
+      select: { id: true, name: true, code: true },
+      order: { name: 'ASC' },
+    });
   }
 
   async exportOrderLedgerCsv(orgId?: string, days?: number): Promise<string> {
     const rows = await this.getOrderLedger(orgId, days);
-    const header = 'ID,Plan,Status,Total Amount,Amount Paid,Down Payment,Outstanding,Provider Ref,Disbursement Ref,Payout Status,Installments,Paid,Created At,Settled At\n';
-    return header + rows.map((r) =>
-      `"${r.id}","${r.planName}","${r.status}",${r.totalAmount},${r.amountPaid},${r.downPayment},${r.outstanding},"${r.providerReference || ''}","${r.disbursementReference || ''}","${r.payoutStatus}",${r.installmentCount},${r.paidInstallments},"${r.createdAt?.toISOString() || ''}","${r.settledAt?.toISOString() || ''}"`
-    ).join('\n');
+    const header =
+      'ID,Plan,Status,Total Amount,Amount Paid,Down Payment,Outstanding,Provider Ref,Disbursement Ref,Payout Status,Installments,Paid,Created At,Settled At\n';
+    return (
+      header +
+      rows
+        .map(
+          (r) =>
+            `"${r.id}","${r.planName}","${r.status}",${r.totalAmount},${r.amountPaid},${r.downPayment},${r.outstanding},"${r.providerReference || ''}","${r.disbursementReference || ''}","${r.payoutStatus}",${r.installmentCount},${r.paidInstallments},"${r.createdAt?.toISOString() || ''}","${r.settledAt?.toISOString() || ''}"`,
+        )
+        .join('\n')
+    );
   }
 
-  async exportInstallmentLedgerCsv(orgId?: string, days?: number): Promise<string> {
+  async exportInstallmentLedgerCsv(
+    orgId?: string,
+    days?: number,
+  ): Promise<string> {
     const rows = await this.getInstallmentLedger(orgId, days);
-    const header = 'ID,Subscription ID,Plan,Amount,Late Fee,Due Date,Status,Paid At,Payment Reference,Organization ID,Created At\n';
-    return header + rows.map((r) =>
-      `"${r.id}","${r.subscriptionId}","${r.planName}",${r.amount},${r.lateFeeAmount},"${String(r.dueDate).slice(0, 10) || ''}","${r.status}","${r.paidAt ? new Date(r.paidAt).toISOString() : ''}","${r.paymentReference || ''}","${r.organizationId || ''}","${new Date(r.createdAt).toISOString()}"`
-    ).join('\n');
+    const header =
+      'ID,Subscription ID,Plan,Amount,Late Fee,Due Date,Status,Paid At,Payment Reference,Organization ID,Created At\n';
+    return (
+      header +
+      rows
+        .map(
+          (r) =>
+            `"${r.id}","${r.subscriptionId}","${r.planName}",${r.amount},${r.lateFeeAmount},"${String(r.dueDate).slice(0, 10) || ''}","${r.status}","${r.paidAt ? new Date(r.paidAt).toISOString() : ''}","${r.paymentReference || ''}","${r.organizationId || ''}","${new Date(r.createdAt).toISOString()}"`,
+        )
+        .join('\n')
+    );
   }
 
-  async exportPaymentReferencesCsv(orgId?: string, days?: number): Promise<string> {
+  async exportPaymentReferencesCsv(
+    orgId?: string,
+    days?: number,
+  ): Promise<string> {
     const rows = await this.getPaymentReferences(orgId, days);
-    const header = 'ID,Subscription ID,Amount,Fee,Provider,Provider Reference,Status,Payout Status,Payout Reference,Created At\n';
-    return header + rows.map((r) =>
-      `"${r.id}","${r.subscriptionId || ''}",${r.amount},${r.fee},"${r.provider}","${r.providerReference}","${r.status}","${r.payoutStatus}","${r.payoutReference || ''}","${r.createdAt?.toISOString() || ''}"`
-    ).join('\n');
+    const header =
+      'ID,Subscription ID,Amount,Fee,Provider,Provider Reference,Status,Payout Status,Payout Reference,Created At\n';
+    return (
+      header +
+      rows
+        .map(
+          (r) =>
+            `"${r.id}","${r.subscriptionId || ''}",${r.amount},${r.fee},"${r.provider}","${r.providerReference}","${r.status}","${r.payoutStatus}","${r.payoutReference || ''}","${r.createdAt?.toISOString() || ''}"`,
+        )
+        .join('\n')
+    );
   }
 
-  async exportSettlementReferencesCsv(orgId?: string, days?: number): Promise<string> {
+  async exportSettlementReferencesCsv(
+    orgId?: string,
+    days?: number,
+  ): Promise<string> {
     const rows = await this.getSettlementReferences(orgId, days);
-    const header = 'ID,Subscription ID,Amount,Provider,Provider Reference,Payout Reference,Payout Status,Settled At\n';
-    return header + rows.map((r) =>
-      `"${r.id}","${r.subscriptionId || ''}",${r.amount},"${r.provider}","${r.providerReference}","${r.payoutReference || ''}","${r.payoutStatus}","${new Date(r.settledAt).toISOString()}"`
-    ).join('\n');
+    const header =
+      'ID,Subscription ID,Amount,Provider,Provider Reference,Payout Reference,Payout Status,Settled At\n';
+    return (
+      header +
+      rows
+        .map(
+          (r) =>
+            `"${r.id}","${r.subscriptionId || ''}",${r.amount},"${r.provider}","${r.providerReference}","${r.payoutReference || ''}","${r.payoutStatus}","${new Date(r.settledAt).toISOString()}"`,
+        )
+        .join('\n')
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -261,7 +356,7 @@ export class AccountantService {
 
     const results: Partial<ReconciliationResult>[] = [];
     let totalExpected = 0;
-    let totalActual = 0;
+    const totalActual = 0;
     let matchCount = 0;
     let mismatchCount = 0;
     let expectedAmountTotal = 0;
@@ -279,7 +374,11 @@ export class AccountantService {
         totalExpected++;
 
         const payments = await this.paymentRepo.find({
-          where: { subscriptionId: sub.id, status: PaymentStatus.SUCCESS, createdAt: Between(start, end) },
+          where: {
+            subscriptionId: sub.id,
+            status: PaymentStatus.SUCCESS,
+            createdAt: Between(start, end),
+          },
         });
 
         const actualAmount = payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -323,7 +422,7 @@ export class AccountantService {
     }
 
     if (results.length > 0) {
-      await this.recResultRepo.insert(results as ReconciliationResult[]);
+      await this.recResultRepo.insert(results);
     }
 
     savedRun.status = ReconciliationStatus.COMPLETED;
@@ -346,11 +445,18 @@ export class AccountantService {
   async getReconciliationRuns(organizationId?: string) {
     const where: any = {};
     if (organizationId) where.organizationId = organizationId;
-    return this.recRunRepo.find({ where, order: { createdAt: 'DESC' }, take: 50 });
+    return this.recRunRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
   }
 
   async getReconciliationRun(id: string) {
-    const run = await this.recRunRepo.findOne({ where: { id }, relations: { results: true } });
+    const run = await this.recRunRepo.findOne({
+      where: { id },
+      relations: { results: true },
+    });
     if (!run) throw new NotFoundException('Reconciliation run not found');
     return run;
   }
@@ -366,14 +472,27 @@ export class AccountantService {
   }
 
   async exportReconciliationCsv(runId: string): Promise<string> {
-    const results = await this.recResultRepo.find({ where: { runId }, order: { createdAt: 'DESC' } });
-    const header = 'Installment ID,Subscription ID,Expected Amount,Actual Amount,Discrepancy,Expected Date,Actual Date,Status,Flags,Notes\n';
-    return header + results.map((r) =>
-      `"${r.installmentId || ''}","${r.subscriptionId}",${r.expectedAmount},${r.actualAmount},${r.discrepancy},"${String(r.expectedDate).slice(0, 10) || ''}","${r.actualDate ? String(r.actualDate).slice(0, 10) : ''}","${r.status}","${(r.flags || []).join(';')}","${r.notes || ''}"`
-    ).join('\n');
+    const results = await this.recResultRepo.find({
+      where: { runId },
+      order: { createdAt: 'DESC' },
+    });
+    const header =
+      'Installment ID,Subscription ID,Expected Amount,Actual Amount,Discrepancy,Expected Date,Actual Date,Status,Flags,Notes\n';
+    return (
+      header +
+      results
+        .map(
+          (r) =>
+            `"${r.installmentId || ''}","${r.subscriptionId}",${r.expectedAmount},${r.actualAmount},${r.discrepancy},"${String(r.expectedDate).slice(0, 10) || ''}","${r.actualDate ? String(r.actualDate).slice(0, 10) : ''}","${r.status}","${(r.flags || []).join(';')}","${r.notes || ''}"`,
+        )
+        .join('\n')
+    );
   }
 
-  async updateReconciliationResult(id: string, dto: { status: ResultStatus; notes?: string }) {
+  async updateReconciliationResult(
+    id: string,
+    dto: { status: ResultStatus; notes?: string },
+  ) {
     const result = await this.recResultRepo.findOne({ where: { id } });
     if (!result) throw new NotFoundException('Reconciliation result not found');
     result.status = dto.status;
@@ -394,14 +513,21 @@ export class AccountantService {
     referenceId?: string;
     requestedBy: string;
   }) {
-    const req = this.adjRepo.create({ ...dto, status: AdjustmentStatus.PENDING });
+    const req = this.adjRepo.create({
+      ...dto,
+      status: AdjustmentStatus.PENDING,
+    });
     return this.adjRepo.save(req);
   }
 
   async listAdjustmentRequests(status?: AdjustmentStatus) {
     const where: any = {};
     if (status) where.status = status;
-    return this.adjRepo.find({ where, order: { createdAt: 'DESC' }, take: 100 });
+    return this.adjRepo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      take: 100,
+    });
   }
 
   async getAdjustmentRequest(id: string) {
@@ -413,17 +539,23 @@ export class AccountantService {
   async approveAdjustmentRequest(id: string, reviewedBy: string) {
     const req = await this.adjRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Adjustment request not found');
-    if (req.status !== AdjustmentStatus.PENDING) throw new BadRequestException('Adjustment is not pending');
+    if (req.status !== AdjustmentStatus.PENDING)
+      throw new BadRequestException('Adjustment is not pending');
     req.status = AdjustmentStatus.APPROVED;
     req.reviewedBy = reviewedBy;
     req.reviewedAt = new Date();
     return this.adjRepo.save(req);
   }
 
-  async rejectAdjustmentRequest(id: string, reviewedBy: string, reason: string) {
+  async rejectAdjustmentRequest(
+    id: string,
+    reviewedBy: string,
+    reason: string,
+  ) {
     const req = await this.adjRepo.findOne({ where: { id } });
     if (!req) throw new NotFoundException('Adjustment request not found');
-    if (req.status !== AdjustmentStatus.PENDING) throw new BadRequestException('Adjustment is not pending');
+    if (req.status !== AdjustmentStatus.PENDING)
+      throw new BadRequestException('Adjustment is not pending');
     req.status = AdjustmentStatus.REJECTED;
     req.reviewedBy = reviewedBy;
     req.reviewedAt = new Date();
@@ -454,23 +586,38 @@ export class AccountantService {
 
     const allInsts = subs.flatMap((s) => s.installments || []);
     const totalBilled = allInsts.reduce((sum, i) => sum + Number(i.amount), 0);
-    const totalPaid = allInsts.filter((i) => i.status === 'paid').reduce((sum, i) => sum + Number(i.amount), 0);
-    const totalLateFees = allInsts.reduce((sum, i) => sum + Number(i.lateFeeAmount), 0);
+    const totalPaid = allInsts
+      .filter((i) => i.status === 'paid')
+      .reduce((sum, i) => sum + Number(i.amount), 0);
+    const totalLateFees = allInsts.reduce(
+      (sum, i) => sum + Number(i.lateFeeAmount),
+      0,
+    );
     const outstanding = totalBilled - totalPaid;
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const mtdStart = new Date(currentYear, currentMonth, 1);
-    const paidMtd = payments.filter((p) => p.createdAt >= mtdStart).reduce((sum, p) => sum + Number(p.amount), 0);
+    const paidMtd = payments
+      .filter((p) => p.createdAt >= mtdStart)
+      .reduce((sum, p) => sum + Number(p.amount), 0);
 
     const upcomingInsts = allInsts
       .filter((i) => i.status === 'pending' && new Date(i.dueDate) > new Date())
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      );
 
     return {
-      member: { id: user.id, name: `${user.firstName} ${user.lastName}`, email: user.email },
+      member: {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+      },
       summary: {
         totalSubscriptions: subs.length,
-        activeSubscriptions: subs.filter((s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT).length,
+        activeSubscriptions: subs.filter(
+          (s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT,
+        ).length,
         totalBilled: Math.round(totalBilled * 100) / 100,
         totalPaid: Math.round(totalPaid * 100) / 100,
         totalLateFees: Math.round(totalLateFees * 100) / 100,
@@ -508,18 +655,23 @@ export class AccountantService {
         subscriptionId: i.subscriptionId,
         amount: Number(i.amount),
         dueDate: i.dueDate,
-        planName: subs.find((s) => s.installments?.includes(i))?.plan?.catalogItem?.name || 'Unknown',
+        planName:
+          subs.find((s) => s.installments?.includes(i))?.plan?.catalogItem
+            ?.name || 'Unknown',
       })),
     };
   }
 
   async getCooperativeStatement(orgId: string, days?: number) {
-    if (!UUID_RE.test(orgId)) throw new NotFoundException('Organization not found');
+    if (!UUID_RE.test(orgId))
+      throw new NotFoundException('Organization not found');
     const org = await this.orgRepo.findOne({ where: { id: orgId } });
     if (!org) throw new NotFoundException('Organization not found');
     const since = days ? new Date(Date.now() - days * 86400000) : new Date(0);
 
-    const plans = await this.planRepo.find({ where: { organizationId: orgId } });
+    const plans = await this.planRepo.find({
+      where: { organizationId: orgId },
+    });
     const planIds = plans.map((p) => p.id);
 
     const subs = await this.subRepo.find({
@@ -527,7 +679,9 @@ export class AccountantService {
       relations: { plan: { catalogItem: true }, installments: true },
     });
 
-    const users = await this.userRepo.find({ where: { organizationId: orgId } });
+    const users = await this.userRepo.find({
+      where: { organizationId: orgId },
+    });
     const userIds = users.map((u) => u.id);
 
     const payments = await this.paymentRepo.find({
@@ -537,23 +691,36 @@ export class AccountantService {
     const allInsts = subs.flatMap((s) => s.installments || []);
     const totalVolume = subs.reduce((s, sub) => s + Number(sub.totalAmount), 0);
     const totalCollected = payments.reduce((s, p) => s + Number(p.amount), 0);
-    const outstandingInsts = allInsts.filter((i) =>
-      (i.status === InstallmentStatus.PENDING || i.status === InstallmentStatus.OVERDUE)
-      && new Date(i.dueDate) < new Date(),
+    const outstandingInsts = allInsts.filter(
+      (i) =>
+        (i.status === InstallmentStatus.PENDING ||
+          i.status === InstallmentStatus.OVERDUE) &&
+        new Date(i.dueDate) < new Date(),
     );
-    const totalOutstanding = outstandingInsts.reduce((s, i) => s + Number(i.amount), 0);
-    const totalLateFees = outstandingInsts.reduce((s, i) => s + Number(i.lateFeeAmount), 0);
+    const totalOutstanding = outstandingInsts.reduce(
+      (s, i) => s + Number(i.amount),
+      0,
+    );
+    const totalLateFees = outstandingInsts.reduce(
+      (s, i) => s + Number(i.lateFeeAmount),
+      0,
+    );
 
     return {
       cooperative: { id: org.id, name: org.name, code: org.code },
       summary: {
         totalMembers: users.length,
-        activeSubscriptions: subs.filter((s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT).length,
+        activeSubscriptions: subs.filter(
+          (s) => s.status === SubscriptionStatus.ACTIVE_REPAYMENT,
+        ).length,
         totalVolume: Math.round(totalVolume * 100) / 100,
         totalCollected: Math.round(totalCollected * 100) / 100,
         totalOutstanding: Math.round(totalOutstanding * 100) / 100,
         totalLateFees: Math.round(totalLateFees * 100) / 100,
-        paymentRate: totalVolume > 0 ? Math.round((totalCollected / totalVolume) * 10000) / 100 : 0,
+        paymentRate:
+          totalVolume > 0
+            ? Math.round((totalCollected / totalVolume) * 10000) / 100
+            : 0,
       },
       repaymentSchedule: subs.map((s) => ({
         subscriptionId: s.id,
@@ -564,25 +731,46 @@ export class AccountantService {
         outstanding: Number(s.totalAmount) - Number(s.amountPaid),
         status: s.status,
         installmentCount: s.installments?.length || 0,
-        paidInstallments: s.installments?.filter((i) => i.status === 'paid').length || 0,
+        paidInstallments:
+          s.installments?.filter((i) => i.status === 'paid').length || 0,
       })),
       agingSummary: [
-        { label: '0-30 days', count: outstandingInsts.filter((i) => {
-          const d = Math.floor((Date.now() - new Date(i.dueDate).getTime()) / 86400000);
-          return d >= 0 && d <= 30;
-        }).length },
-        { label: '31-60 days', count: outstandingInsts.filter((i) => {
-          const d = Math.floor((Date.now() - new Date(i.dueDate).getTime()) / 86400000);
-          return d >= 31 && d <= 60;
-        }).length },
-        { label: '61-90 days', count: outstandingInsts.filter((i) => {
-          const d = Math.floor((Date.now() - new Date(i.dueDate).getTime()) / 86400000);
-          return d >= 61 && d <= 90;
-        }).length },
-        { label: '90+ days', count: outstandingInsts.filter((i) => {
-          const d = Math.floor((Date.now() - new Date(i.dueDate).getTime()) / 86400000);
-          return d > 90;
-        }).length },
+        {
+          label: '0-30 days',
+          count: outstandingInsts.filter((i) => {
+            const d = Math.floor(
+              (Date.now() - new Date(i.dueDate).getTime()) / 86400000,
+            );
+            return d >= 0 && d <= 30;
+          }).length,
+        },
+        {
+          label: '31-60 days',
+          count: outstandingInsts.filter((i) => {
+            const d = Math.floor(
+              (Date.now() - new Date(i.dueDate).getTime()) / 86400000,
+            );
+            return d >= 31 && d <= 60;
+          }).length,
+        },
+        {
+          label: '61-90 days',
+          count: outstandingInsts.filter((i) => {
+            const d = Math.floor(
+              (Date.now() - new Date(i.dueDate).getTime()) / 86400000,
+            );
+            return d >= 61 && d <= 90;
+          }).length,
+        },
+        {
+          label: '90+ days',
+          count: outstandingInsts.filter((i) => {
+            const d = Math.floor(
+              (Date.now() - new Date(i.dueDate).getTime()) / 86400000,
+            );
+            return d > 90;
+          }).length,
+        },
       ],
     };
   }
@@ -604,11 +792,17 @@ export class AccountantService {
       '',
       '=== Repayment Schedule ===',
       'Subscription ID,Plan,Total Amount,Amount Paid,Outstanding,Status',
-      ...stmt.repaymentSchedule.map((s) => `"${s.subscriptionId}","${s.planName}",${s.totalAmount},${s.amountPaid},${s.outstanding},"${s.status}"`),
+      ...stmt.repaymentSchedule.map(
+        (s) =>
+          `"${s.subscriptionId}","${s.planName}",${s.totalAmount},${s.amountPaid},${s.outstanding},"${s.status}"`,
+      ),
       '',
       '=== Payment History ===',
       'Payment ID,Amount,Fee,Provider,Reference,Status,Date',
-      ...stmt.paymentHistory.map((p) => `"${p.id}",${p.amount},${p.fee},"${p.provider}","${p.providerReference}","${p.status}","${p.createdAt.toISOString()}"`),
+      ...stmt.paymentHistory.map(
+        (p) =>
+          `"${p.id}",${p.amount},${p.fee},"${p.provider}","${p.providerReference}","${p.status}","${p.createdAt.toISOString()}"`,
+      ),
     ];
     return lines.join('\n');
   }
@@ -630,7 +824,10 @@ export class AccountantService {
       '',
       '=== Repayment Schedule ===',
       'Subscription ID,Member ID,Plan,Total Amount,Amount Paid,Outstanding,Status,Installments,Paid',
-      ...stmt.repaymentSchedule.map((s) => `"${s.subscriptionId}","${s.memberId}","${s.planName}",${s.totalAmount},${s.amountPaid},${s.outstanding},"${s.status}",${s.installmentCount},${s.paidInstallments}`),
+      ...stmt.repaymentSchedule.map(
+        (s) =>
+          `"${s.subscriptionId}","${s.memberId}","${s.planName}",${s.totalAmount},${s.amountPaid},${s.outstanding},"${s.status}",${s.installmentCount},${s.paidInstallments}`,
+      ),
       '',
       '=== Aging Summary ===',
       'Bucket,Count',
@@ -644,7 +841,9 @@ export class AccountantService {
   // ═══════════════════════════════════════════════════════════════
 
   async getFinancialAuditLog(days?: number, action?: string, limit?: number) {
-    const since = days ? new Date(Date.now() - days * 86400000) : new Date(Date.now() - 30 * 86400000);
+    const since = days
+      ? new Date(Date.now() - days * 86400000)
+      : new Date(Date.now() - 30 * 86400000);
     const where: any = { createdAt: Between(since, new Date()) };
 
     const financialActions = [
@@ -682,7 +881,9 @@ export class AccountantService {
     limit?: number;
     offset?: number;
   }) {
-    const since = dto.days ? new Date(Date.now() - dto.days * 86400000) : new Date(Date.now() - 90 * 86400000);
+    const since = dto.days
+      ? new Date(Date.now() - dto.days * 86400000)
+      : new Date(Date.now() - 90 * 86400000);
     const limit = dto.limit || 200;
     const offset = dto.offset || 0;
     const transactions: any[] = [];
@@ -691,214 +892,270 @@ export class AccountantService {
 
     // 1. Payments
     if (!dto.source || dto.source === 'payment') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.paymentRepo.find({ where, order: { createdAt: 'DESC' }, take: limit });
-        for (const p of items) {
-          transactions.push({
-            id: p.id,
-            date: p.createdAt,
-            type: 'payment',
-            source: 'payment',
-            description: `Payment via ${p.provider}`,
-            debit: 0,
-            credit: Number(p.amount),
-            fee: Number(p.fee),
-            reference: p.providerReference,
-            status: p.status,
-            userId: p.userId,
-            subscriptionId: p.subscriptionId,
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.paymentRepo.find({
+            where,
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const p of items) {
+            transactions.push({
+              id: p.id,
+              date: p.createdAt,
+              type: 'payment',
+              source: 'payment',
+              description: `Payment via ${p.provider}`,
+              debit: 0,
+              credit: Number(p.amount),
+              fee: Number(p.fee),
+              reference: p.providerReference,
+              status: p.status,
+              userId: p.userId,
+              subscriptionId: p.subscriptionId,
+            });
+          }
+        })(),
+      );
     }
 
     // 2. BNPL Installments
     if (!dto.source || dto.source === 'bnpl_installment') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.instRepo.find({ where, relations: { subscription: { plan: { catalogItem: true } } }, order: { createdAt: 'DESC' }, take: limit });
-        for (const i of items) {
-          transactions.push({
-            id: i.id,
-            date: i.createdAt,
-            type: 'bnpl_installment',
-            source: 'bnpl',
-            description: `Installment for ${i.subscription?.plan?.catalogItem?.name || 'Unknown'}`,
-            debit: Number(i.amount),
-            credit: 0,
-            fee: Number(i.lateFeeAmount),
-            reference: i.paymentReference || '',
-            status: i.status,
-            userId: i.subscription?.userId,
-            subscriptionId: i.subscriptionId,
-            dueDate: i.dueDate,
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.instRepo.find({
+            where,
+            relations: { subscription: { plan: { catalogItem: true } } },
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const i of items) {
+            transactions.push({
+              id: i.id,
+              date: i.createdAt,
+              type: 'bnpl_installment',
+              source: 'bnpl',
+              description: `Installment for ${i.subscription?.plan?.catalogItem?.name || 'Unknown'}`,
+              debit: Number(i.amount),
+              credit: 0,
+              fee: Number(i.lateFeeAmount),
+              reference: i.paymentReference || '',
+              status: i.status,
+              userId: i.subscription?.userId,
+              subscriptionId: i.subscriptionId,
+              dueDate: i.dueDate,
+            });
+          }
+        })(),
+      );
     }
 
     // 3. BNPL Subscriptions (order-level)
     if (!dto.source || dto.source === 'bnpl_subscription') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.subRepo.find({ where, relations: { plan: { catalogItem: true } }, order: { createdAt: 'DESC' }, take: limit });
-        for (const s of items) {
-          transactions.push({
-            id: s.id,
-            date: s.createdAt,
-            type: 'bnpl_subscription',
-            source: 'bnpl',
-            description: `Order: ${s.plan?.catalogItem?.name || 'Unknown'}`,
-            debit: Number(s.totalAmount),
-            credit: Number(s.amountPaid),
-            fee: 0,
-            reference: s.providerReference || '',
-            status: s.status,
-            userId: s.userId,
-            subscriptionId: s.id,
-            payoutStatus: s.payoutStatus,
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.subRepo.find({
+            where,
+            relations: { plan: { catalogItem: true } },
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const s of items) {
+            transactions.push({
+              id: s.id,
+              date: s.createdAt,
+              type: 'bnpl_subscription',
+              source: 'bnpl',
+              description: `Order: ${s.plan?.catalogItem?.name || 'Unknown'}`,
+              debit: Number(s.totalAmount),
+              credit: Number(s.amountPaid),
+              fee: 0,
+              reference: s.providerReference || '',
+              status: s.status,
+              userId: s.userId,
+              subscriptionId: s.id,
+              payoutStatus: s.payoutStatus,
+            });
+          }
+        })(),
+      );
     }
 
     // 4. Loan disbursements
     if (!dto.source || dto.source === 'loan') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.loanRepo.find({ where, order: { createdAt: 'DESC' }, take: limit });
-        for (const l of items) {
-          transactions.push({
-            id: l.id,
-            date: l.createdAt,
-            type: 'loan_disbursement',
-            source: 'loan',
-            description: `Loan: ${l.purpose || 'No purpose'} (${l.duration}mo @ ${l.interestRate}%)`,
-            debit: Number(l.amount),
-            credit: Number(l.amountPaid),
-            fee: 0,
-            reference: '',
-            status: l.status,
-            userId: l.userId,
-            totalRepayment: Number(l.totalRepayment),
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.loanRepo.find({
+            where,
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const l of items) {
+            transactions.push({
+              id: l.id,
+              date: l.createdAt,
+              type: 'loan_disbursement',
+              source: 'loan',
+              description: `Loan: ${l.purpose || 'No purpose'} (${l.duration}mo @ ${l.interestRate}%)`,
+              debit: Number(l.amount),
+              credit: Number(l.amountPaid),
+              fee: 0,
+              reference: '',
+              status: l.status,
+              userId: l.userId,
+              totalRepayment: Number(l.totalRepayment),
+            });
+          }
+        })(),
+      );
     }
 
     // 5. Loan repayments
     if (!dto.source || dto.source === 'loan_repayment') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.loanRepayRepo.find({ where, relations: { loan: true }, order: { createdAt: 'DESC' }, take: limit });
-        for (const r of items) {
-          transactions.push({
-            id: r.id,
-            date: r.createdAt,
-            type: 'loan_repayment',
-            source: 'loan',
-            description: `Loan repayment ${r.paymentReference ? `(${r.paymentReference})` : ''}`,
-            debit: 0,
-            credit: Number(r.amount),
-            fee: 0,
-            reference: r.paymentReference || '',
-            status: r.status,
-            loanId: r.loanId,
-            dueDate: r.dueDate,
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.loanRepayRepo.find({
+            where,
+            relations: { loan: true },
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const r of items) {
+            transactions.push({
+              id: r.id,
+              date: r.createdAt,
+              type: 'loan_repayment',
+              source: 'loan',
+              description: `Loan repayment ${r.paymentReference ? `(${r.paymentReference})` : ''}`,
+              debit: 0,
+              credit: Number(r.amount),
+              fee: 0,
+              reference: r.paymentReference || '',
+              status: r.status,
+              loanId: r.loanId,
+              dueDate: r.dueDate,
+            });
+          }
+        })(),
+      );
     }
 
     // 6. Savings transactions
     if (!dto.source || dto.source === 'savings') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.savTxRepo.find({ where, relations: { account: true }, order: { createdAt: 'DESC' }, take: limit });
-        for (const t of items) {
-          transactions.push({
-            id: t.id,
-            date: t.createdAt,
-            type: `savings_${t.type}`,
-            source: 'savings',
-            description: t.description || `Savings ${t.type}`,
-            debit: t.type === 'withdrawal' ? Number(t.amount) : 0,
-            credit: t.type === 'deposit' ? Number(t.amount) : 0,
-            fee: 0,
-            reference: '',
-            status: 'completed',
-            userId: t.account?.userId,
-            balanceBefore: Number(t.balanceBefore),
-            balanceAfter: Number(t.balanceAfter),
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.savTxRepo.find({
+            where,
+            relations: { account: true },
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const t of items) {
+            transactions.push({
+              id: t.id,
+              date: t.createdAt,
+              type: `savings_${t.type}`,
+              source: 'savings',
+              description: t.description || `Savings ${t.type}`,
+              debit: t.type === 'withdrawal' ? Number(t.amount) : 0,
+              credit: t.type === 'deposit' ? Number(t.amount) : 0,
+              fee: 0,
+              reference: '',
+              status: 'completed',
+              userId: t.account?.userId,
+              balanceBefore: Number(t.balanceBefore),
+              balanceAfter: Number(t.balanceAfter),
+            });
+          }
+        })(),
+      );
     }
 
     // 7. Journal entries (posted only)
     if (!dto.source || dto.source === 'journal') {
-      promises.push((async () => {
-        const items = await this.journalRepo.find({
-          where: { status: JournalStatus.POSTED, createdAt: Between(since, new Date()) },
-          relations: { lines: true },
-          order: { createdAt: 'DESC' },
-          take: limit,
-        });
-        for (const j of items) {
-          const totalDebit = j.lines.reduce((s, l) => s + Number(l.debit), 0);
-          const totalCredit = j.lines.reduce((s, l) => s + Number(l.credit), 0);
-          transactions.push({
-            id: j.id,
-            date: j.createdAt,
-            type: 'journal_entry',
-            source: 'ledger',
-            description: j.description || 'Journal entry',
-            debit: totalDebit,
-            credit: totalCredit,
-            fee: 0,
-            reference: '',
-            status: 'posted',
-            entryDate: j.entryDate,
-            lineCount: j.lines.length,
-            postedBy: j.postedBy,
+      promises.push(
+        (async () => {
+          const items = await this.journalRepo.find({
+            where: {
+              status: JournalStatus.POSTED,
+              createdAt: Between(since, new Date()),
+            },
+            relations: { lines: true },
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const j of items) {
+            const totalDebit = j.lines.reduce((s, l) => s + Number(l.debit), 0);
+            const totalCredit = j.lines.reduce(
+              (s, l) => s + Number(l.credit),
+              0,
+            );
+            transactions.push({
+              id: j.id,
+              date: j.createdAt,
+              type: 'journal_entry',
+              source: 'ledger',
+              description: j.description || 'Journal entry',
+              debit: totalDebit,
+              credit: totalCredit,
+              fee: 0,
+              reference: '',
+              status: 'posted',
+              entryDate: j.entryDate,
+              lineCount: j.lines.length,
+              postedBy: j.postedBy,
+            });
+          }
+        })(),
+      );
     }
 
     // 8. Fee shares
     if (!dto.source || dto.source === 'fee_share') {
-      promises.push((async () => {
-        const where: any = { createdAt: Between(since, new Date()) };
-        const items = await this.feeShareRepo.find({ where, order: { createdAt: 'DESC' }, take: limit });
-        for (const f of items) {
-          transactions.push({
-            id: f.id,
-            date: f.createdAt,
-            type: 'fee_share',
-            source: 'fees',
-            description: `Fee split: ${f.source}`,
-            debit: Number(f.totalFee),
-            credit: 0,
-            fee: 0,
-            reference: '',
-            status: 'completed',
-            paymentId: f.paymentId,
-            organizationId: f.organizationId,
-            platformShare: Number(f.platformShare),
-            organizationShare: Number(f.organizationShare),
-            apexShare: Number(f.apexShare),
-            superAdminShare: Number(f.superAdminShare),
+      promises.push(
+        (async () => {
+          const where: any = { createdAt: Between(since, new Date()) };
+          const items = await this.feeShareRepo.find({
+            where,
+            order: { createdAt: 'DESC' },
+            take: limit,
           });
-        }
-      })());
+          for (const f of items) {
+            transactions.push({
+              id: f.id,
+              date: f.createdAt,
+              type: 'fee_share',
+              source: 'fees',
+              description: `Fee split: ${f.source}`,
+              debit: Number(f.totalFee),
+              credit: 0,
+              fee: 0,
+              reference: '',
+              status: 'completed',
+              paymentId: f.paymentId,
+              organizationId: f.organizationId,
+              platformShare: Number(f.platformShare),
+              organizationShare: Number(f.organizationShare),
+              apexShare: Number(f.apexShare),
+              superAdminShare: Number(f.superAdminShare),
+            });
+          }
+        })(),
+      );
     }
 
     await Promise.all(promises);
 
     // Sort by date descending
-    transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    transactions.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
     const total = transactions.length;
     const paged = transactions.slice(offset, offset + limit);
@@ -967,7 +1224,10 @@ export class AccountantService {
           .createQueryBuilder('f')
           .select('f.organization_id', 'organizationId')
           .addSelect('COALESCE(SUM(f.total_fee), 0)', 'totalFees')
-          .addSelect('COALESCE(SUM(f.organization_share), 0)', 'organizationShare')
+          .addSelect(
+            'COALESCE(SUM(f.organization_share), 0)',
+            'organizationShare',
+          )
           .addSelect(
             "COALESCE(SUM(CASE WHEN f.source = 'registration' THEN f.organization_share ELSE 0 END), 0)",
             'registrationShare',
@@ -1043,10 +1303,18 @@ export class AccountantService {
     const pots = await this.feePotRepo.find();
     const totalPots = pots.length;
     const totalBalance = pots.reduce((s, p) => s + Number(p.balance), 0);
-    const pendingRecs = await this.recRunRepo.count({ where: { status: ReconciliationStatus.IN_PROGRESS } });
-    const pendingAdjs = await this.adjRepo.count({ where: { status: AdjustmentStatus.PENDING } });
-    const pendingEntries = await this.journalRepo.count({ where: { status: JournalStatus.DRAFT } });
-    const pendingWithdrawals = await this.withdrawalRepo.count({ where: { status: PayoutStatus.PENDING } });
+    const pendingRecs = await this.recRunRepo.count({
+      where: { status: ReconciliationStatus.IN_PROGRESS },
+    });
+    const pendingAdjs = await this.adjRepo.count({
+      where: { status: AdjustmentStatus.PENDING },
+    });
+    const pendingEntries = await this.journalRepo.count({
+      where: { status: JournalStatus.DRAFT },
+    });
+    const pendingWithdrawals = await this.withdrawalRepo.count({
+      where: { status: PayoutStatus.PENDING },
+    });
 
     const platformPot = pots.find((p) => p.potType === 'platform');
     const adminPot = pots.find((p) => p.potType === 'admin');
@@ -1067,14 +1335,18 @@ export class AccountantService {
     const totalLoans = await this.loanRepo
       .createQueryBuilder('l')
       .select('COALESCE(SUM(l.amount), 0)', 'total')
-      .where('l.status IN (:...statuses)', { statuses: [LoanStatus.ACTIVE, LoanStatus.COMPLETED] })
+      .where('l.status IN (:...statuses)', {
+        statuses: [LoanStatus.ACTIVE, LoanStatus.COMPLETED],
+      })
       .getRawOne()
       .then((r) => Number(r?.total || 0));
 
     const totalDividends = await this.distributionRepo
       .createQueryBuilder('d')
       .select('COALESCE(SUM(d.total_pool), 0)', 'total')
-      .where('d.status IN (:...statuses)', { statuses: [DistributionStatus.EXECUTED, DistributionStatus.APPROVED] })
+      .where('d.status IN (:...statuses)', {
+        statuses: [DistributionStatus.EXECUTED, DistributionStatus.APPROVED],
+      })
       .getRawOne()
       .then((r) => Number(r?.total || 0));
 
@@ -1089,7 +1361,9 @@ export class AccountantService {
     const bnplOutstanding = await this.subRepo
       .createQueryBuilder('s')
       .select('COALESCE(SUM(s.total_amount - s.amount_paid), 0)', 'total')
-      .where('s.status NOT IN (:...statuses)', { statuses: [SubscriptionStatus.SETTLED] })
+      .where('s.status NOT IN (:...statuses)', {
+        statuses: [SubscriptionStatus.SETTLED],
+      })
       .getRawOne()
       .then((r) => Number(r?.total || 0));
 
@@ -1099,7 +1373,9 @@ export class AccountantService {
       .getRawOne()
       .then((r) => Number(r?.total || 0));
 
-    const postedEntries = await this.journalRepo.count({ where: { status: JournalStatus.POSTED } });
+    const postedEntries = await this.journalRepo.count({
+      where: { status: JournalStatus.POSTED },
+    });
 
     return {
       totalPots,
@@ -1122,11 +1398,21 @@ export class AccountantService {
     };
   }
 
-  async exportTransactionRegisterCsv(dto: { source?: string; days?: number }): Promise<string> {
+  async exportTransactionRegisterCsv(dto: {
+    source?: string;
+    days?: number;
+  }): Promise<string> {
     const result = await this.getTransactionRegister({ ...dto, limit: 5000 });
-    const header = 'Date,Type,Source,Description,Debit,Credit,Fee,Reference,Status,User ID,Subscription ID\n';
-    return header + result.transactions.map((t: any) =>
-      `"${new Date(t.date).toISOString()}","${t.type}","${t.source}","${(t.description || '').replace(/"/g, '""')}",${t.debit},${t.credit},${t.fee},"${t.reference || ''}","${t.status}","${t.userId || ''}","${t.subscriptionId || ''}"`
-    ).join('\n');
+    const header =
+      'Date,Type,Source,Description,Debit,Credit,Fee,Reference,Status,User ID,Subscription ID\n';
+    return (
+      header +
+      result.transactions
+        .map(
+          (t: any) =>
+            `"${new Date(t.date).toISOString()}","${t.type}","${t.source}","${(t.description || '').replace(/"/g, '""')}",${t.debit},${t.credit},${t.fee},"${t.reference || ''}","${t.status}","${t.userId || ''}","${t.subscriptionId || ''}"`,
+        )
+        .join('\n')
+    );
   }
 }

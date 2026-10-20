@@ -5,7 +5,9 @@ import { User } from '../../modules/users/entities/user.entity';
 import { Organization } from '../../modules/organizations/entities/organization.entity';
 import { hashForLookup } from '../../common/encryption.service';
 
-export async function seedOrgBusinessManagers(dataSource: DataSource): Promise<void> {
+export async function seedOrgBusinessManagers(
+  dataSource: DataSource,
+): Promise<void> {
   const userRepo = dataSource.getRepository(User);
   const orgRepo = dataSource.getRepository(Organization);
 

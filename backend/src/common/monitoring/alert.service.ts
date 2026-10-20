@@ -27,37 +27,69 @@ export class AlertService {
     }
   }
 
-  async alertCritical(error: Error, context?: Record<string, any>): Promise<void> {
+  async alertCritical(
+    error: Error,
+    context?: Record<string, any>,
+  ): Promise<void> {
     this.monitoring.captureException(error, { ...context, critical: true });
     await this.sendAlert('CRITICAL', error.message, context);
   }
 
-  async alertWarning(message: string, context?: Record<string, any>): Promise<void> {
+  async alertWarning(
+    message: string,
+    context?: Record<string, any>,
+  ): Promise<void> {
     this.monitoring.captureMessage(message, 'warning', context);
     await this.sendAlert('WARNING', message, context);
   }
 
-  async alertSecurity(event: string, userId?: string, metadata?: Record<string, any>): Promise<void> {
+  async alertSecurity(
+    event: string,
+    userId?: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
     this.monitoring.captureSecurityEvent(event, userId, metadata);
-    await this.sendAlert('SECURITY', `Security event: ${event}`, { userId, ...metadata });
+    await this.sendAlert('SECURITY', `Security event: ${event}`, {
+      userId,
+      ...metadata,
+    });
   }
 
-  private async sendAlert(level: string, message: string, context?: Record<string, any>): Promise<void> {
+  private async sendAlert(
+    level: string,
+    message: string,
+    context?: Record<string, any>,
+  ): Promise<void> {
     for (const channel of this.channels) {
       try {
         if (channel.type === 'slack_webhook') {
           await this.sendSlack(channel.target, level, message, context);
         }
       } catch (err) {
-        this.logger.error(`Failed to send alert via ${channel.type}: ${(err as Error).message}`);
+        this.logger.error(
+          `Failed to send alert via ${channel.type}: ${(err as Error).message}`,
+        );
       }
     }
   }
 
-  private async sendSlack(webhookUrl: string, level: string, message: string, context?: Record<string, any>): Promise<void> {
-    const color = level === 'CRITICAL' ? '#ff0000' : level === 'SECURITY' ? '#ff9900' : '#ffcc00';
+  private async sendSlack(
+    webhookUrl: string,
+    level: string,
+    message: string,
+    context?: Record<string, any>,
+  ): Promise<void> {
+    const color =
+      level === 'CRITICAL'
+        ? '#ff0000'
+        : level === 'SECURITY'
+          ? '#ff9900'
+          : '#ffcc00';
     const blocks = [
-      { type: 'section', text: { type: 'mrkdwn', text: `*[${level}]* ${message}` } },
+      {
+        type: 'section',
+        text: { type: 'mrkdwn', text: `*[${level}]* ${message}` },
+      },
     ];
     if (context && Object.keys(context).length > 0) {
       const fieldsText = Object.entries(context)

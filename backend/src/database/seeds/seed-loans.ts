@@ -1,6 +1,9 @@
 import { DataSource } from 'typeorm';
 import { Loan, LoanStatus } from '../../modules/loans/entities/loan.entity';
-import { LoanRepayment, RepaymentStatus } from '../../modules/loans/entities/loan-repayment.entity';
+import {
+  LoanRepayment,
+  RepaymentStatus,
+} from '../../modules/loans/entities/loan-repayment.entity';
 import { User } from '../../modules/users/entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
 
@@ -8,7 +11,9 @@ export async function seedLoans(dataSource: DataSource): Promise<void> {
   const loanRepo = dataSource.getRepository(Loan);
   const repaymentRepo = dataSource.getRepository(LoanRepayment);
 
-  const individuals = await dataSource.getRepository(User).find({ where: { role: Role.INDIVIDUAL } });
+  const individuals = await dataSource
+    .getRepository(User)
+    .find({ where: { role: Role.INDIVIDUAL } });
   if (individuals.length === 0) {
     console.log('No individual users found, skipping loan seed');
     return;
@@ -22,7 +27,8 @@ export async function seedLoans(dataSource: DataSource): Promise<void> {
       const interestRate = 5;
       const duration = 3;
       const totalRepayment = amount + (amount * interestRate) / 100;
-      const monthlyPayment = Math.round((totalRepayment / duration) * 100) / 100;
+      const monthlyPayment =
+        Math.round((totalRepayment / duration) * 100) / 100;
 
       const loan = await loanRepo.save({
         userId: demoUser.id,
@@ -48,7 +54,9 @@ export async function seedLoans(dataSource: DataSource): Promise<void> {
         } as LoanRepayment);
       }
       await repaymentRepo.save(repayments);
-      console.log(`Seeded loan for user@demo.com: ₦${amount.toLocaleString()} over ${duration} months`);
+      console.log(
+        `Seeded loan for user@demo.com: ₦${amount.toLocaleString()} over ${duration} months`,
+      );
     }
   }
 
@@ -91,7 +99,9 @@ export async function seedLoans(dataSource: DataSource): Promise<void> {
     }
     await repaymentRepo.save(repayments);
 
-    console.log(`Seeded active loan for ${user.email}: ₦${amount.toLocaleString()} over ${duration} months`);
+    console.log(
+      `Seeded active loan for ${user.email}: ₦${amount.toLocaleString()} over ${duration} months`,
+    );
   }
 
   console.log('Loans seeded successfully');

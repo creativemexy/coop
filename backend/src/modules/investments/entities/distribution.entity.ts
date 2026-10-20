@@ -1,4 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 export enum DistributionType {
   DIVIDEND = 'dividend',
@@ -40,7 +45,11 @@ export class Distribution {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string | null;
 
-  @Column({ type: 'enum', enum: DistributionStatus, default: DistributionStatus.DRAFT })
+  @Column({
+    type: 'enum',
+    enum: DistributionStatus,
+    default: DistributionStatus.DRAFT,
+  })
   status: DistributionStatus;
 
   @Column({ type: 'uuid', name: 'approved_by', nullable: true })

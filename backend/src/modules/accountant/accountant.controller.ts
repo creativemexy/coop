@@ -16,7 +16,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { ResultStatus } from './entities/reconciliation-result.entity';
-import { AdjustmentType, AdjustmentStatus } from './entities/adjustment-request.entity';
+import {
+  AdjustmentType,
+  AdjustmentStatus,
+} from './entities/adjustment-request.entity';
 
 @Controller('api/v1/accountant')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,60 +30,121 @@ export class AccountantController {
   // ─── BNPL Transaction Ledger (order-level) ─────────────────
 
   @Get('bnpl/orders')
-  async getOrderLedger(@Query('orgId') orgId?: string, @Query('days') days?: string) {
+  async getOrderLedger(
+    @Query('orgId') orgId?: string,
+    @Query('days') days?: string,
+  ) {
     return this.svc.getOrderLedger(orgId, days ? Number(days) : undefined);
   }
 
   @Get('bnpl/orders/export')
-  async exportOrderLedger(@Query('orgId') orgId: string = '', @Query('days') days: string = '', @Res() res: any) {
-    const csv = await this.svc.exportOrderLedgerCsv(orgId || undefined, days ? Number(days) : undefined);
+  async exportOrderLedger(
+    @Query('orgId') orgId: string = '',
+    @Query('days') days: string = '',
+    @Res() res: any,
+  ) {
+    const csv = await this.svc.exportOrderLedgerCsv(
+      orgId || undefined,
+      days ? Number(days) : undefined,
+    );
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="bnpl-order-ledger.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="bnpl-order-ledger.csv"',
+    );
     res.send(csv);
   }
 
   // ─── Installment-level postings ────────────────────────────
 
   @Get('bnpl/installments')
-  async getInstallmentLedger(@Query('orgId') orgId?: string, @Query('days') days?: string) {
-    return this.svc.getInstallmentLedger(orgId, days ? Number(days) : undefined);
+  async getInstallmentLedger(
+    @Query('orgId') orgId?: string,
+    @Query('days') days?: string,
+  ) {
+    return this.svc.getInstallmentLedger(
+      orgId,
+      days ? Number(days) : undefined,
+    );
   }
 
   @Get('bnpl/installments/export')
-  async exportInstallmentLedger(@Query('orgId') orgId: string = '', @Query('days') days: string = '', @Res() res: any) {
-    const csv = await this.svc.exportInstallmentLedgerCsv(orgId || undefined, days ? Number(days) : undefined);
+  async exportInstallmentLedger(
+    @Query('orgId') orgId: string = '',
+    @Query('days') days: string = '',
+    @Res() res: any,
+  ) {
+    const csv = await this.svc.exportInstallmentLedgerCsv(
+      orgId || undefined,
+      days ? Number(days) : undefined,
+    );
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="bnpl-installment-ledger.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="bnpl-installment-ledger.csv"',
+    );
     res.send(csv);
   }
 
   // ─── Payment References ────────────────────────────────────
 
   @Get('bnpl/payments')
-  async getPaymentReferences(@Query('orgId') orgId?: string, @Query('days') days?: string) {
-    return this.svc.getPaymentReferences(orgId, days ? Number(days) : undefined);
+  async getPaymentReferences(
+    @Query('orgId') orgId?: string,
+    @Query('days') days?: string,
+  ) {
+    return this.svc.getPaymentReferences(
+      orgId,
+      days ? Number(days) : undefined,
+    );
   }
 
   @Get('bnpl/payments/export')
-  async exportPaymentReferences(@Query('orgId') orgId: string = '', @Query('days') days: string = '', @Res() res: any) {
-    const csv = await this.svc.exportPaymentReferencesCsv(orgId || undefined, days ? Number(days) : undefined);
+  async exportPaymentReferences(
+    @Query('orgId') orgId: string = '',
+    @Query('days') days: string = '',
+    @Res() res: any,
+  ) {
+    const csv = await this.svc.exportPaymentReferencesCsv(
+      orgId || undefined,
+      days ? Number(days) : undefined,
+    );
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="bnpl-payment-references.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="bnpl-payment-references.csv"',
+    );
     res.send(csv);
   }
 
   // ─── Settlement References ─────────────────────────────────
 
   @Get('bnpl/settlements')
-  async getSettlementReferences(@Query('orgId') orgId?: string, @Query('days') days?: string) {
-    return this.svc.getSettlementReferences(orgId, days ? Number(days) : undefined);
+  async getSettlementReferences(
+    @Query('orgId') orgId?: string,
+    @Query('days') days?: string,
+  ) {
+    return this.svc.getSettlementReferences(
+      orgId,
+      days ? Number(days) : undefined,
+    );
   }
 
   @Get('bnpl/settlements/export')
-  async exportSettlementReferences(@Query('orgId') orgId: string = '', @Query('days') days: string = '', @Res() res: any) {
-    const csv = await this.svc.exportSettlementReferencesCsv(orgId || undefined, days ? Number(days) : undefined);
+  async exportSettlementReferences(
+    @Query('orgId') orgId: string = '',
+    @Query('days') days: string = '',
+    @Res() res: any,
+  ) {
+    const csv = await this.svc.exportSettlementReferencesCsv(
+      orgId || undefined,
+      days ? Number(days) : undefined,
+    );
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="bnpl-settlement-references.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="bnpl-settlement-references.csv"',
+    );
     res.send(csv);
   }
 
@@ -97,7 +161,8 @@ export class AccountantController {
 
   @Post('reconciliation/run')
   async runReconciliation(
-    @Body() dto: { rangeStart: string; rangeEnd: string; organizationId?: string },
+    @Body()
+    dto: { rangeStart: string; rangeEnd: string; organizationId?: string },
     @CurrentUser() user: any,
   ) {
     return this.svc.runReconciliation({ ...dto, runBy: user.sub });
@@ -130,13 +195,13 @@ export class AccountantController {
   }
 
   @Get('reconciliation/export/:runId')
-  async exportReconciliation(
-    @Param('runId') runId: string,
-    @Res() res: any,
-  ) {
+  async exportReconciliation(@Param('runId') runId: string, @Res() res: any) {
     const csv = await this.svc.exportReconciliationCsv(runId);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="reconciliation-${runId.slice(0, 8)}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reconciliation-${runId.slice(0, 8)}.csv"`,
+    );
     res.send(csv);
   }
 
@@ -146,7 +211,8 @@ export class AccountantController {
 
   @Post('adjustments')
   async createAdjustment(
-    @Body() dto: {
+    @Body()
+    dto: {
       adjustmentType: AdjustmentType;
       description: string;
       reasonCode: string;
@@ -188,28 +254,49 @@ export class AccountantController {
   // ═══════════════════════════════════════════════════════════════
 
   @Get('statements/member/:userId')
-  async getMemberStatement(@Param('userId') userId: string, @Query('days') days?: string) {
+  async getMemberStatement(
+    @Param('userId') userId: string,
+    @Query('days') days?: string,
+  ) {
     return this.svc.getMemberStatement(userId, days ? Number(days) : undefined);
   }
 
   @Get('statements/member/:userId/export')
-  async exportMemberStatement(@Param('userId') userId: string, @Res() res: any) {
+  async exportMemberStatement(
+    @Param('userId') userId: string,
+    @Res() res: any,
+  ) {
     const csv = await this.svc.exportMemberStatementCsv(userId);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="member-statement-${userId.slice(0, 8)}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="member-statement-${userId.slice(0, 8)}.csv"`,
+    );
     res.send(csv);
   }
 
   @Get('statements/cooperative/:orgId')
-  async getCooperativeStatement(@Param('orgId') orgId: string, @Query('days') days?: string) {
-    return this.svc.getCooperativeStatement(orgId, days ? Number(days) : undefined);
+  async getCooperativeStatement(
+    @Param('orgId') orgId: string,
+    @Query('days') days?: string,
+  ) {
+    return this.svc.getCooperativeStatement(
+      orgId,
+      days ? Number(days) : undefined,
+    );
   }
 
   @Get('statements/cooperative/:orgId/export')
-  async exportCooperativeStatement(@Param('orgId') orgId: string, @Res() res: any) {
+  async exportCooperativeStatement(
+    @Param('orgId') orgId: string,
+    @Res() res: any,
+  ) {
     const csv = await this.svc.exportCooperativeStatementCsv(orgId);
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="cooperative-statement-${orgId.slice(0, 8)}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="cooperative-statement-${orgId.slice(0, 8)}.csv"`,
+    );
     res.send(csv);
   }
 
@@ -238,9 +325,15 @@ export class AccountantController {
     @Query('source') source?: string,
     @Query('days') days?: string,
   ) {
-    const csv = await this.svc.exportTransactionRegisterCsv({ source, days: days ? Number(days) : undefined });
+    const csv = await this.svc.exportTransactionRegisterCsv({
+      source,
+      days: days ? Number(days) : undefined,
+    });
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="transaction-register.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="transaction-register.csv"',
+    );
     res.send(csv);
   }
 

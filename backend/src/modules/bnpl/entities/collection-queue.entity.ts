@@ -45,10 +45,22 @@ export class CollectionQueue {
   @Column({ type: 'int', default: 0, name: 'days_overdue' })
   daysOverdue: number;
 
-  @Column({ type: 'decimal', name: 'total_overdue_amount', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'total_overdue_amount',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   totalOverdueAmount: number;
 
-  @Column({ type: 'decimal', name: 'outstanding_principal', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'outstanding_principal',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   outstandingPrincipal: number;
 
   @Column({ type: 'timestamp', name: 'last_contacted_at', nullable: true })

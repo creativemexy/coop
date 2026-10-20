@@ -23,7 +23,9 @@ export class TermiiClient {
   async sendSms(recipient: string, message: string): Promise<boolean> {
     if (!this.apiKey) {
       this.logger.warn('Termii API key not configured, logging SMS instead');
-      this.logger.log(`[SMS Stub] To: ${maskPhone(recipient)}, Message: ${message}`);
+      this.logger.log(
+        `[SMS Stub] To: ${maskPhone(recipient)}, Message: ${message}`,
+      );
       return true;
     }
 
@@ -50,7 +52,9 @@ export class TermiiClient {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Termii SMS failed for ${maskPhone(recipient)}: ${errorMessage}`);
+      this.logger.error(
+        `Termii SMS failed for ${maskPhone(recipient)}: ${errorMessage}`,
+      );
       return false;
     }
   }

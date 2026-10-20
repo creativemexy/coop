@@ -1,6 +1,9 @@
 import { DataSource } from 'typeorm';
 import { SavingsAccount } from '../../modules/savings/entities/savings-account.entity';
-import { SavingsTransaction, TransactionType } from '../../modules/savings/entities/savings-transaction.entity';
+import {
+  SavingsTransaction,
+  TransactionType,
+} from '../../modules/savings/entities/savings-transaction.entity';
 import { User } from '../../modules/users/entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
 
@@ -8,7 +11,9 @@ export async function seedSavings(dataSource: DataSource): Promise<void> {
   const accountRepo = dataSource.getRepository(SavingsAccount);
   const txRepo = dataSource.getRepository(SavingsTransaction);
 
-  const individuals = await dataSource.getRepository(User).find({ where: { role: Role.INDIVIDUAL } });
+  const individuals = await dataSource
+    .getRepository(User)
+    .find({ where: { role: Role.INDIVIDUAL } });
   if (individuals.length === 0) {
     console.log('No individual users found, skipping savings seed');
     return;
@@ -17,12 +22,20 @@ export async function seedSavings(dataSource: DataSource): Promise<void> {
   for (const user of individuals) {
     let account = await accountRepo.findOne({ where: { userId: user.id } });
     if (!account) {
-      account = await accountRepo.save({ userId: user.id, balance: 0, status: 'active' });
+      account = await accountRepo.save({
+        userId: user.id,
+        balance: 0,
+        status: 'active',
+      });
     }
 
-    const existingTxCount = await txRepo.count({ where: { accountId: account.id } });
+    const existingTxCount = await txRepo.count({
+      where: { accountId: account.id },
+    });
     if (existingTxCount > 0) {
-      console.log(`Skipping savings seed for user ${user.email} — transactions already exist`);
+      console.log(
+        `Skipping savings seed for user ${user.email} — transactions already exist`,
+      );
       continue;
     }
 
@@ -64,7 +77,9 @@ export async function seedSavings(dataSource: DataSource): Promise<void> {
       await accountRepo.update(account.id, { balance });
     }
 
-    console.log(`Seeded savings for ${user.email}: ₦${balance.toLocaleString()}`);
+    console.log(
+      `Seeded savings for ${user.email}: ₦${balance.toLocaleString()}`,
+    );
   }
 
   console.log('Savings seeded successfully');

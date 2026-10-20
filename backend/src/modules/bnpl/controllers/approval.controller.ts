@@ -22,7 +22,12 @@ export class ApprovalController {
   constructor(private readonly service: ApprovalService) {}
 
   @Post()
-  @Roles(Role.BUSINESS_MANAGER, Role.BNPL_MANAGER, Role.OPERATIONAL_ADMIN, Role.SUPER_ADMIN)
+  @Roles(
+    Role.BUSINESS_MANAGER,
+    Role.BNPL_MANAGER,
+    Role.OPERATIONAL_ADMIN,
+    Role.SUPER_ADMIN,
+  )
   async submit(
     @Body()
     dto: {
@@ -36,7 +41,12 @@ export class ApprovalController {
   }
 
   @Get()
-  @Roles(Role.BUSINESS_MANAGER, Role.BNPL_MANAGER, Role.OPERATIONAL_ADMIN, Role.SUPER_ADMIN)
+  @Roles(
+    Role.BUSINESS_MANAGER,
+    Role.BNPL_MANAGER,
+    Role.OPERATIONAL_ADMIN,
+    Role.SUPER_ADMIN,
+  )
   async list(
     @Query('status') status?: string,
     @Query('requestType') requestType?: string,

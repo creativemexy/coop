@@ -5,12 +5,19 @@ import { Topbar } from './Topbar'
 import { DesignCredit } from './DesignCredit'
 import { useBranding } from '../../stores/branding.store'
 import { useRolePermissions } from '../../stores/role-permissions.store'
+import { usePageMeta } from '../../lib/seo'
 
 export function AppLayout() {
   const { load, loaded } = useBranding()
   const { load: loadPerms, loaded: permsLoaded } = useRolePermissions()
   useEffect(() => { if (!loaded) load() }, [loaded, load])
   useEffect(() => { if (!permsLoaded) loadPerms() }, [permsLoaded, loadPerms])
+
+  usePageMeta({
+    title: 'Member Platform | FENAC COOP',
+    description: 'Your FENAC COOP member platform for savings, loans, investments and BNPL.',
+    noindex: true,
+  })
   return (
     <div className="flex h-screen bg-[#FFF9EF]">
       <a href="#main-content" className="skip-link">

@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, FileText, ShieldCheck, UsersRound } from 'lucide-react'
+import { usePageMeta } from '../../lib/seo'
 
 /**
  * Shared accessible layout for legal documents (Privacy Policy, Cookie Policy).
@@ -10,6 +10,21 @@ export interface LegalSection {
   title: string
   body?: string | string[]
   items?: string[]
+}
+
+interface LegalPageProps {
+  title: string
+  description: string
+  effectiveDate: string
+  updatedDate?: string
+  sections: LegalSection[]
+  type?: 'privacy' | 'cookies'
+  path?: string
+}
+
+const LEGAL_PATHS: Record<string, string> = {
+  privacy: '/privacy',
+  cookies: '/cookies',
 }
 
 const keyPoints = {
@@ -49,35 +64,15 @@ const keyPoints = {
   ],
 }
 
-export function LegalPage(opts: {
-  title: string
-  description: string
-  effectiveDate: string
-  updatedDate?: string
-  sections: LegalSection[]
-  type?: 'privacy' | 'cookies'
-}) {
+export function LegalPage(opts: LegalPageProps) {
   const type = opts.type || 'privacy'
   const points = keyPoints[type] || keyPoints.privacy
 
-  useEffect(() => {
-    document.title = `${opts.title} | FENAC COOP`
-    let description = document.querySelector('meta[name="description"]')
-    if (!description) {
-      description = document.createElement('meta')
-      description.setAttribute('name', 'description')
-      document.head.appendChild(description)
-    }
-    description.setAttribute('content', opts.description)
-
-    let canonical = document.querySelector('link[rel="canonical"]')
-    if (!canonical) {
-      canonical = document.createElement('link')
-      canonical.setAttribute('rel', 'canonical')
-      document.head.appendChild(canonical)
-    }
-    canonical.setAttribute('href', window.location.href.split('?')[0])
-  }, [opts.description, opts.title])
+  usePageMeta({
+    title: `${opts.title} | FENAC COOP`,
+    description: opts.description,
+    path: opts.path ?? LEGAL_PATHS[type] ?? '/privacy',
+  })
 
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Account } from '../entities/account.entity';
@@ -20,7 +24,9 @@ export class AccountsService {
   }): Promise<Account> {
     const existing = await this.repo.findOne({ where: { code: dto.code } });
     if (existing) {
-      throw new BadRequestException(`An account with code "${dto.code}" already exists`);
+      throw new BadRequestException(
+        `An account with code "${dto.code}" already exists`,
+      );
     }
     const account = this.repo.create({ ...dto, isSystem: false });
     return this.repo.save(account);
@@ -57,12 +63,16 @@ export class AccountsService {
     if (dto.code && dto.code !== account.code) {
       const existing = await this.repo.findOne({ where: { code: dto.code } });
       if (existing) {
-        throw new BadRequestException(`An account with code "${dto.code}" already exists`);
+        throw new BadRequestException(
+          `An account with code "${dto.code}" already exists`,
+        );
       }
     }
 
     if (account.isSystem) {
-      throw new BadRequestException('System accounts cannot be edited. Create a new account instead.');
+      throw new BadRequestException(
+        'System accounts cannot be edited. Create a new account instead.',
+      );
     }
 
     if (dto.code) account.code = dto.code;

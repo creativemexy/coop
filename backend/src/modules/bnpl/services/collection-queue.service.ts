@@ -1,10 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CollectionQueue, QueueStatus, QueuePriority } from '../entities/collection-queue.entity';
+import {
+  CollectionQueue,
+  QueueStatus,
+  QueuePriority,
+} from '../entities/collection-queue.entity';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
-import { InstallmentStatus, SubscriptionStatus } from '../../../common/enums/status.enum';
+import {
+  InstallmentStatus,
+  SubscriptionStatus,
+} from '../../../common/enums/status.enum';
 
 @Injectable()
 export class CollectionQueueService {
@@ -24,20 +31,35 @@ export class CollectionQueueService {
     });
     if (!sub) throw new NotFoundException('Subscription not found');
 
-    const existing = await this.queueRepo.findOne({ where: { subscriptionId } });
+    const existing = await this.queueRepo.findOne({
+      where: { subscriptionId },
+    });
     if (existing) return existing;
 
     const overdueInsts = (sub.installments || []).filter(
-      (i) => i.status === InstallmentStatus.PENDING && new Date(i.dueDate) < new Date(),
+      (i) =>
+        i.status === InstallmentStatus.PENDING &&
+        new Date(i.dueDate) < new Date(),
     );
 
     const now = new Date();
-    const daysOverdue = overdueInsts.length > 0
-      ? Math.max(...overdueInsts.map((i) => Math.floor((now.getTime() - new Date(i.dueDate).getTime()) / 86400000)))
-      : 0;
+    const daysOverdue =
+      overdueInsts.length > 0
+        ? Math.max(
+            ...overdueInsts.map((i) =>
+              Math.floor(
+                (now.getTime() - new Date(i.dueDate).getTime()) / 86400000,
+              ),
+            ),
+          )
+        : 0;
 
-    const totalOverdueAmount = overdueInsts.reduce((s, i) => s + Number(i.amount), 0);
-    const outstandingPrincipal = Number(sub.totalAmount) - Number(sub.amountPaid);
+    const totalOverdueAmount = overdueInsts.reduce(
+      (s, i) => s + Number(i.amount),
+      0,
+    );
+    const outstandingPrincipal =
+      Number(sub.totalAmount) - Number(sub.amountPaid);
 
     let priority = QueuePriority.LOW;
     if (daysOverdue > 90) priority = QueuePriority.CRITICAL;
@@ -57,11 +79,20 @@ export class CollectionQueueService {
     return this.queueRepo.save(entry);
   }
 
-  async listQueued(filters?: { status?: string; priority?: string; assignedTo?: string }) {
+  async listQueued(filters?: {
+    status?: string;
+    priority?: string;
+    assignedTo?: string;
+  }) {
     const qb = this.queueRepo.createQueryBuilder('q');
-    if (filters?.status) qb.andWhere('q.status = :status', { status: filters.status });
-    if (filters?.priority) qb.andWhere('q.priority = :priority', { priority: filters.priority });
-    if (filters?.assignedTo) qb.andWhere('q.assigned_to = :assignedTo', { assignedTo: filters.assignedTo });
+    if (filters?.status)
+      qb.andWhere('q.status = :status', { status: filters.status });
+    if (filters?.priority)
+      qb.andWhere('q.priority = :priority', { priority: filters.priority });
+    if (filters?.assignedTo)
+      qb.andWhere('q.assigned_to = :assignedTo', {
+        assignedTo: filters.assignedTo,
+      });
     qb.orderBy('q.priority', 'ASC').addOrderBy('q.days_overdue', 'DESC');
     return qb.getMany();
   }
@@ -73,7 +104,8 @@ export class CollectionQueueService {
     entry.status = status;
     if (note) entry.agentNote = note;
     if (status === QueueStatus.CONTACTED) entry.lastContactedAt = new Date();
-    if (status === QueueStatus.RESOLVED || status === QueueStatus.CLOSED) entry.resolvedAt = new Date();
+    if (status === QueueStatus.RESOLVED || status === QueueStatus.CLOSED)
+      entry.resolvedAt = new Date();
     return this.queueRepo.save(entry);
   }
 
@@ -85,7 +117,11 @@ export class CollectionQueueService {
   }
 
   async getAgingSummary() {
-    interface AgingRow { label: string; count: string; total_amount: string }
+    interface AgingRow {
+      label: string;
+      count: string;
+      total_amount: string;
+    }
     const rows: AgingRow[] = await this.queueRepo.manager.query(
       `SELECT CASE
                 WHEN actual_days BETWEEN 0 AND 30 THEN '0–30 days'

@@ -55,8 +55,14 @@ export class PaystackClient {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.secretKey =
-      configService.get<string>('PAYSTACK_SECRET_KEY') || '';
+    this.secretKey = configService.get<string>('PAYSTACK_SECRET_KEY') || '';
+    if (
+      (process.env.NODE_ENV === 'production' ||
+        process.env.APP_ENV === 'production') &&
+      !this.secretKey.startsWith('sk_live_')
+    ) {
+      throw new Error('A live PAYSTACK_SECRET_KEY is required in production');
+    }
     this.baseUrl = 'https://api.paystack.co';
   }
 
@@ -155,7 +161,9 @@ export class PaystackClient {
     bankCode: string,
   ): Promise<BankResolveResult | null> {
     if (!this.secretKey || this.secretKey === 'sk_test_xxx') {
-      this.logger.warn('Paystack secret key not configured, skipping bank resolve');
+      this.logger.warn(
+        'Paystack secret key not configured, skipping bank resolve',
+      );
       return null;
     }
 
@@ -164,7 +172,11 @@ export class PaystackClient {
         this.httpService.get<{
           status: boolean;
           message: string;
-          data?: { account_name: string; account_number: string; bank_id?: number };
+          data?: {
+            account_name: string;
+            account_number: string;
+            bank_id?: number;
+          };
         }>(`${this.baseUrl}/bank/resolve`, {
           params: { account_number: accountNumber, bank_code: bankCode },
           headers: { Authorization: `Bearer ${this.secretKey}` },
@@ -190,7 +202,9 @@ export class PaystackClient {
 
   async getBalance(): Promise<PaystackBalanceEntry[]> {
     if (!this.secretKey || this.secretKey === 'sk_test_xxx') {
-      this.logger.warn('Paystack secret key not configured, using stub balance');
+      this.logger.warn(
+        'Paystack secret key not configured, using stub balance',
+      );
       return [{ currency: 'NGN', available: 0, balance: 0 }];
     }
 
@@ -220,7 +234,9 @@ export class PaystackClient {
 
   async listBanks(): Promise<{ code: string; name: string; slug?: string }[]> {
     if (!this.secretKey || this.secretKey === 'sk_test_xxx') {
-      this.logger.warn('Paystack secret key not configured, using stub bank list');
+      this.logger.warn(
+        'Paystack secret key not configured, using stub bank list',
+      );
       return [
         { code: '999992', name: 'OPay' },
         { code: '058', name: 'GTBank' },
@@ -245,7 +261,11 @@ export class PaystackClient {
 
       return data.data
         .filter((b) => b.code && b.name)
-        .map((b) => ({ code: b.code as string, name: b.name as string, slug: b.slug }));
+        .map((b) => ({
+          code: b.code as string,
+          name: b.name as string,
+          slug: b.slug,
+        }));
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -260,7 +280,9 @@ export class PaystackClient {
     bankCode: string;
   }): Promise<string> {
     if (!this.secretKey || this.secretKey === 'sk_test_xxx') {
-      this.logger.warn('Paystack secret key not configured, using stub recipient');
+      this.logger.warn(
+        'Paystack secret key not configured, using stub recipient',
+      );
       return `RCP_${params.accountNumber}`;
     }
 
@@ -311,7 +333,9 @@ export class PaystackClient {
       params.reference ||
       `TFR-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     if (!this.secretKey || this.secretKey === 'sk_test_xxx') {
-      this.logger.warn('Paystack secret key not configured, using stub transfer');
+      this.logger.warn(
+        'Paystack secret key not configured, using stub transfer',
+      );
       return { reference, status: 'success', recipientCode: params.recipient };
     }
 
@@ -356,7 +380,9 @@ export class PaystackClient {
     }
   }
 
-  async verifyTransfer(reference: string): Promise<PaystackTransferResult | null> {
+  async verifyTransfer(
+    reference: string,
+  ): Promise<PaystackTransferResult | null> {
     if (!this.secretKey || this.secretKey === 'sk_test_xxx') {
       this.logger.warn('Paystack secret key not configured, using stub verify');
       return { reference, status: 'success', recipientCode: '' };
@@ -387,7 +413,8 @@ export class PaystackClient {
         recipientCode: data.data.recipient?.recipient_code || '',
       };
     } catch (error: unknown) {
-      const responseStatus = (error as { response?: { status?: number } })?.response?.status;
+      const responseStatus = (error as { response?: { status?: number } })
+        ?.response?.status;
       if (responseStatus === 404) {
         return null;
       }

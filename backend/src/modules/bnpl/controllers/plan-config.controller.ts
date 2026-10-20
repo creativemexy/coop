@@ -1,18 +1,15 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Param,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Put, Param, Body, UseGuards } from '@nestjs/common';
 import { PlanConfigService } from '../services/plan-config.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Role } from '../../../common/enums/role.enum';
-import { InterestModel, DueDateRule, LateFeeType } from '../entities/bnpl-plan-config.entity';
+import {
+  InterestModel,
+  DueDateRule,
+  LateFeeType,
+} from '../entities/bnpl-plan-config.entity';
 
 @Controller('api/v1/bnpl/plan-config')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,7 +30,11 @@ export class PlanConfigController {
     @Param('organizationId') organizationId: string,
     @Body()
     dto: {
-      availableTenors: { installmentCount: number; frequency: string; label: string }[];
+      availableTenors: {
+        installmentCount: number;
+        frequency: string;
+        label: string;
+      }[];
       interestModel: InterestModel;
       maxPrincipal?: number;
       requireMembership?: boolean;

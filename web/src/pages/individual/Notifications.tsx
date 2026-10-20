@@ -59,10 +59,11 @@ export function Notifications() {
 
   useEffect(() => { load() }, [load])
 
-  const markRead = async (id: string) => {
+  const dismiss = async (id: string) => {
     try {
-      await api.patch(`/notifications/${id}/read`)
-      load()
+      await api.delete(`/notifications/${id}`)
+      setNotifications((prev) => prev.filter((notification) => notification.id !== id))
+      setUnread((prev) => Math.max(0, prev - 1))
     } catch {}
   }
 
@@ -141,7 +142,7 @@ export function Notifications() {
                     </button>
                   )}
                   {!n.isRead && (
-                    <button type="button" onClick={() => markRead(n.id)} className="text-xs font-semibold text-[#B79B6B] transition hover:text-[#8A5A00] cursor-pointer">
+                    <button type="button" onClick={() => dismiss(n.id)} className="text-xs font-semibold text-[#B79B6B] transition hover:text-[#8A5A00] cursor-pointer">
                       Dismiss
                     </button>
                   )}

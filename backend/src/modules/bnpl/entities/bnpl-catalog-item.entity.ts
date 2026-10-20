@@ -44,6 +44,8 @@ export class BnplCatalogItem {
   @OneToMany(() => BnplPlan, (plan) => plan.catalogItem)
   plans: BnplPlan[];
 
-  @OneToMany(() => BnplCatalogImage, (img) => img.catalogItem, { cascade: true })
+  @OneToMany(() => BnplCatalogImage, (img) => img.catalogItem, {
+    cascade: true,
+  })
   images: BnplCatalogImage[];
 }

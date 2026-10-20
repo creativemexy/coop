@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
@@ -31,15 +36,24 @@ export class KycGuard implements CanActivate {
     if (!tokenUser) return true;
     if (tokenUser.role !== Role.INDIVIDUAL) return true;
 
-    const user = await this.entityManager.findOne(User, { where: { id: tokenUser.sub } });
+    const user = await this.entityManager.findOne(User, {
+      where: { id: tokenUser.sub },
+    });
     if (!user) return true;
 
     if (user.kycStatus !== KycStatus.APPROVED) {
-      throw new ForbiddenException('KYC verification required to access this feature');
+      throw new ForbiddenException(
+        'KYC verification required to access this feature',
+      );
     }
 
-    if (user.kycVerifiedAt && Date.now() - user.kycVerifiedAt.getTime() > KYC_EXPIRY_MS) {
-      throw new ForbiddenException('KYC verification has expired. Please re-verify');
+    if (
+      user.kycVerifiedAt &&
+      Date.now() - user.kycVerifiedAt.getTime() > KYC_EXPIRY_MS
+    ) {
+      throw new ForbiddenException(
+        'KYC verification has expired. Please re-verify',
+      );
     }
 
     return true;

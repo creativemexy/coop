@@ -12,7 +12,12 @@ import { InvestmentHolding } from '../investments/entities/investment-holding.en
   imports: [
     MulterModule.register({ dest: './uploads/branding' }),
     SettingsModule,
-    TypeOrmModule.forFeature([User, Organization, SavingsAccount, InvestmentHolding]),
+    TypeOrmModule.forFeature([
+      User,
+      Organization,
+      SavingsAccount,
+      InvestmentHolding,
+    ]),
   ],
   controllers: [BrandingController],
 })

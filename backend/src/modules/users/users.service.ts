@@ -43,7 +43,10 @@ export class UsersService {
   ) {}
 
   async findById(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: { organization: true, apexOrg: true },
+    });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -66,45 +69,65 @@ export class UsersService {
       where: { role: Role.BUSINESS_MANAGER, isActive: true },
     });
     if (!user) {
-      throw new NotFoundException('No active global business manager found. Seed the user first.');
+      throw new NotFoundException(
+        'No active global business manager found. Seed the user first.',
+      );
     }
     return user;
   }
 
   async findBySocial(provider: string, socialId: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { socialProvider: provider, socialId } });
+    return this.userRepository.findOne({
+      where: { socialProvider: provider, socialId },
+    });
   }
 
   async createSocialUser(dto: {
-    email: string; firstName: string; lastName: string;
-    socialProvider: string; socialId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    socialProvider: string;
+    socialId: string;
   }) {
     const user = this.userRepository.create({
-      email: dto.email, emailHash: hashForLookup(dto.email),
-      firstName: dto.firstName, lastName: dto.lastName,
-      role: Role.INDIVIDUAL, passwordHash: '',
-      socialProvider: dto.socialProvider, socialId: dto.socialId,
+      email: dto.email,
+      emailHash: hashForLookup(dto.email),
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      role: Role.INDIVIDUAL,
+      passwordHash: '',
+      socialProvider: dto.socialProvider,
+      socialId: dto.socialId,
       registrationFeePaid: true,
     });
     return this.userRepository.save(user);
   }
 
   async createBusinessManager(dto: {
-    email: string; password: string; firstName: string;
-    lastName: string; phone?: string;
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
   }): Promise<User> {
     const existing = await this.userRepository.findOne({
       where: { role: Role.BUSINESS_MANAGER, isActive: true },
     });
     if (existing) {
-      throw new BadRequestException('A global business manager already exists. Deactivate the existing one first.');
+      throw new BadRequestException(
+        'A global business manager already exists. Deactivate the existing one first.',
+      );
     }
     return this.userRepository.save({
-      email: dto.email, emailHash: hashForLookup(dto.email),
+      email: dto.email,
+      emailHash: hashForLookup(dto.email),
       passwordHash: dto.password,
-      firstName: dto.firstName, lastName: dto.lastName,
-      phone: dto.phone, phoneHash: dto.phone ? hashForLookup(dto.phone) : null,
-      role: Role.BUSINESS_MANAGER, isActive: true,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      phoneHash: dto.phone ? hashForLookup(dto.phone) : null,
+      role: Role.BUSINESS_MANAGER,
+      isActive: true,
     });
   }
 
@@ -114,24 +137,36 @@ export class UsersService {
   }
 
   async listUsers(
-    role?: Role, organizationId?: string, apexOrgId?: string,
+    role?: Role,
+    organizationId?: string,
+    apexOrgId?: string,
     filters?: { kycStatus?: string; isActive?: boolean; search?: string },
   ): Promise<User[]> {
     const qb = this.userRepository.createQueryBuilder('u');
     if (role) qb.andWhere('u.role = :role', { role });
-    if (organizationId) qb.andWhere('u.organization_id = :orgId', { orgId: organizationId });
-    if (apexOrgId) qb.andWhere('u.apex_org_id = :apexId', { apexId: apexOrgId });
-    if (filters?.kycStatus) qb.andWhere('u.kyc_status = :kyc', { kyc: filters.kycStatus });
-    if (filters?.isActive !== undefined) qb.andWhere('u.is_active = :active', { active: filters.isActive });
+    if (organizationId)
+      qb.andWhere('u.organization_id = :orgId', { orgId: organizationId });
+    if (apexOrgId)
+      qb.andWhere('u.apex_org_id = :apexId', { apexId: apexOrgId });
+    if (filters?.kycStatus)
+      qb.andWhere('u.kyc_status = :kyc', { kyc: filters.kycStatus });
+    if (filters?.isActive !== undefined)
+      qb.andWhere('u.is_active = :active', { active: filters.isActive });
     if (filters?.search) {
-      qb.andWhere('u.email_hash = :hash', { hash: hashForLookup(filters.search) });
+      qb.andWhere('u.email_hash = :hash', {
+        hash: hashForLookup(filters.search),
+      });
     }
     qb.orderBy('u.created_at', 'DESC');
     return qb.getMany();
   }
 
-  async search(query: string): Promise<{ id: string; name: string; email: string }[]> {
-    const users = await this.listUsers(undefined, undefined, undefined, { search: query });
+  async search(
+    query: string,
+  ): Promise<{ id: string; name: string; email: string }[]> {
+    const users = await this.listUsers(undefined, undefined, undefined, {
+      search: query,
+    });
     return users.map((u) => ({
       id: u.id,
       name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
@@ -142,7 +177,8 @@ export class UsersService {
   async generateReferralCode(userId: string): Promise<string> {
     const user = await this.findById(userId);
     if (user.referralCode) return user.referralCode;
-    const code = 'COOP' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code =
+      'COOP' + Math.random().toString(36).substring(2, 8).toUpperCase();
     await this.userRepository.update(userId, { referralCode: code });
     return code;
   }
@@ -150,7 +186,8 @@ export class UsersService {
   async getReferralStats(userId: string) {
     const user = await this.findById(userId);
     return {
-      referralCode: user.referralCode || await this.generateReferralCode(userId),
+      referralCode:
+        user.referralCode || (await this.generateReferralCode(userId)),
       referralCount: user.referralCount,
       referralEarnings: Number(user.referralEarnings),
     };
@@ -161,41 +198,127 @@ export class UsersService {
     const user = await this.findById(userId);
 
     const activity = await this.activityRepo.find({
-      where: { userId }, order: { createdAt: 'DESC' as any }, take: 500,
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      take: 500,
     });
     const referrals = await this.referralRepo.find({
       where: [{ referrerId: userId }, { refereeId: userId }],
     });
 
     const [
-      loginHistory, deviceSessions,
-      subscriptions, loans, savingsAccounts,
-      payments, kycSubmissions, notifications,
-      paymentMethods, supportTickets,
-      holdings, orders, redemptions, distributionPayments,
+      loginHistory,
+      deviceSessions,
+      subscriptions,
+      loans,
+      savingsAccounts,
+      payments,
+      kycSubmissions,
+      notifications,
+      paymentMethods,
+      supportTickets,
+      holdings,
+      orders,
+      redemptions,
+      distributionPayments,
     ] = await Promise.all([
-      em.find(LoginHistory, { where: { userId }, order: { createdAt: 'DESC' as any }, take: 500 }).catch(() => []),
-      em.find(DeviceSession, { where: { userId }, order: { lastUsedAt: 'DESC' as any } }).catch(() => []),
-      em.find(BnplSubscription, { where: { userId }, order: { createdAt: 'DESC' as any }, relations: { installments: true } }).catch(() => []),
-      em.find(Loan, { where: { userId }, order: { createdAt: 'DESC' as any }, relations: { repayments: true } }).catch(() => []),
-      em.find(SavingsAccount, { where: { userId }, relations: { transactions: true } }).catch(() => []),
-      em.find(Payment, { where: { userId }, order: { createdAt: 'DESC' as any }, take: 500 }).catch(() => []),
-      em.find(KycSubmission, { where: { userId }, order: { createdAt: 'DESC' as any } }).catch(() => []),
-      em.find(InAppNotification, { where: { userId }, order: { createdAt: 'DESC' as any }, take: 500 }).catch(() => []),
+      em
+        .find(LoginHistory, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+          take: 500,
+        })
+        .catch(() => []),
+      em
+        .find(DeviceSession, {
+          where: { userId },
+          order: { lastUsedAt: 'DESC' as any },
+        })
+        .catch(() => []),
+      em
+        .find(BnplSubscription, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+          relations: { installments: true },
+        })
+        .catch(() => []),
+      em
+        .find(Loan, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+          relations: { repayments: true },
+        })
+        .catch(() => []),
+      em
+        .find(SavingsAccount, {
+          where: { userId },
+          relations: { transactions: true },
+        })
+        .catch(() => []),
+      em
+        .find(Payment, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+          take: 500,
+        })
+        .catch(() => []),
+      em
+        .find(KycSubmission, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+        })
+        .catch(() => []),
+      em
+        .find(InAppNotification, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+          take: 500,
+        })
+        .catch(() => []),
       em.find(SavedPaymentMethod, { where: { userId } }).catch(() => []),
-      em.find(SupportTicket, { where: { createdBy: userId }, order: { createdAt: 'DESC' as any } }).catch(() => []),
-      em.find(InvestmentHolding, { where: { userId }, order: { createdAt: 'DESC' as any } }).catch(() => []),
-      em.find(InvestmentOrder, { where: { userId }, order: { createdAt: 'DESC' as any } }).catch(() => []),
-      em.find(RedemptionRequest, { where: { userId }, order: { createdAt: 'DESC' as any } }).catch(() => []),
-      em.find(DistributionPayment, { where: { userId }, order: { createdAt: 'DESC' as any } }).catch(() => []),
+      em
+        .find(SupportTicket, {
+          where: { createdBy: userId },
+          order: { createdAt: 'DESC' as any },
+        })
+        .catch(() => []),
+      em
+        .find(InvestmentHolding, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+        })
+        .catch(() => []),
+      em
+        .find(InvestmentOrder, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+        })
+        .catch(() => []),
+      em
+        .find(RedemptionRequest, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+        })
+        .catch(() => []),
+      em
+        .find(DistributionPayment, {
+          where: { userId },
+          order: { createdAt: 'DESC' as any },
+        })
+        .catch(() => []),
     ]);
 
     return {
       exportedAt: new Date().toISOString(),
       user: {
-        id: user.id, email: user.email, firstName: user.firstName,
-        lastName: user.lastName, phone: user.phone, role: user.role,
-        kycStatus: user.kycStatus, isActive: user.isActive,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        role: user.role,
+        kycStatus: user.kycStatus,
+        isActive: user.isActive,
         registrationFeePaid: user.registrationFeePaid,
         referralCode: user.referralCode,
         createdAt: user.createdAt,

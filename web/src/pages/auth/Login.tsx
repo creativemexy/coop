@@ -5,6 +5,7 @@ import { useAuth } from '../../stores/auth.store'
 import { useBranding } from '../../stores/branding.store'
 import { api } from '../../api/client'
 import { DesignCredit } from '../../components/layout/DesignCredit'
+import { usePageMeta } from '../../lib/seo'
 
 const ROLE_ROUTES: Record<string, string> = {
   apex_business_manager: '/apex-bm',
@@ -30,6 +31,12 @@ export function Login() {
   const [maintenance, setMaintenance] = useState(false)
   const [maintenanceLoaded, setMaintenanceLoaded] = useState(false)
 
+  usePageMeta({
+    title: 'Sign In | FENAC COOP',
+    description: 'Sign in to your FENAC COOP member platform to manage savings, loans, investments and BNPL.',
+    noindex: true,
+  })
+
   useEffect(() => { if (!loaded) load() }, [loaded, load])
 
   useEffect(() => {
@@ -53,9 +60,8 @@ export function Login() {
         return
       }
       navigate(rolePath(u.role), { replace: true })
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(msg || 'Login failed')
+    } catch {
+      setError('Unable to sign in. Check your details and try again.')
     }
   }
 
@@ -86,15 +92,15 @@ export function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9EF]">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#FFF9EF] py-8">
       <div className="absolute inset-0 bg-[#20120E]" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1B100C]/95 via-[#25140D]/85 to-[#20120E]/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,_rgba(247,183,51,0.15),_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,_rgba(23,107,91,0.12),_transparent_40%)]" />
+        <div className="absolute inset-0 bg-linear-to-br from-[#1B100C]/95 via-[#25140D]/85 to-[#20120E]/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(247,183,51,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(23,107,91,0.12),transparent_40%)]" />
       </div>
 
-      <div className="relative w-full max-w-md px-4">
-        <div className="rounded-[2rem] border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10">
+      <div className="relative flex w-full max-w-md flex-col items-center px-4">
+        <div className="rounded-4xl border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10 mb-12">
           <div className="flex flex-col items-center mb-8">
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt={branding.organizationName} className="h-16 w-16 rounded-2xl object-contain mb-4" />
@@ -128,6 +134,7 @@ export function Login() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
+                    autoComplete="new-password"
                     placeholder="Min 8 characters"
                     className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                   />
@@ -151,6 +158,7 @@ export function Login() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    autoComplete="new-password"
                     placeholder="Confirm new password"
                     className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                   />
@@ -187,6 +195,7 @@ export function Login() {
                     value={emailOrPhone}
                     onChange={(e) => setEmailOrPhone(e.target.value)}
                     required
+                    autoComplete="username"
                     placeholder="Enter your email or phone"
                     className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                   />
@@ -203,6 +212,7 @@ export function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-12 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                   />
@@ -244,9 +254,10 @@ export function Login() {
           <div className="space-y-3">
             <a
               href={GOOGLE_AUTH_URL}
+              rel="noopener noreferrer"
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-[#FFF9EF] hover:bg-white/10 transition-colors"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -254,16 +265,7 @@ export function Login() {
               </svg>
               Sign in with Google
             </a>
-
-            <button
-              disabled
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-[#F5E9D9]/50 cursor-not-allowed"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-              </svg>
-              Sign in with Apple
-            </button>
+            {/* Apple Sign-In: hidden until implemented */}
           </div>
 
           <p className="mt-6 text-center text-sm text-[#F5E9D9]/70">
@@ -277,7 +279,7 @@ export function Login() {
           </div>
         </div>
       </div>
-      <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+      <div className="flex justify-center">
         <DesignCredit onDark />
       </div>
     </div>

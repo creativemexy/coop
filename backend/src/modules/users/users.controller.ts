@@ -42,7 +42,16 @@ export class UsersController {
   async updateMe(
     @CurrentUser('sub') userId: string,
     @Body()
-    updates: { firstName?: string; lastName?: string; phone?: string; notificationPreferences?: { email?: boolean; sms?: boolean; inApp?: boolean } },
+    updates: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      notificationPreferences?: {
+        email?: boolean;
+        sms?: boolean;
+        inApp?: boolean;
+      };
+    },
   ) {
     const user = await this.usersService.findById(userId);
     const identityUpdated =
@@ -56,7 +65,12 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN, Role.OPERATIONAL_ADMIN, Role.BUSINESS_MANAGER)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+    Role.BUSINESS_MANAGER,
+  )
   async listUsers(
     @Query('role') role?: Role,
     @Query('organizationId') organizationId?: string,
@@ -69,11 +83,16 @@ export class UsersController {
       organizationId = user.organizationId;
       role = Role.INDIVIDUAL;
     }
-    const users = await this.usersService.listUsers(role, organizationId, undefined, {
-      kycStatus,
-      isActive: isActive !== undefined ? isActive === 'true' : undefined,
-      search,
-    });
+    const users = await this.usersService.listUsers(
+      role,
+      organizationId,
+      undefined,
+      {
+        kycStatus,
+        isActive: isActive !== undefined ? isActive === 'true' : undefined,
+        search,
+      },
+    );
     return users.map((u) => maskUser(u, user?.role));
   }
 
@@ -88,7 +107,12 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN, Role.OPERATIONAL_ADMIN, Role.BUSINESS_MANAGER)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+    Role.OPERATIONAL_ADMIN,
+    Role.BUSINESS_MANAGER,
+  )
   async updateUser(
     @Param('id') id: string,
     @Body()
@@ -136,8 +160,13 @@ export class UsersController {
     @CurrentUser('sub') userId: string,
     @Body() dto: { refereeEmail: string },
   ) {
-    const result = await this.referralsService.createReferral(userId, dto.refereeEmail);
-    await this.activityService.log(userId, 'sent_referral', { refereeEmail: dto.refereeEmail });
+    const result = await this.referralsService.createReferral(
+      userId,
+      dto.refereeEmail,
+    );
+    await this.activityService.log(userId, 'sent_referral', {
+      refereeEmail: dto.refereeEmail,
+    });
     return result;
   }
 
@@ -147,6 +176,10 @@ export class UsersController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    return this.activityService.findByUser(userId, limit ? Number(limit) : 50, offset ? Number(offset) : 0);
+    return this.activityService.findByUser(
+      userId,
+      limit ? Number(limit) : 50,
+      offset ? Number(offset) : 0,
+    );
   }
 }

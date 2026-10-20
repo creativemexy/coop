@@ -54,7 +54,7 @@ export function Subscriptions() {
 
   const fetch = useCallback(() => {
     const params = statusFilter ? { status: statusFilter } : {}
-    api.get('/bnpl/subscriptions', { params }).then((r) => setSubscriptions(r.data))
+    api.get('/bnpl/subscriptions/orders', { params }).then((r) => setSubscriptions(r.data))
   }, [statusFilter])
 
   useEffect(() => { fetch() }, [fetch])

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum ReferralStatus {
   PENDING = 'pending',
@@ -26,10 +33,20 @@ export class Referral {
   @Column({ name: 'referral_code', length: 20 })
   referralCode: string;
 
-  @Column({ type: 'enum', enum: ReferralStatus, default: ReferralStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ReferralStatus,
+    default: ReferralStatus.PENDING,
+  })
   status: ReferralStatus;
 
-  @Column({ type: 'decimal', name: 'reward_amount', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    name: 'reward_amount',
+    precision: 15,
+    scale: 2,
+    default: 0,
+  })
   rewardAmount: number;
 
   @Column({ name: 'reward_paid', default: false })

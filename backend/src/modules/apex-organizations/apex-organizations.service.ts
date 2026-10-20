@@ -35,16 +35,25 @@ export class ApexOrganizationsService {
     private readonly paystackClient: PaystackClient,
   ) {}
 
-
   async resolveBankAccount(accountNumber: string, bankCode: string) {
     if (!accountNumber || !bankCode) {
       throw new BadRequestException('accountNumber and bankCode are required');
     }
-    const result = await this.paystackClient.resolveBankAccount(accountNumber, bankCode);
+    const result = await this.paystackClient.resolveBankAccount(
+      accountNumber,
+      bankCode,
+    );
     if (!result) {
-      return { resolved: false, message: 'Bank account resolution is not configured' };
+      return {
+        resolved: false,
+        message: 'Bank account resolution is not configured',
+      };
     }
-    return { resolved: true, accountName: result.accountName, accountNumber: result.accountNumber };
+    return {
+      resolved: true,
+      accountName: result.accountName,
+      accountNumber: result.accountNumber,
+    };
   }
 
   private generateCode(name: string): string {
@@ -55,7 +64,11 @@ export class ApexOrganizationsService {
     if (words.length === 1) {
       code = words[0].substring(0, 6).toUpperCase();
     } else {
-      code = words.map((w) => w[0]).join('').substring(0, 5).toUpperCase();
+      code = words
+        .map((w) => w[0])
+        .join('')
+        .substring(0, 5)
+        .toUpperCase();
     }
 
     const suffix = Math.floor(Math.random() * 1000)
@@ -97,7 +110,9 @@ export class ApexOrganizationsService {
     accountNumber?: string;
     sortCode?: string;
     bankCode?: string;
-  }): Promise<ApexOrganization & { generatedEmail?: string; generatedPassword?: string }> {
+  }): Promise<
+    ApexOrganization & { generatedEmail?: string; generatedPassword?: string }
+  > {
     const code = await this.ensureUniqueCode(this.generateCode(dto.name));
 
     const org = this.repo.create({
@@ -177,7 +192,11 @@ export class ApexOrganizationsService {
     );
     this.logger.log(`Apex org created: ${code}, BM user: ${maskEmail(email)}`);
 
-    return { ...saved, generatedEmail: email, generatedPassword: password } as any;
+    return {
+      ...saved,
+      generatedEmail: email,
+      generatedPassword: password,
+    };
   }
 
   async findAll(): Promise<ApexOrganization[]> {

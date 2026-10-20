@@ -23,7 +23,7 @@ export class MaintenanceGuard implements CanActivate {
     if (maintenanceMode !== 'true') return true;
 
     const req = context.switchToHttp().getRequest();
-    const user = req.user || await this.getTokenUser(req);
+    const user = req.user || (await this.getTokenUser(req));
 
     if (user?.role === 'super_admin') return true;
 
@@ -35,7 +35,9 @@ export class MaintenanceGuard implements CanActivate {
       }
     }
 
-    throw new ServiceUnavailableException('Platform is under maintenance. Please try again later.');
+    throw new ServiceUnavailableException(
+      'Platform is under maintenance. Please try again later.',
+    );
   }
 
   private async getTokenUser(req: any): Promise<{ role?: string } | null> {

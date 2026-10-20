@@ -63,11 +63,11 @@ export class ApprovalService {
       qb.andWhere('a.status = :status', { status: filters.status });
     }
     if (filters?.requestType) {
-      qb.andWhere('a.request_type = :requestType', {
+      qb.andWhere('a.requestType = :requestType', {
         requestType: filters.requestType,
       });
     }
-    qb.orderBy('a.created_at', 'DESC');
+    qb.orderBy('a.createdAt', 'DESC');
     return qb.getMany();
   }
 

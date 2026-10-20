@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { PayoutStatus } from '../../../common/enums/status.enum';
 import { PotType } from '../../../common/enums/status.enum';
 
@@ -22,7 +28,12 @@ export class FeeWithdrawalRequest {
   @Column({ type: 'uuid', name: 'approved_by', nullable: true })
   approvedBy?: string;
 
-  @Column({ type: 'varchar', length: 20, name: 'account_number', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    name: 'account_number',
+    nullable: true,
+  })
   accountNumber?: string;
 
   @Column({ type: 'varchar', length: 20, name: 'bank_code', nullable: true })
@@ -34,7 +45,12 @@ export class FeeWithdrawalRequest {
   @Column({ type: 'text', nullable: true })
   note?: string;
 
-  @Column({ type: 'varchar', length: 100, name: 'paystack_reference', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    name: 'paystack_reference',
+    nullable: true,
+  })
   paystackReference?: string;
 
   @CreateDateColumn({ name: 'created_at' })

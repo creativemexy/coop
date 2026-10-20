@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Lock, Mail, Key, Eye, EyeOff, CheckCircle2, ArrowRight } from 'lucide-react'
 import { DesignCredit } from '../../components/layout/DesignCredit'
 import { api } from '../../api/client'
+import { usePageMeta } from '../../lib/seo'
 
 export function ResetPassword() {
   const [emailOrPhone, setEmailOrPhone] = useState('')
@@ -11,6 +12,12 @@ export function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+
+  usePageMeta({
+    title: 'Set a New Password | FENAC COOP',
+    description: 'Enter your reset code and choose a new password for your FENAC COOP account.',
+    noindex: true,
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,13 +34,13 @@ export function ResetPassword() {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9EF]">
         <div className="absolute inset-0 bg-[#20120E]" aria-hidden="true">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1B100C]/95 via-[#25140D]/85 to-[#20120E]/90" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,_rgba(247,183,51,0.15),_transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,_rgba(23,107,91,0.12),_transparent_40%)]" />
+          <div className="absolute inset-0 bg-linear-to-br from-[#1B100C]/95 via-[#25140D]/85 to-[#20120E]/90" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(247,183,51,0.15),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(23,107,91,0.12),transparent_40%)]" />
         </div>
 
         <div className="relative w-full max-w-md px-4">
-          <div className="rounded-[2rem] border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10">
+          <div className="rounded-4xl border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10">
             <div className="flex flex-col items-center mb-8">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-[#F7D674] bg-[#176B5B]/20">
                 <CheckCircle2 size={32} />
@@ -63,13 +70,13 @@ export function ResetPassword() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9EF]">
       <div className="absolute inset-0 bg-[#20120E]" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1B100C]/95 via-[#25140D]/85 to-[#20120E]/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,_rgba(247,183,51,0.15),_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,_rgba(23,107,91,0.12),_transparent_40%)]" />
+        <div className="absolute inset-0 bg-linear-to-br from-[#1B100C]/95 via-[#25140D]/85 to-[#20120E]/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(247,183,51,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(23,107,91,0.12),transparent_40%)]" />
       </div>
 
       <div className="relative w-full max-w-md px-4">
-        <div className="rounded-[2rem] border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10">
+        <div className="rounded-4xl border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10 mb-12">
           <div className="flex flex-col items-center mb-8">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-[#F7D674] bg-[#E4A42A]/20">
               <Lock size={32} />
@@ -125,6 +132,7 @@ export function ResetPassword() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min 8 characters"
                   required
+                  autoComplete="new-password"
                   className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-12 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                 />
                 <button

@@ -45,7 +45,6 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   login: (emailOrPhone: string, password: string) => Promise<LoginResult>
-  loginWithToken: (accessToken: string, refreshToken: string) => Promise<User>
   register: (data: { email: string; password: string; firstName: string; lastName: string; phone?: string; organizationCode?: string }) => Promise<RegisterResponse>
   completeFirstLogin: (emailOrPhone: string, currentPassword: string, newPassword: string) => Promise<LoginResult>
   logout: () => Promise<void>
@@ -71,14 +70,6 @@ export const useAuth = create<AuthState>((set, get) => ({
   completeFirstLogin: async (emailOrPhone, currentPassword, newPassword) => {
     await api.post('/auth/complete-first-login', { emailOrPhone, currentPassword, newPassword })
     return get().login(emailOrPhone, newPassword)
-  },
-
-  loginWithToken: async (accessToken) => {
-    setAccessToken(accessToken)
-    await fetchCsrfToken()
-    const { data } = await api.get('/users/me')
-    set({ user: data, isAuthenticated: true })
-    return data
   },
 
   register: async (payload) => {

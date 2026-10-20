@@ -10,6 +10,21 @@ export const site = {
   tagline: 'Building Wealth Together.',
   description:
     'A Digital Smart Cooperative Financial Institution strengthening associations and communities through shared ownership, smart technology, and collective strength.',
+
+  // SEO & structured data — single source of truth for ranking surfaces.
+  // Swap in the real domain/details here and every page, sitemap, and
+  // JSON-LD block updates automatically.
+  url: 'https://www.fenacoop.org',
+  legalName: 'FENAC Cooperative Society Ltd.',
+  ogImage: '/og-image.jpg',
+  logo: '/apple-touch-icon.png',
+  // Wuse, Abuja — approximate coordinates; verify before launch.
+  geo: { latitude: 9.0806, longitude: 7.4798 },
+  openingHours: {
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    opens: '08:00',
+    closes: '17:00',
+  },
   logoEmoji: '🤝',
 
   // Hero image — replace with your own photo/illustration (absolute path or URL)

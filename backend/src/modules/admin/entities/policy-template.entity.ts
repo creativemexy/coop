@@ -74,10 +74,18 @@ export class PolicyTemplate {
   @Column({ type: 'uuid', name: 'parent_template_id', nullable: true })
   parentTemplateId: string;
 
-  @Column({ type: 'boolean', name: 'is_applicable_to_all_tenants', default: true })
+  @Column({
+    type: 'boolean',
+    name: 'is_applicable_to_all_tenants',
+    default: true,
+  })
   isApplicableToAllTenants: boolean;
 
-  @Column({ type: 'simple-array', name: 'applicable_tenant_ids', nullable: true })
+  @Column({
+    type: 'simple-array',
+    name: 'applicable_tenant_ids',
+    nullable: true,
+  })
   applicableTenantIds: string[];
 
   @CreateDateColumn({ name: 'created_at' })

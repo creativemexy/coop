@@ -39,11 +39,21 @@ export class OrganizationsService {
     if (!accountNumber || !bankCode) {
       throw new BadRequestException('accountNumber and bankCode are required');
     }
-    const result = await this.paystackClient.resolveBankAccount(accountNumber, bankCode);
+    const result = await this.paystackClient.resolveBankAccount(
+      accountNumber,
+      bankCode,
+    );
     if (!result) {
-      return { resolved: false, message: 'Bank account resolution is not configured' };
+      return {
+        resolved: false,
+        message: 'Bank account resolution is not configured',
+      };
     }
-    return { resolved: true, accountName: result.accountName, accountNumber: result.accountNumber };
+    return {
+      resolved: true,
+      accountName: result.accountName,
+      accountNumber: result.accountNumber,
+    };
   }
 
   private generateCode(name: string): string {
@@ -54,7 +64,11 @@ export class OrganizationsService {
     if (words.length === 1) {
       code = words[0].substring(0, 6).toUpperCase();
     } else {
-      code = words.map((w) => w[0]).join('').substring(0, 5).toUpperCase();
+      code = words
+        .map((w) => w[0])
+        .join('')
+        .substring(0, 5)
+        .toUpperCase();
     }
 
     const suffix = Math.floor(Math.random() * 1000)
@@ -97,7 +111,9 @@ export class OrganizationsService {
     accountNumber?: string;
     sortCode?: string;
     bankCode?: string;
-  }): Promise<Organization & { generatedEmail?: string; generatedPassword?: string }> {
+  }): Promise<
+    Organization & { generatedEmail?: string; generatedPassword?: string }
+  > {
     const code = await this.ensureUniqueCode(this.generateCode(dto.name));
 
     const org = this.repo.create({
@@ -180,13 +196,21 @@ export class OrganizationsService {
 
     this.logger.log(`Org created: ${code}, BM user: ${maskEmail(email)}`);
 
-    return { ...saved, generatedEmail: email, generatedPassword: password } as any;
+    return {
+      ...saved,
+      generatedEmail: email,
+      generatedPassword: password,
+    };
   }
 
   async findAll(apexOrgId?: string): Promise<Organization[]> {
     const where: Record<string, unknown> = {};
     if (apexOrgId) where.apexOrgId = apexOrgId;
-    return this.repo.find({ where, relations: { apexOrg: true }, order: { createdAt: 'DESC' } });
+    return this.repo.find({
+      where,
+      relations: { apexOrg: true },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findById(id: string): Promise<Organization> {

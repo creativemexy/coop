@@ -1,11 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BnplInstallment } from '../entities/bnpl-installment.entity';
 import { BnplSubscription } from '../entities/bnpl-subscription.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { AuditLog } from '../entities/audit-log.entity';
-import { InstallmentStatus, SubscriptionStatus, PaymentStatus } from '../../../common/enums/status.enum';
+import {
+  InstallmentStatus,
+  SubscriptionStatus,
+  PaymentStatus,
+} from '../../../common/enums/status.enum';
 
 @Injectable()
 export class RepaymentService {
@@ -52,10 +61,19 @@ export class RepaymentService {
         paidAt: inst.paidAt,
         paymentReference: inst.paymentReference,
         gracePeriodEnd: inst.gracePeriodEnd,
-        isOverdue: inst.status === InstallmentStatus.PENDING && new Date(inst.dueDate) < new Date(),
-        daysLate: inst.status === InstallmentStatus.PENDING
-          ? Math.max(0, Math.floor((Date.now() - new Date(inst.dueDate).getTime()) / (1000 * 60 * 60 * 24)))
-          : 0,
+        isOverdue:
+          inst.status === InstallmentStatus.PENDING &&
+          new Date(inst.dueDate) < new Date(),
+        daysLate:
+          inst.status === InstallmentStatus.PENDING
+            ? Math.max(
+                0,
+                Math.floor(
+                  (Date.now() - new Date(inst.dueDate).getTime()) /
+                    (1000 * 60 * 60 * 24),
+                ),
+              )
+            : 0,
       })),
       paymentAttempts: payments.map((p) => ({
         id: p.id,
@@ -76,8 +94,16 @@ export class RepaymentService {
     if (inst.status === InstallmentStatus.PAID) {
       throw new BadRequestException('Installment is already paid');
     }
-    if (inst.status !== InstallmentStatus.OVERDUE && !(inst.status === InstallmentStatus.PENDING && new Date(inst.dueDate) < new Date())) {
-      throw new BadRequestException('Only overdue/delinquent installments can be retried');
+    if (
+      inst.status !== InstallmentStatus.OVERDUE &&
+      !(
+        inst.status === InstallmentStatus.PENDING &&
+        new Date(inst.dueDate) < new Date()
+      )
+    ) {
+      throw new BadRequestException(
+        'Only overdue/delinquent installments can be retried',
+      );
     }
 
     const now = new Date();
@@ -93,14 +119,26 @@ export class RepaymentService {
       entityId: installmentId,
       action: 'repayment_retry',
       performedBy,
-      changes: { dueDate: { from: inst.dueDate, to: newDueDate }, status: { from: inst.status, to: InstallmentStatus.PENDING } },
+      changes: {
+        dueDate: { from: inst.dueDate, to: newDueDate },
+        status: { from: inst.status, to: InstallmentStatus.PENDING },
+      },
       reason: 'Safe retry of overdue installment',
     } as unknown as AuditLog);
 
     return saved;
   }
 
-  async reconcile(installmentId: string, data: { status?: InstallmentStatus; paymentReference?: string; paidAt?: Date; note?: string }, performedBy: string) {
+  async reconcile(
+    installmentId: string,
+    data: {
+      status?: InstallmentStatus;
+      paymentReference?: string;
+      paidAt?: Date;
+      note?: string;
+    },
+    performedBy: string,
+  ) {
     const inst = await this.instRepo.findOne({ where: { id: installmentId } });
     if (!inst) throw new NotFoundException('Installment not found');
 
@@ -110,7 +148,10 @@ export class RepaymentService {
       inst.status = data.status;
     }
     if (data.paymentReference) {
-      changes.paymentReference = { from: inst.paymentReference, to: data.paymentReference };
+      changes.paymentReference = {
+        from: inst.paymentReference,
+        to: data.paymentReference,
+      };
       inst.paymentReference = data.paymentReference;
     }
     if (data.paidAt) {
@@ -144,7 +185,11 @@ export class RepaymentService {
     return saved;
   }
 
-  async updateMetadata(installmentId: string, metadata: Record<string, any>, performedBy: string) {
+  async updateMetadata(
+    installmentId: string,
+    metadata: Record<string, any>,
+    performedBy: string,
+  ) {
     const inst = await this.instRepo.findOne({ where: { id: installmentId } });
     if (!inst) throw new NotFoundException('Installment not found');
 
@@ -153,7 +198,9 @@ export class RepaymentService {
 
     for (const key of Object.keys(metadata)) {
       if (!allowedFields.includes(key)) {
-        throw new ForbiddenException(`Field '${key}' cannot be modified via metadata correction`);
+        throw new ForbiddenException(
+          `Field '${key}' cannot be modified via metadata correction`,
+        );
       }
       changes[key] = { from: (inst as any)[key], to: metadata[key] };
       (inst as any)[key] = metadata[key];
@@ -173,7 +220,12 @@ export class RepaymentService {
     return saved;
   }
 
-  async handlePartialPayment(installmentId: string, amount: number, paymentReference: string, performedBy: string) {
+  async handlePartialPayment(
+    installmentId: string,
+    amount: number,
+    paymentReference: string,
+    performedBy: string,
+  ) {
     const inst = await this.instRepo.findOne({ where: { id: installmentId } });
     if (!inst) throw new NotFoundException('Installment not found');
 
@@ -210,7 +262,11 @@ export class RepaymentService {
       performedBy,
       changes: {
         amount: { from: instAmount, to: amount },
-        status: { from: inst.status === InstallmentStatus.PAID ? 'pending' : inst.status, to: inst.status },
+        status: {
+          from:
+            inst.status === InstallmentStatus.PAID ? 'pending' : inst.status,
+          to: inst.status,
+        },
         paymentReference: { from: null, to: paymentReference },
       },
       reason: `Partial payment of ₦${amount} applied`,

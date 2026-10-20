@@ -16,7 +16,8 @@ const DEFAULT_RULES = [
   },
   {
     ruleKey: 'min_savings_balance',
-    description: 'Minimum balance that must remain in savings after a withdrawal',
+    description:
+      'Minimum balance that must remain in savings after a withdrawal',
     enabled: true,
     config: { amount: 0 },
   },
@@ -52,7 +53,8 @@ const DEFAULT_RULES = [
   },
   {
     ruleKey: 'min_savings_for_loan',
-    description: 'Minimum savings balance required before user can apply for a loan',
+    description:
+      'Minimum savings balance required before user can apply for a loan',
     enabled: true,
     config: { amount: 50000 },
   },
@@ -88,7 +90,9 @@ const DEFAULT_RULES = [
   },
 ];
 
-export async function seedGlobalRiskRules(dataSource: DataSource): Promise<void> {
+export async function seedGlobalRiskRules(
+  dataSource: DataSource,
+): Promise<void> {
   const repo = dataSource.getRepository(GlobalRiskRule);
 
   const existing = await repo.count();

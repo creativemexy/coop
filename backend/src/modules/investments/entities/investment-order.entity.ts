@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { InvestmentProduct } from './investment-product.entity';
 
 export enum OrderStatus {
@@ -33,7 +42,13 @@ export class InvestmentOrder {
   @Column({ type: 'int', nullable: true, name: 'units' })
   units: number | null;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, name: 'unit_price', nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    name: 'unit_price',
+    nullable: true,
+  })
   unitPrice: number | null;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, name: 'fee', default: 0 })

@@ -84,13 +84,16 @@ export class BusinessManagerService {
   // 1. Lookup order by reference (provider_reference, subscription ID, or payment reference)
   async lookupOrder(reference: string, organizationId?: string) {
     // Try to find by subscription ID
-    const subQuery = this.subRepo.createQueryBuilder('sub')
+    const subQuery = this.subRepo
+      .createQueryBuilder('sub')
       .leftJoinAndSelect('sub.plan', 'plan')
       .leftJoinAndSelect('plan.catalogItem', 'catalogItem')
       .leftJoinAndSelect('sub.installments', 'installments')
       .where('sub.id = :reference', { reference });
     if (organizationId) {
-      subQuery.andWhere('plan.organizationId = :organizationId', { organizationId });
+      subQuery.andWhere('sub.organizationId = :organizationId', {
+        organizationId,
+      });
     }
     let subscription = await subQuery.getOne();
 
@@ -99,13 +102,16 @@ export class BusinessManagerService {
         where: { providerReference: reference },
       });
       if (payment?.subscriptionId) {
-        const subQuery2 = this.subRepo.createQueryBuilder('sub')
+        const subQuery2 = this.subRepo
+          .createQueryBuilder('sub')
           .leftJoinAndSelect('sub.plan', 'plan')
           .leftJoinAndSelect('plan.catalogItem', 'catalogItem')
           .leftJoinAndSelect('sub.installments', 'installments')
           .where('sub.id = :id', { id: payment.subscriptionId });
         if (organizationId) {
-          subQuery2.andWhere('plan.organizationId = :organizationId', { organizationId });
+          subQuery2.andWhere('sub.organizationId = :organizationId', {
+            organizationId,
+          });
         }
         subscription = await subQuery2.getOne();
       }
@@ -140,21 +146,29 @@ export class BusinessManagerService {
 
   // 2. View webhook processing status for recent payments scoped to org
   async getWebhookStatus(limit = 20, offset = 0, organizationId?: string) {
-    const qb = this.paymentRepo.createQueryBuilder('p')
+    const qb = this.paymentRepo
+      .createQueryBuilder('p')
       .orderBy('p.created_at', 'DESC')
       .take(limit)
       .skip(offset)
       .select([
-        'p.id', 'p.provider_reference', 'p.provider', 'p.status',
-        'p.payout_status', 'p.amount', 'p.created_at',
+        'p.id',
+        'p.provider_reference',
+        'p.provider',
+        'p.status',
+        'p.payout_status',
+        'p.amount',
+        'p.created_at',
       ]);
     if (organizationId) {
-      const subQuery = this.subRepo.createQueryBuilder('sub')
+      const subQuery = this.subRepo
+        .createQueryBuilder('sub')
         .leftJoin('sub.plan', 'plan')
         .where('plan.organization_id = :organizationId', { organizationId })
         .select('sub.id');
-      qb.andWhere('p.subscription_id IN (' + subQuery.getQuery() + ')')
-        .setParameters(subQuery.getParameters());
+      qb.andWhere(
+        'p.subscription_id IN (' + subQuery.getQuery() + ')',
+      ).setParameters(subQuery.getParameters());
     }
     const [payments, total] = await qb.getManyAndCount();
 
@@ -174,16 +188,23 @@ export class BusinessManagerService {
   }
 
   // 3. Resubmit webhook for a payment (safe re-trigger)
-  async resubmitWebhook(paymentId: string, organizationId?: string, performedBy?: string) {
-    const qb = this.paymentRepo.createQueryBuilder('p')
+  async resubmitWebhook(
+    paymentId: string,
+    organizationId?: string,
+    performedBy?: string,
+  ) {
+    const qb = this.paymentRepo
+      .createQueryBuilder('p')
       .where('p.id = :paymentId', { paymentId });
     if (organizationId) {
-      const subQuery = this.subRepo.createQueryBuilder('sub')
+      const subQuery = this.subRepo
+        .createQueryBuilder('sub')
         .leftJoin('sub.plan', 'plan')
         .where('plan.organization_id = :organizationId', { organizationId })
         .select('sub.id');
-      qb.andWhere('p.subscription_id IN (' + subQuery.getQuery() + ')')
-        .setParameters(subQuery.getParameters());
+      qb.andWhere(
+        'p.subscription_id IN (' + subQuery.getQuery() + ')',
+      ).setParameters(subQuery.getParameters());
     }
     const payment = await qb.getOne();
     if (!payment) {
@@ -229,21 +250,29 @@ export class BusinessManagerService {
 
     let paymentLogs: any[] = [];
     if (type === 'all' || type === 'payment') {
-      const qb = this.paymentRepo.createQueryBuilder('p')
+      const qb = this.paymentRepo
+        .createQueryBuilder('p')
         .orderBy('p.created_at', 'DESC')
         .take(limit)
         .skip(offset)
         .select([
-          'p.id', 'p.provider_reference', 'p.provider', 'p.status',
-          'p.payout_status', 'p.amount', 'p.created_at',
+          'p.id',
+          'p.provider_reference',
+          'p.provider',
+          'p.status',
+          'p.payout_status',
+          'p.amount',
+          'p.created_at',
         ]);
       if (organizationId) {
-        const subQuery = this.subRepo.createQueryBuilder('sub')
+        const subQuery = this.subRepo
+          .createQueryBuilder('sub')
           .leftJoin('sub.plan', 'plan')
           .where('plan.organization_id = :organizationId', { organizationId })
           .select('sub.id');
-        qb.andWhere('p.subscription_id IN (' + subQuery.getQuery() + ')')
-          .setParameters(subQuery.getParameters());
+        qb.andWhere(
+          'p.subscription_id IN (' + subQuery.getQuery() + ')',
+        ).setParameters(subQuery.getParameters());
       }
       paymentLogs = await qb.getMany();
     }
@@ -277,12 +306,15 @@ export class BusinessManagerService {
     performedBy?: string,
     organizationId?: string,
   ) {
-    const instQb = this.instRepo.createQueryBuilder('inst')
+    const instQb = this.instRepo
+      .createQueryBuilder('inst')
       .leftJoinAndSelect('inst.subscription', 'sub')
       .leftJoin('sub.plan', 'plan')
       .where('inst.id = :installmentId', { installmentId });
     if (organizationId) {
-      instQb.andWhere('plan.organization_id = :organizationId', { organizationId });
+      instQb.andWhere('plan.organization_id = :organizationId', {
+        organizationId,
+      });
     }
     const installment = await instQb.getOne();
     if (!installment) {

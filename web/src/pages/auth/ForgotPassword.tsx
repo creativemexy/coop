@@ -3,11 +3,18 @@ import { Link } from 'react-router-dom'
 import { Mail, Lock, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { DesignCredit } from '../../components/layout/DesignCredit'
 import { api } from '../../api/client'
+import { usePageMeta } from '../../lib/seo'
 
 export function ForgotPassword() {
   const [emailOrPhone, setEmailOrPhone] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+
+  usePageMeta({
+    title: 'Reset Your Password | FENAC COOP',
+    description: 'Request a password reset code for your FENAC COOP member account.',
+    noindex: true,
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,7 +94,7 @@ export function ForgotPassword() {
       </div>
 
       <div className="relative w-full max-w-md px-4">
-        <div className="rounded-[2rem] border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10">
+        <div className="rounded-[2rem] border border-white/10 bg-white/10 backdrop-blur-md p-8 shadow-[0_30px_80px_rgba(9,8,7,0.35)] sm:p-10 mb-12">
           <div className="flex flex-col items-center mb-8">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-[#F7D674] bg-[#E4A42A]/20">
               <Lock size={32} />

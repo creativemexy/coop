@@ -76,58 +76,72 @@ export class RetentionService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async purgeAll(): Promise<Record<string, number> | null> {
-    return this.schedulerLock.runExclusive('retention:purge-all', 7200, async () => {
-      const results: Record<string, number> = {};
+    return this.schedulerLock.runExclusive(
+      'retention:purge-all',
+      7200,
+      async () => {
+        const results: Record<string, number> = {};
 
-      const purge = async (
-        key: string,
-        repo: Repository<any>,
-      ): Promise<number> => {
-        const days = this.retentionDays(key);
-        const cutoff = this.daysAgo(days);
-        let total = 0;
-        let affected = 0;
-        do {
-          const ids = await repo
-            .createQueryBuilder()
-            .select('id')
-            .where('created_at < :cutoff', { cutoff })
-            .limit(PURGE_BATCH_SIZE)
-            .getRawMany<{ id: string }>();
-          if (ids.length === 0) break;
-          affected = (
-            await repo.delete(ids.map((r) => r.id))
-          ).affected ?? 0;
-          total += affected;
-        } while (affected === PURGE_BATCH_SIZE);
-        return total;
-      };
+        const purge = async (
+          key: string,
+          repo: Repository<any>,
+        ): Promise<number> => {
+          const days = this.retentionDays(key);
+          const cutoff = this.daysAgo(days);
+          let total = 0;
+          let affected = 0;
+          do {
+            const ids = await repo
+              .createQueryBuilder()
+              .select('id')
+              .where('created_at < :cutoff', { cutoff })
+              .limit(PURGE_BATCH_SIZE)
+              .getRawMany<{ id: string }>();
+            if (ids.length === 0) break;
+            affected = (await repo.delete(ids.map((r) => r.id))).affected ?? 0;
+            total += affected;
+          } while (affected === PURGE_BATCH_SIZE);
+          return total;
+        };
 
-      results.login_history = await purge('login_history', this.loginRepo);
-      results.device_sessions = await purge('device_sessions', this.deviceRepo);
-      results.user_activities = await purge('user_activities', this.activityRepo);
-      results.sms_logs = await purge('sms_logs', this.smsRepo);
-      results.webhook_logs = await purge('webhook_logs', this.webhookRepo);
-      results.bnpl_audit_logs = await purge('bnpl_audit_logs', this.auditRepo);
-      results.support_tickets = await purge('support_tickets', this.ticketRepo);
-      results.in_app_notifications = await purge(
-        'in_app_notifications',
-        this.notifRepo,
-      );
-      results.kyc_anonymized = await this.anonymizeKycDocuments();
-      results.kyc_submissions = await purge('kyc_submissions', this.kycRepo);
+        results.login_history = await purge('login_history', this.loginRepo);
+        results.device_sessions = await purge(
+          'device_sessions',
+          this.deviceRepo,
+        );
+        results.user_activities = await purge(
+          'user_activities',
+          this.activityRepo,
+        );
+        results.sms_logs = await purge('sms_logs', this.smsRepo);
+        results.webhook_logs = await purge('webhook_logs', this.webhookRepo);
+        results.bnpl_audit_logs = await purge(
+          'bnpl_audit_logs',
+          this.auditRepo,
+        );
+        results.support_tickets = await purge(
+          'support_tickets',
+          this.ticketRepo,
+        );
+        results.in_app_notifications = await purge(
+          'in_app_notifications',
+          this.notifRepo,
+        );
+        results.kyc_anonymized = await this.anonymizeKycDocuments();
+        results.kyc_submissions = await purge('kyc_submissions', this.kycRepo);
 
-      const anonymized = await this.anonymizeInactiveUsers();
+        const anonymized = await this.anonymizeInactiveUsers();
 
-      await this.auditService.log(AuditAction.RETENTION_PURGE, {
-        metadata: { purged: results, anonymized },
-      });
+        await this.auditService.log(AuditAction.RETENTION_PURGE, {
+          metadata: { purged: results, anonymized },
+        });
 
-      this.logger.log(
-        `Retention purge complete: ${JSON.stringify(results)}, anonymized: ${anonymized}`,
-      );
-      return { ...results, users_anonymized: anonymized };
-    });
+        this.logger.log(
+          `Retention purge complete: ${JSON.stringify(results)}, anonymized: ${anonymized}`,
+        );
+        return { ...results, users_anonymized: anonymized };
+      },
+    );
   }
 
   async anonymizeKycDocuments(): Promise<number> {

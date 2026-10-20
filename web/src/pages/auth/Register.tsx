@@ -6,6 +6,7 @@ import { useAuth } from '../../stores/auth.store'
 import { useBranding } from '../../stores/branding.store'
 import { DesignCredit } from '../../components/layout/DesignCredit'
 import { termsSections } from '../landing/Terms'
+import { usePageMeta } from '../../lib/seo'
 
 interface ApexOrg { id: string; name: string }
 interface Org { id: string; name: string; code: string }
@@ -28,6 +29,13 @@ export function Register() {
   const navigate = useNavigate()
   const { register, isAuthenticated, user } = useAuth()
   const { branding, load, loaded } = useBranding()
+
+  usePageMeta({
+    title: 'Open an Account | FENAC COOP',
+    description:
+      'Register your association, club or NGO with FENAC COOP and start accessing shared savings, low-interest loans, investments and BNPL.',
+    path: '/register',
+  })
 
   const [step, setStep] = useState(1)
   const [apexOrgs, setApexOrgs] = useState<ApexOrg[]>([])
@@ -230,6 +238,7 @@ export function Register() {
                         value={form.firstName}
                         onChange={(e) => setForm({ ...form, firstName: e.target.value })}
                         required
+                        autoComplete="given-name"
                         placeholder="First name"
                         className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                       />
@@ -245,6 +254,7 @@ export function Register() {
                         value={form.lastName}
                         onChange={(e) => setForm({ ...form, lastName: e.target.value })}
                         required
+                        autoComplete="family-name"
                         placeholder="Last name"
                         className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                       />
@@ -261,6 +271,7 @@ export function Register() {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      autoComplete="email"
                       placeholder="you@example.com"
                       className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                     />
@@ -276,6 +287,7 @@ export function Register() {
                       type="tel"
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      autoComplete="tel"
                       placeholder="+234 XXX XXX XXXX"
                       className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                     />
@@ -293,6 +305,7 @@ export function Register() {
                       value={form.password}
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
                       required
+                      autoComplete="new-password"
                       placeholder="Min 8 characters"
                       className="w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-12 py-3 text-sm text-[#FFF9EF] placeholder-[#F5E9D9]/50 focus:outline-none focus:ring-2 focus:ring-[#E4A42A] focus:border-transparent"
                     />

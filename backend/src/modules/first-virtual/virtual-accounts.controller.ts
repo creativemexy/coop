@@ -22,19 +22,8 @@ export class VirtualAccountsController {
 
   @Get('me')
   @Roles(Role.INDIVIDUAL)
-  async getMine(@CurrentUser('sub') userId: string) {
-    const account = await this.service.getForUser(userId);
-    if (!account) {
-      return null;
-    }
-    return {
-      id: account.id,
-      accountNumber: account.accountNumber,
-      accountName: account.accountName,
-      bankName: account.bankName,
-      status: account.status,
-      provider: account.provider,
-    };
+  getMine() {
+    return null;
   }
 
   @Post('deposits/initiate')
@@ -107,10 +96,7 @@ export class VirtualAccountsController {
     @CurrentUser('sub') userId: string,
     @Param('repaymentId') repaymentId: string,
   ) {
-    const pending = await this.service.verifyLoanRepayment(
-      userId,
-      repaymentId,
-    );
+    const pending = await this.service.verifyLoanRepayment(userId, repaymentId);
     return this.toDto(pending);
   }
 

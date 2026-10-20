@@ -19,6 +19,8 @@ interface User {
   phone?: string
   organizationId?: string
   apexOrgId?: string
+  organization?: { name: string } | null
+  apexOrg?: { name: string } | null
   createdAt: string
   registrationFeePaid?: boolean
 }
@@ -408,10 +410,16 @@ export function Users() {
                   value={selectedUser.isActive ? 'Active' : 'Inactive'}
                 />
               </div>
-              {selectedUser.organizationId && (
+              {selectedUser.organizationId && selectedUser.organization && (
+                <DetailRow icon={<Building2 size={14} className="text-[#176B5B]" />} label="Organization" value={selectedUser.organization.name} />
+              )}
+              {selectedUser.apexOrgId && selectedUser.apexOrg && (
+                <DetailRow icon={<Building2 size={14} className="text-[#176B5B]" />} label="Apex Organization" value={selectedUser.apexOrg.name} />
+              )}
+              {selectedUser.organizationId && !selectedUser.organization && (
                 <DetailRow icon={<Building2 size={14} className="text-[#176B5B]" />} label="Organization ID" value={<span className="font-mono text-xs">{selectedUser.organizationId.slice(0, 16)}…</span>} />
               )}
-              {selectedUser.apexOrgId && (
+              {selectedUser.apexOrgId && !selectedUser.apexOrg && (
                 <DetailRow icon={<Building2 size={14} className="text-[#176B5B]" />} label="Apex org ID" value={<span className="font-mono text-xs">{selectedUser.apexOrgId.slice(0, 16)}…</span>} />
               )}
               {selectedUser.kycImage && selectedUser.kycStatus === 'approved' && (

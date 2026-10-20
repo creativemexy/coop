@@ -20,7 +20,10 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Role } from '../../../common/enums/role.enum';
-import { validateImageFile, isAllowedExtension } from '../../../common/file-validator.util';
+import {
+  validateImageFile,
+  isAllowedExtension,
+} from '../../../common/file-validator.util';
 
 @Controller('api/v1/bnpl/catalog')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -74,15 +77,29 @@ export class CatalogController {
     FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: join(process.cwd(), 'uploads', 'catalog-images'),
-        filename: (_req: any, file: any, cb: (err: Error | null, name: string) => void) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        filename: (
+          _req: any,
+          file: any,
+          cb: (err: Error | null, name: string) => void,
+        ) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
       limits: { fileSize: 5 * 1024 * 1024 },
-      fileFilter: (_req: any, file: any, cb: (err: Error | null, allowed: boolean) => void) => {
+      fileFilter: (
+        _req: any,
+        file: any,
+        cb: (err: Error | null, allowed: boolean) => void,
+      ) => {
         if (!file.mimetype.match(/^image\/(png|jpeg|jpg|webp)$/)) {
-          cb(new BadRequestException('Only PNG, JPG, and WebP images are allowed'), false);
+          cb(
+            new BadRequestException(
+              'Only PNG, JPG, and WebP images are allowed',
+            ),
+            false,
+          );
           return;
         }
         if (!isAllowedExtension(file.originalname)) {
@@ -93,10 +110,7 @@ export class CatalogController {
       },
     }),
   )
-  async uploadImages(
-    @Param('id') id: string,
-    @UploadedFiles() files: any[],
-  ) {
+  async uploadImages(@Param('id') id: string, @UploadedFiles() files: any[]) {
     if (!files?.length) throw new BadRequestException('No files uploaded');
     for (const file of files) {
       validateImageFile(file.path);

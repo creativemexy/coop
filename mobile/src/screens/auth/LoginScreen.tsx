@@ -121,9 +121,11 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
     setLoading(true);
     try {
       await login(email, password);
-    } catch (error: any) {
-      const message = getErrorMessage(error, 'Login failed. Please try again.');
-      Alert.alert('Login Failed', message);
+    } catch {
+      Alert.alert(
+        'Login Failed',
+        'Unable to sign in. Check your details and try again.',
+      );
     } finally {
       setLoading(false);
     }

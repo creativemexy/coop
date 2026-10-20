@@ -18,17 +18,21 @@ export class ApexBusinessManagerController {
   }
 
   @Get('users')
-  async listUsers(
-    @CurrentUser() user: any,
-    @Query('search') search?: string,
-  ) {
+  async listUsers(@CurrentUser() user: any, @Query('search') search?: string) {
     return this.service.listUsers(user.apexOrgId, search);
   }
 
   @Patch('bank')
   async updateBankDetails(
     @CurrentUser() user: any,
-    @Body() dto: { bankName?: string; accountName?: string; accountNumber?: string; sortCode?: string; bankCode?: string },
+    @Body()
+    dto: {
+      bankName?: string;
+      accountName?: string;
+      accountNumber?: string;
+      sortCode?: string;
+      bankCode?: string;
+    },
   ) {
     return this.service.updateBankDetails(user.apexOrgId, dto);
   }

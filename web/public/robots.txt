@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /auth/
+Disallow: /register/pay-fee
+Disallow: /register/payment-callback
+Disallow: /maintenance
+Disallow: /super-admin
+Disallow: /operational-admin
+Disallow: /customer-care
+Disallow: /accountant
+Disallow: /apex-bm
+Disallow: /business-manager
+Disallow: /bnpl-manager
+Disallow: /individual
+
+Sitemap: https://www.fenacoop.org/sitemap.xml

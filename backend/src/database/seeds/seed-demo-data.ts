@@ -147,7 +147,11 @@ export async function seedDemoData(dataSource: DataSource): Promise<void> {
     for (const o of orgsUnder) {
       const existingOrg = await orgRepo.findOne({ where: { code: o.code } });
       if (!existingOrg) {
-        await orgRepo.save({ ...o, apexOrgId: existing.id, status: OrgStatus.ACTIVE });
+        await orgRepo.save({
+          ...o,
+          apexOrgId: existing.id,
+          status: OrgStatus.ACTIVE,
+        });
         console.log(`Org created: ${o.code}`);
       }
     }
@@ -170,38 +174,58 @@ interface OrgSeed {
 const orgsByApex: Record<string, OrgSeed[]> = {
   APEX002: [
     {
-      name: 'Lagos Island Primary', code: 'ORG002',
+      name: 'Lagos Island Primary',
+      code: 'ORG002',
       address: '15 Marina Street, Lagos Island, Lagos',
-      contactEmail: 'info@lagosisland.ng', contactPhone: '+2348010000002',
-      contactPersonName: 'Funke Adewale', contactPersonEmail: 'funke@lagosisland.ng', contactPersonPhone: '+2348020000002',
+      contactEmail: 'info@lagosisland.ng',
+      contactPhone: '+2348010000002',
+      contactPersonName: 'Funke Adewale',
+      contactPersonEmail: 'funke@lagosisland.ng',
+      contactPersonPhone: '+2348020000002',
     },
     {
-      name: 'Mainland Chapter', code: 'ORG003',
+      name: 'Mainland Chapter',
+      code: 'ORG003',
       address: '7 Agege Motor Road, Mainland, Lagos',
-      contactEmail: 'info@mainlandchapter.ng', contactPhone: '+2348010000003',
-      contactPersonName: 'Chukwudi Okafor', contactPersonEmail: 'chukwudi@mainlandchapter.ng', contactPersonPhone: '+2348020000003',
+      contactEmail: 'info@mainlandchapter.ng',
+      contactPhone: '+2348010000003',
+      contactPersonName: 'Chukwudi Okafor',
+      contactPersonEmail: 'chukwudi@mainlandchapter.ng',
+      contactPersonPhone: '+2348020000003',
     },
   ],
   APEX003: [
     {
-      name: 'Civil Service Credit Union', code: 'ORG004',
+      name: 'Civil Service Credit Union',
+      code: 'ORG004',
       address: '23 Abuja Federal Secretariat, Abuja',
-      contactEmail: 'info@civilservicecu.ng', contactPhone: '+2348010000004',
-      contactPersonName: 'Grace Okonkwo', contactPersonEmail: 'grace@civilservicecu.ng', contactPersonPhone: '+2348020000004',
+      contactEmail: 'info@civilservicecu.ng',
+      contactPhone: '+2348010000004',
+      contactPersonName: 'Grace Okonkwo',
+      contactPersonEmail: 'grace@civilservicecu.ng',
+      contactPersonPhone: '+2348020000004',
     },
   ],
   APEX004: [
     {
-      name: 'Startup Innovators Network', code: 'ORG005',
+      name: 'Startup Innovators Network',
+      code: 'ORG005',
       address: '10 Yaba Tech Hub, Yaba, Lagos',
-      contactEmail: 'hello@startupinnovators.ng', contactPhone: '+2348010000005',
-      contactPersonName: 'Segun Adeyemi', contactPersonEmail: 'segun@startupinnovators.ng', contactPersonPhone: '+2348020000005',
+      contactEmail: 'hello@startupinnovators.ng',
+      contactPhone: '+2348010000005',
+      contactPersonName: 'Segun Adeyemi',
+      contactPersonEmail: 'segun@startupinnovators.ng',
+      contactPersonPhone: '+2348020000005',
     },
     {
-      name: 'Remote Workers Guild', code: 'ORG006',
+      name: 'Remote Workers Guild',
+      code: 'ORG006',
       address: '88 Banana Island Road, Ikoyi, Lagos',
-      contactEmail: 'admin@remoteworkers.ng', contactPhone: '+2348010000006',
-      contactPersonName: 'Ngozi Eze', contactPersonEmail: 'ngozi@remoteworkers.ng', contactPersonPhone: '+2348020000006',
+      contactEmail: 'admin@remoteworkers.ng',
+      contactPhone: '+2348010000006',
+      contactPersonName: 'Ngozi Eze',
+      contactPersonEmail: 'ngozi@remoteworkers.ng',
+      contactPersonPhone: '+2348020000006',
     },
   ],
 };

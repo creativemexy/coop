@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CheckCircle2, FileText, ShieldCheck, UsersRound } from 'lucide-react'
+import { usePageMeta } from '../../lib/seo'
 
 export const termsSections = [
   {
@@ -132,13 +132,12 @@ const keyPoints = [
 ]
 
 export default function Terms() {
-  useEffect(() => {
-    document.title = 'Terms of Service | FENAC COOP'
-    const description = document.querySelector('meta[name="description"]')
-    description?.setAttribute('content', 'Read the FENAC COOP Terms of Service covering membership, digital financial services, account security, privacy, and disputes.')
-    const canonical = document.querySelector('link[rel="canonical"]')
-    canonical?.setAttribute('href', window.location.href.split('?')[0])
-  }, [])
+  usePageMeta({
+    title: 'Terms of Service | FENAC COOP',
+    description:
+      'Read the FENAC COOP Terms of Service covering membership, digital financial services, account security, privacy, and disputes.',
+    path: '/terms',
+  })
 
   return (
     <div className="overflow-hidden bg-[#FFF9EF] text-[#23150F]">

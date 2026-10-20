@@ -4,12 +4,19 @@ import { api } from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Card, CardTitle } from '../../components/ui/card'
 import { DesignCredit } from '../../components/layout/DesignCredit'
+import { usePageMeta } from '../../lib/seo'
 
 export function PayRegistrationFee() {
   const location = useLocation()
   const navigate = useNavigate()
   const [fee, setFee] = useState(location.state?.feeAmount as number | null)
   const [pendingUserId] = useState(location.state?.pendingUserId as string | undefined)
+
+  usePageMeta({
+    title: 'Pay Membership Fee | FENAC COOP',
+    description: 'Complete your one-time membership fee to activate your FENAC COOP account.',
+    noindex: true,
+  })
   const [loading, setLoading] = useState(false)
   const [paid] = useState(false)
 

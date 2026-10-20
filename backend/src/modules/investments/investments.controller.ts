@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { InvestmentsService } from './investments.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -110,7 +120,8 @@ export class InvestmentsController {
   @Post('admin/products')
   @Roles(Role.SUPER_ADMIN)
   async createProduct(
-    @Body() dto: {
+    @Body()
+    dto: {
       name: string;
       description?: string;
       type: string;
@@ -129,7 +140,13 @@ export class InvestmentsController {
     },
     @CurrentUser('sub') userId: string,
   ) {
-    return this.svc.createProduct({ ...dto, type: dto.type as any, riskTier: dto.riskTier as any, distributionFrequency: dto.distributionFrequency as any, createdBy: userId });
+    return this.svc.createProduct({
+      ...dto,
+      type: dto.type as any,
+      riskTier: dto.riskTier as any,
+      distributionFrequency: dto.distributionFrequency as any,
+      createdBy: userId,
+    });
   }
 
   @Patch('admin/products/:id')
@@ -189,7 +206,11 @@ export class InvestmentsController {
   @Roles(Role.SUPER_ADMIN)
   async setCapacity(
     @Param('id') id: string,
-    @Body() dto: { totalCapacity?: number; perInvestorCaps?: { min?: number; max?: number } },
+    @Body()
+    dto: {
+      totalCapacity?: number;
+      perInvestorCaps?: { min?: number; max?: number };
+    },
   ) {
     return this.svc.setCapacity(id, dto);
   }
@@ -198,7 +219,15 @@ export class InvestmentsController {
   @Roles(Role.SUPER_ADMIN)
   async createIssuanceCycle(
     @Param('id') id: string,
-    @Body() dto: { cycleName: string; totalUnits: number; unitPrice: number; totalValue: number; openDate?: string; closeDate?: string },
+    @Body()
+    dto: {
+      cycleName: string;
+      totalUnits: number;
+      unitPrice: number;
+      totalValue: number;
+      openDate?: string;
+      closeDate?: string;
+    },
     @CurrentUser('sub') userId: string,
   ) {
     return this.svc.createIssuanceCycle(id, { ...dto, createdBy: userId });
@@ -272,7 +301,14 @@ export class InvestmentsController {
   @Roles(Role.SUPER_ADMIN)
   async createCorporateAction(
     @Param('id') id: string,
-    @Body() dto: { type: string; description?: string; ratioNumerator: number; ratioDenominator: number; effectiveDate: string },
+    @Body()
+    dto: {
+      type: string;
+      description?: string;
+      ratioNumerator: number;
+      ratioDenominator: number;
+      effectiveDate: string;
+    },
     @CurrentUser('sub') userId: string,
   ) {
     return this.svc.createCorporateAction(id, dto as any, userId);
@@ -313,7 +349,16 @@ export class InvestmentsController {
   @Post('admin/distributions')
   @Roles(Role.SUPER_ADMIN)
   async createDistribution(
-    @Body() dto: { productId: string; type: string; amountPerUnit: number; totalPool: number; recordDate: string; payDate: string; description?: string },
+    @Body()
+    dto: {
+      productId: string;
+      type: string;
+      amountPerUnit: number;
+      totalPool: number;
+      recordDate: string;
+      payDate: string;
+      description?: string;
+    },
     @CurrentUser('sub') userId: string,
   ) {
     return this.svc.createDistribution(dto as any, userId);

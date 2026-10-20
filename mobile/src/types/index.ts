@@ -80,15 +80,6 @@ export interface SavingsTransaction {
   createdAt: string;
 }
 
-export interface VirtualAccount {
-  id: string;
-  accountNumber: string;
-  accountName: string;
-  bankName: string;
-  status: string;
-  provider: string;
-}
-
 export interface DepositInstruction {
   id: string;
   amount: number;

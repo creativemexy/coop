@@ -82,7 +82,11 @@ export class Incident {
   @Column({ type: 'uuid', name: 'resolved_by', nullable: true })
   resolvedBy: string;
 
-  @Column({ type: 'timestamp', name: 'detected_at', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'timestamp',
+    name: 'detected_at',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   detectedAt: Date;
 
   @Column({ type: 'timestamp', name: 'resolved_at', nullable: true })

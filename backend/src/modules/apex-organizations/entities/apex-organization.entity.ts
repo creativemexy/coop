@@ -31,28 +31,63 @@ export class ApexOrganization {
   @Column({ type: 'varchar', length: 255, nullable: true })
   address: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'contact_email', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'contact_email',
+    nullable: true,
+  })
   contactEmail: string;
 
-  @Column({ type: 'varchar', length: 20, name: 'contact_phone', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    name: 'contact_phone',
+    nullable: true,
+  })
   contactPhone: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'contact_person_name', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'contact_person_name',
+    nullable: true,
+  })
   contactPersonName: string;
 
-  @Column({ type: 'varchar', length: 20, name: 'contact_person_phone', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    name: 'contact_person_phone',
+    nullable: true,
+  })
   contactPersonPhone: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'contact_person_email', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'contact_person_email',
+    nullable: true,
+  })
   contactPersonEmail: string;
 
   @Column({ type: 'varchar', length: 255, name: 'bank_name', nullable: true })
   bankName: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'account_name', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'account_name',
+    nullable: true,
+  })
   accountName: string;
 
-  @Column({ type: 'varchar', length: 20, name: 'account_number', nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    name: 'account_number',
+    nullable: true,
+  })
   accountNumber: string;
 
   @Column({ type: 'varchar', length: 20, name: 'sort_code', nullable: true })

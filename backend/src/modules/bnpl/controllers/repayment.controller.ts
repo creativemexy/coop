@@ -36,15 +36,25 @@ export class RepaymentController {
   @Post(':installmentId/reconcile')
   async reconcile(
     @Param('installmentId') installmentId: string,
-    @Body() dto: { status?: string; paymentReference?: string; paidAt?: string; note?: string },
+    @Body()
+    dto: {
+      status?: string;
+      paymentReference?: string;
+      paidAt?: string;
+      note?: string;
+    },
     @CurrentUser('sub') userId: string,
   ) {
-    return this.service.reconcile(installmentId, {
-      status: dto.status as any,
-      paymentReference: dto.paymentReference,
-      paidAt: dto.paidAt ? new Date(dto.paidAt) : undefined,
-      note: dto.note,
-    }, userId);
+    return this.service.reconcile(
+      installmentId,
+      {
+        status: dto.status as any,
+        paymentReference: dto.paymentReference,
+        paidAt: dto.paidAt ? new Date(dto.paidAt) : undefined,
+        note: dto.note,
+      },
+      userId,
+    );
   }
 
   @Patch(':installmentId/metadata')
@@ -62,6 +72,11 @@ export class RepaymentController {
     @Body() dto: { amount: number; paymentReference: string },
     @CurrentUser('sub') userId: string,
   ) {
-    return this.service.handlePartialPayment(installmentId, dto.amount, dto.paymentReference, userId);
+    return this.service.handlePartialPayment(
+      installmentId,
+      dto.amount,
+      dto.paymentReference,
+      userId,
+    );
   }
 }

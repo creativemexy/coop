@@ -3,6 +3,7 @@ import { ArrowRight, Clock3, Mail, MapPin, MessageCircle, Phone, ShieldCheck } f
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
 import { site } from './site.config'
+import { usePageMeta } from '../../lib/seo'
 
 const contactMethods = [
   {
@@ -37,6 +38,13 @@ const contactMethods = [
 
 export default function Contact() {
   const [name, setName] = useState('')
+
+  usePageMeta({
+    title: 'Contact Us | FENAC COOP — Abuja, Nigeria',
+    description:
+      'Contact FENAC COOP at hello@fenacoop.org or visit our office in Wuse, Zone 6, Abuja. Open Monday to Friday, 8:00am to 5:00pm WAT.',
+    path: '/contact',
+  })
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [consent, setConsent] = useState(false)

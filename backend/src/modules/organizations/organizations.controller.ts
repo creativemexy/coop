@@ -33,7 +33,8 @@ export class OrganizationsController {
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN)
   async create(
-    @Body() dto: {
+    @Body()
+    dto: {
       name: string;
       apexOrgId: string;
       address?: string;
@@ -68,7 +69,8 @@ export class OrganizationsController {
   @Roles(Role.SUPER_ADMIN, Role.OPERATIONAL_ADMIN)
   async update(
     @Param('id') id: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       name?: string;
       status?: OrgStatus;
       address?: string;

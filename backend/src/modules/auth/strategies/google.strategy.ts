@@ -2,10 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { GoogleOAuthStateStore } from './google-oauth-state.store';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(configService: ConfigService) {
+    const stateSigningSecret = configService.get<string>('jwt.accessSecret');
+    if (!stateSigningSecret) {
+      throw new Error('JWT access secret is required for Google OAuth');
+    }
+
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID') || '',
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') || '',
@@ -13,6 +19,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         configService.get<string>('GOOGLE_CALLBACK_URL') ||
         'http://localhost:3000/api/v1/auth/google/callback',
       scope: ['email', 'profile'],
+      state: true,
+      pkce: true,
+      store: new GoogleOAuthStateStore(stateSigningSecret),
     });
   }
 

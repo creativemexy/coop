@@ -7,7 +7,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { VirtualAccount } from './entities/virtual-account.entity';
 import { PendingDeposit, DepositType } from './entities/pending-deposit.entity';
 import {
   FirstCheckoutClient,
@@ -26,11 +25,8 @@ const DEPOSIT_TTL_MS = 30 * 60 * 1000;
 @Injectable()
 export class VirtualAccountsService {
   private readonly logger = new Logger(VirtualAccountsService.name);
-  private readonly inFlight = new Map<string, Promise<VirtualAccount | null>>();
 
   constructor(
-    @InjectRepository(VirtualAccount)
-    private readonly accountRepo: Repository<VirtualAccount>,
     @InjectRepository(PendingDeposit)
     private readonly pendingRepo: Repository<PendingDeposit>,
     @InjectRepository(User)
@@ -43,88 +39,6 @@ export class VirtualAccountsService {
     private readonly riskService: RiskService,
     private readonly notifications: NotificationsService,
   ) {}
-
-  async getForUser(userId: string): Promise<VirtualAccount | null> {
-    const existing = await this.accountRepo.findOne({ where: { userId } });
-    if (existing) {
-      return existing;
-    }
-    return this.provisionForUser(userId);
-  }
-
-  provisionForUser(userId: string): Promise<VirtualAccount | null> {
-    const running = this.inFlight.get(userId);
-    if (running) {
-      return running;
-    }
-    const promise = this.doProvision(userId);
-    this.inFlight.set(userId, promise);
-    void promise.finally(() => this.inFlight.delete(userId));
-    return promise;
-  }
-
-  private async doProvision(userId: string): Promise<VirtualAccount | null> {
-    const existing = await this.accountRepo.findOne({ where: { userId } });
-    if (existing) {
-      return existing;
-    }
-
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    if (user.role !== Role.INDIVIDUAL) {
-      return null;
-    }
-
-    const name =
-      [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-      'Coop Member';
-    const reference = `FCO-${Date.now().toString(36)}${Math.random()
-      .toString(36)
-      .slice(2, 8)}`.toUpperCase();
-    const initAmount = this.configService.get<number>(
-      'FIRST_BANKOUT_VA_INIT_AMOUNT',
-      5000,
-    );
-
-    try {
-      const tx = await this.client.initiateTransaction({
-        reference,
-        amount: initAmount,
-        email: user.email || '',
-        name,
-        purpose: 'Virtual account provisioning',
-      });
-      const draft = await this.client.initiatePayWithTransfer({
-        transactionReference: tx.accessCode,
-      });
-
-      const account = this.accountRepo.create({
-        userId,
-        provider: 'firstcheckout',
-        accountNumber: draft.accountNumber,
-        accountName: draft.accountName || name,
-        bankName: draft.bankName || 'First Bank',
-        bankReference: tx.accessCode,
-        token: draft.token || null,
-        status: 'active',
-      });
-      const saved = await this.accountRepo.save(account);
-
-      this.logger.log(
-        `Provisioned virtual account ${saved.accountNumber} for user ${userId}`,
-      );
-      return saved;
-    } catch (error: unknown) {
-      this.logger.error(
-        `Virtual account provisioning failed for ${userId}: ${
-          error instanceof Error ? error.message : 'unknown error'
-        }`,
-      );
-      return null;
-    }
-  }
 
   /**
    * Called by the FirstCheckout / Interswitch virtual-account deposit callback.
@@ -196,7 +110,7 @@ export class VirtualAccountsService {
         token: pending.token ?? undefined,
       });
       return {
-        confirmed: res.paymentStatus === 'SUCCESSFUL',
+        confirmed: res.confirmed,
         amount: res.amount ? Number(res.amount) : undefined,
       };
     } catch (error: unknown) {
@@ -213,14 +127,18 @@ export class VirtualAccountsService {
     pending: PendingDeposit,
     reference: string,
     amount: number,
-  ): Promise<{ status: 'processed' | 'duplicate' | 'ignored'; creditedAmount?: number }> {
+  ): Promise<{
+    status: 'processed' | 'duplicate' | 'ignored';
+    creditedAmount?: number;
+  }> {
     if (pending.status !== 'pending') {
       return { status: 'duplicate' };
     }
 
     // Never record a credit/repayment from a callback alone — confirm the
     // transfer with FirstCheckout first.
-    const { confirmed, amount: confirmedAmount } = await this.confirmInstruction(pending);
+    const { confirmed, amount: confirmedAmount } =
+      await this.confirmInstruction(pending);
     if (!confirmed) {
       this.logger.log(
         `Ignoring ${pending.type} notification for ${pending.reference} — transfer not confirmed`,
@@ -240,7 +158,10 @@ export class VirtualAccountsService {
         );
         return { status: 'ignored' };
       }
-      await this.loansService.markRepaymentPaid(pending.userId, pending.loanRepaymentId);
+      await this.loansService.markRepaymentPaid(
+        pending.userId,
+        pending.loanRepaymentId,
+      );
       await this.pendingRepo.update(pending.id, {
         status: 'credited',
         bankReference: reference,
@@ -448,7 +369,11 @@ export class VirtualAccountsService {
     }
 
     const savingsType: 'general' | 'goal' | undefined =
-      deposit.type === 'goal' ? 'goal' : deposit.type === 'general' ? 'general' : undefined;
+      deposit.type === 'goal'
+        ? 'goal'
+        : deposit.type === 'general'
+          ? 'general'
+          : undefined;
 
     if (!savingsType) {
       this.logger.log(
@@ -542,7 +467,8 @@ export class VirtualAccountsService {
     const name =
       [user.firstName, user.lastName].filter(Boolean).join(' ') ||
       'Coop Member';
-    const reference = `FCLN-${crypto.randomUUID()
+    const reference = `FCLN-${crypto
+      .randomUUID()
       .replace(/-/g, '')
       .slice(0, 26)
       .toUpperCase()}`;
@@ -600,7 +526,10 @@ export class VirtualAccountsService {
     userId: string,
     repaymentId: string,
   ): Promise<PendingDeposit> {
-    const pending = await this.findLoanRepaymentInstruction(userId, repaymentId);
+    const pending = await this.findLoanRepaymentInstruction(
+      userId,
+      repaymentId,
+    );
     if (!pending) {
       throw new NotFoundException('Payment instruction not found');
     }
@@ -651,7 +580,10 @@ export class VirtualAccountsService {
       `Verified + recorded loan repayment for ${userId} (${pending.reference})`,
     );
 
-    return this.findLoanRepaymentInstruction(userId, repaymentId) as Promise<PendingDeposit>;
+    return this.findLoanRepaymentInstruction(
+      userId,
+      repaymentId,
+    ) as Promise<PendingDeposit>;
   }
 
   /**
@@ -663,7 +595,10 @@ export class VirtualAccountsService {
     userId: string,
     orderId: string,
   ): Promise<PendingDeposit> {
-    const order = await this.investmentsService.getOrderForPayment(userId, orderId);
+    const order = await this.investmentsService.getOrderForPayment(
+      userId,
+      orderId,
+    );
     const amount = Number(order.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException('Invalid order amount');
@@ -693,7 +628,8 @@ export class VirtualAccountsService {
     const name =
       [user.firstName, user.lastName].filter(Boolean).join(' ') ||
       'Coop Member';
-    const reference = `FCIN-${crypto.randomUUID()
+    const reference = `FCIN-${crypto
+      .randomUUID()
       .replace(/-/g, '')
       .slice(0, 26)
       .toUpperCase()}`;
@@ -797,6 +733,9 @@ export class VirtualAccountsService {
       `Verified + confirmed investment order ${orderId} for ${userId} (${pending.reference})`,
     );
 
-    return this.findInvestmentOrderInstruction(userId, orderId) as Promise<PendingDeposit>;
+    return this.findInvestmentOrderInstruction(
+      userId,
+      orderId,
+    ) as Promise<PendingDeposit>;
   }
 }

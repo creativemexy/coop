@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { InvestmentHolding } from './investment-holding.entity';
 
 export enum RedemptionStatus {
@@ -32,7 +41,11 @@ export class RedemptionRequest {
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   amount: number;
 
-  @Column({ type: 'enum', enum: RedemptionStatus, default: RedemptionStatus.REQUESTED })
+  @Column({
+    type: 'enum',
+    enum: RedemptionStatus,
+    default: RedemptionStatus.REQUESTED,
+  })
   status: RedemptionStatus;
 
   @Column({ type: 'text', nullable: true })

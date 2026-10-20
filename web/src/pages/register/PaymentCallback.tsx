@@ -4,11 +4,18 @@ import { api } from '../../api/client'
 import { Card, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { DesignCredit } from '../../components/layout/DesignCredit'
+import { usePageMeta } from '../../lib/seo'
 
 export function PaymentCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [status, setStatus] = useState<'verifying' | 'paid' | 'failed'>('verifying')
+
+  usePageMeta({
+    title: 'Payment Verification | FENAC COOP',
+    description: 'Verifying your FENAC COOP registration payment.',
+    noindex: true,
+  })
 
   useEffect(() => {
     const ref = searchParams.get('reference')

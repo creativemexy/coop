@@ -23,14 +23,6 @@ interface Transaction {
   createdAt: string
 }
 
-interface VirtualAccount {
-  accountNumber: string
-  accountName: string
-  bankName: string
-  status: string
-  provider: string
-}
-
 interface DepositInstruction {
   id: string
   amount: number
@@ -61,7 +53,6 @@ const fieldCls =
 
 export function Savings() {
   const [account, setAccount] = useState<SavingsAccount | null>(null)
-  const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null)
   const [depositInstruction, setDepositInstruction] = useState<DepositInstruction | null>(null)
   const [generalAmount, setGeneralAmount] = useState('')
   const [goalAmount, setGoalAmount] = useState('')
@@ -78,15 +69,6 @@ export function Savings() {
       .get('/savings')
       .then((r) => setAccount(r.data))
       .catch(() => setAccount(null))
-
-  const fetchVirtualAccount = async () => {
-    try {
-      const r = await api.get('/virtual-accounts/me')
-      setVirtualAccount(r.data)
-    } catch {
-      setVirtualAccount(null)
-    }
-  }
 
   const startPolling = (id: string) => {
     if (pollRef.current) clearInterval(pollRef.current)
@@ -116,7 +98,6 @@ export function Savings() {
 
   useEffect(() => {
     fetch()
-    fetchVirtualAccount()
     return () => {
       if (pollRef.current) clearInterval(pollRef.current)
     }
@@ -253,50 +234,6 @@ export function Savings() {
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#176B5B]/10">
           <PiggyBank size={22} className="text-[#176B5B]" />
-        </div>
-      </div>
-
-      {/* Virtual account */}
-      <div className="overflow-hidden rounded-2xl border border-[#176B5B]/20 bg-gradient-to-br from-[#176B5B] via-[#0F5A4B] to-[#0B463A] p-6 text-[#FFF9EF] shadow-lg">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF9EF]/15">
-            <Landmark size={16} />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#F7D674]">Fund via Bank Transfer · Virtual Account</p>
-        </div>
-        {virtualAccount ? (
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-[#FFF9EF]/70">Account Number</p>
-              <div className="mt-1 flex items-center gap-2">
-                <p className="text-3xl font-black tracking-[0.08em] text-[#FFF9EF]">{virtualAccount.accountNumber}</p>
-                <button
-                  onClick={() => copyNumber(virtualAccount.accountNumber)}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#FFF9EF]/15 transition hover:bg-[#E4A42A] hover:text-[#2C1B13]"
-                  aria-label="Copy account number"
-                >
-                  {copied === virtualAccount.accountNumber ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-              {copied === virtualAccount.accountNumber && <p className="mt-1 text-xs font-semibold text-[#F7D674]">Copied!</p>}
-            </div>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-[#FFF9EF]/70">Account Name</p>
-              <p className="mt-1 text-base font-bold text-[#FFF9EF]">{virtualAccount.accountName}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-[#FFF9EF]/70">Bank</p>
-              <p className="mt-1 text-base font-bold text-[#FFF9EF]">{virtualAccount.bankName}</p>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-[#FFF9EF]/80">
-          Virtual account is being provisioned — it will appear here shortly.
-          </p>
-        )}
-        <div className="mt-5 flex items-start gap-2 rounded-xl bg-[#FFF9EF]/10 px-4 py-3 text-xs leading-relaxed text-[#FFF9EF]/85">
-          <Banknote size={14} className="mt-px shrink-0 text-[#F7D674]" />
-          Transfer any amount to this account and it will be credited to your savings automatically.
         </div>
       </div>
 
