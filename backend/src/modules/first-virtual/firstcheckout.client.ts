@@ -461,14 +461,17 @@ export class FirstCheckoutClient {
     );
     // Before a transfer settles the live gateway answers HTTP 404 with
     // { data: "No successful transaction record…", status: "NotFound" }.
-    const { data } = await confirmCall.catch((error: unknown) => {
-      const res = (error as { response?: { status?: number; data?: unknown } })
-        ?.response;
-      if (res?.status === 404 && res.data && typeof res.data === 'object') {
-        return { data: res.data };
-      }
-      throw error;
-    });
+    const { data }: { data: ConfirmPaymentResponse } = await confirmCall.catch(
+      (error: unknown): { data: ConfirmPaymentResponse } => {
+        const res = (
+          error as { response?: { status?: number; data?: unknown } }
+        )?.response;
+        if (res?.status === 404 && res.data && typeof res.data === 'object') {
+          return { data: res.data };
+        }
+        throw error;
+      },
+    );
 
     // Docs success body: { data: { message: "Successful",
     // transactions: [{ approvalStatus: "APPROVED" }] }, status: "OK" }.
