@@ -102,11 +102,15 @@ export class VirtualAccountsService {
     pending: PendingDeposit,
   ): Promise<{ confirmed: boolean; amount?: number; reason?: string }> {
     const txReference = pending.bankReference ?? pending.reference;
+    if (this.client.isStubbed()) {
+      const res = await this.client
+        .queryTransaction(pending.reference)
+        .catch(() => null);
+      return { confirmed: res?.status === 'SUCCESS', reason: res?.status };
+    }
+
+    const reasons: string[] = [];
     try {
-      if (this.client.isStubbed()) {
-        const res = await this.client.queryTransaction(pending.reference);
-        return { confirmed: res.status === 'SUCCESS', reason: res.status };
-      }
       const res = await this.client.confirmPayWithTransfer({
         reference: txReference,
         accountNumber: pending.accountNumber,
@@ -118,33 +122,30 @@ export class VirtualAccountsService {
           amount: res.amount ? Number(res.amount) : undefined,
         };
       }
+      reasons.push(
+        ...[res.paymentStatus, res.message].filter((r): r is string => !!r),
+      );
+    } catch (error: unknown) {
+      const detail = this.gatewayErrorDetail(error);
+      this.logger.warn(`Confirm failed for ${pending.reference}: ${detail}`);
+      reasons.push(`confirm error: ${detail}`);
+    }
 
-      // Confirm-payment only reports a completed transfer; the documented
-      // Query Transaction endpoint is the gateway's authoritative status.
-      const query = await this.client
-        .queryTransaction(txReference)
-        .catch(() => null);
+    // Confirm-payment only reports a completed transfer; the documented
+    // Query Transaction endpoint is the gateway's authoritative status.
+    try {
+      const query = await this.client.queryTransaction(txReference);
       const queryStatus = query?.status?.toUpperCase();
       if (queryStatus === 'SUCCESS') {
         // Credit the instructed amount — the transaction was initiated for it.
         return { confirmed: true };
       }
-
-      const reason = [
-        res.paymentStatus,
-        res.message,
-        queryStatus ? `transaction status ${queryStatus}` : undefined,
-      ]
-        .filter(Boolean)
-        .join(' — ');
-      return { confirmed: false, reason: reason || undefined };
+      if (queryStatus) reasons.push(`transaction status ${queryStatus}`);
     } catch (error: unknown) {
-      const detail = this.gatewayErrorDetail(error);
-      this.logger.warn(
-        `Verification failed for ${pending.reference}: ${detail}`,
-      );
-      return { confirmed: false, reason: `verification error: ${detail}` };
+      reasons.push(`query error: ${this.gatewayErrorDetail(error)}`);
     }
+
+    return { confirmed: false, reason: reasons.join(' — ') || undefined };
   }
 
   private gatewayErrorDetail(error: unknown): string {

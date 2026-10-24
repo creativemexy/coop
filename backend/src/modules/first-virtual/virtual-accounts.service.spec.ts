@@ -96,6 +96,19 @@ describe('VirtualAccountsService.verifyDeposit', () => {
     );
   });
 
+  it('still checks Query Transaction when confirm-payment throws', async () => {
+    const { service, savingsService } = build({
+      confirmPayWithTransfer: jest
+        .fn()
+        .mockRejectedValue({ response: { status: 401 } }),
+      queryTransaction: jest.fn().mockResolvedValue({ status: 'SUCCESS' }),
+    });
+
+    await service.verifyDeposit('user-1', 'dep-1');
+
+    expect(savingsService.applyExternalDeposit).toHaveBeenCalledTimes(1);
+  });
+
   it('does not credit when the query call fails', async () => {
     const { service, savingsService } = build({
       confirmPayWithTransfer: jest
