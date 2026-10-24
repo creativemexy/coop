@@ -25,6 +25,8 @@ const DEPOSIT_TTL_MS = 30 * 60 * 1000;
 @Injectable()
 export class VirtualAccountsService {
   private readonly logger = new Logger(VirtualAccountsService.name);
+  /** Last unconfirmed reason logged per reference, to avoid 5s poll spam. */
+  private readonly lastPendingReason = new Map<string, string>();
 
   constructor(
     @InjectRepository(PendingDeposit)
@@ -98,29 +100,81 @@ export class VirtualAccountsService {
    */
   private async confirmInstruction(
     pending: PendingDeposit,
-  ): Promise<{ confirmed: boolean; amount?: number }> {
+  ): Promise<{ confirmed: boolean; amount?: number; reason?: string }> {
+    const txReference = pending.bankReference ?? pending.reference;
     try {
       if (this.client.isStubbed()) {
         const res = await this.client.queryTransaction(pending.reference);
-        return { confirmed: res.status === 'SUCCESS' };
+        return { confirmed: res.status === 'SUCCESS', reason: res.status };
       }
       const res = await this.client.confirmPayWithTransfer({
-        reference: pending.bankReference ?? pending.reference,
+        reference: txReference,
         accountNumber: pending.accountNumber,
         token: pending.token ?? undefined,
       });
-      return {
-        confirmed: res.confirmed,
-        amount: res.amount ? Number(res.amount) : undefined,
-      };
+      if (res.confirmed) {
+        return {
+          confirmed: true,
+          amount: res.amount ? Number(res.amount) : undefined,
+        };
+      }
+
+      // Confirm-payment only reports a completed transfer; the documented
+      // Query Transaction endpoint is the gateway's authoritative status.
+      const query = await this.client
+        .queryTransaction(txReference)
+        .catch(() => null);
+      const queryStatus = query?.status?.toUpperCase();
+      if (queryStatus === 'SUCCESS') {
+        // Credit the instructed amount — the transaction was initiated for it.
+        return { confirmed: true };
+      }
+
+      const reason = [
+        res.paymentStatus,
+        res.message,
+        queryStatus ? `transaction status ${queryStatus}` : undefined,
+      ]
+        .filter(Boolean)
+        .join(' — ');
+      return { confirmed: false, reason: reason || undefined };
     } catch (error: unknown) {
+      const detail = this.gatewayErrorDetail(error);
       this.logger.warn(
-        `Verification failed for ${pending.reference}: ${
-          error instanceof Error ? error.message : 'unknown error'
-        }`,
+        `Verification failed for ${pending.reference}: ${detail}`,
       );
-      return { confirmed: false };
+      return { confirmed: false, reason: `verification error: ${detail}` };
     }
+  }
+
+  private gatewayErrorDetail(error: unknown): string {
+    const e = error as {
+      message?: string;
+      response?: { status?: number; data?: { message?: string } | string };
+    };
+    const body = e?.response?.data;
+    const bodyMessage = typeof body === 'string' ? body : body?.message;
+    return (
+      [e?.response?.status, bodyMessage ?? e?.message]
+        .filter(Boolean)
+        .join(' ') || 'unknown error'
+    );
+  }
+
+  /** Log an unconfirmed poll at LOG level only when the gateway's answer changes. */
+  private logUnconfirmed(
+    reference: string,
+    message: string,
+    reason?: string,
+  ): void {
+    const key = reason ?? 'no gateway detail';
+    const line = `${message} (gateway: ${key})`;
+    if (this.lastPendingReason.get(reference) === key) {
+      this.logger.debug(line);
+      return;
+    }
+    this.lastPendingReason.set(reference, key);
+    this.logger.log(line);
   }
 
   private async creditPendingDeposit(
@@ -353,20 +407,27 @@ export class VirtualAccountsService {
     }
     if (deposit.expiresAt && deposit.expiresAt < new Date()) {
       await this.pendingRepo.update(deposit.id, { status: 'expired' });
+      this.lastPendingReason.delete(deposit.reference);
       deposit.status = 'expired';
       return deposit;
     }
 
-    const { confirmed, amount: confirmedAmount } =
-      await this.confirmInstruction(deposit);
+    const {
+      confirmed,
+      amount: confirmedAmount,
+      reason,
+    } = await this.confirmInstruction(deposit);
     const amount = confirmedAmount ?? Number(deposit.amount);
 
     if (!confirmed) {
-      this.logger.log(
+      this.logUnconfirmed(
+        deposit.reference,
         `Deposit ${deposit.reference} is pending — transfer not yet confirmed, no credit recorded`,
+        reason,
       );
       return deposit;
     }
+    this.lastPendingReason.delete(deposit.reference);
 
     const savingsType: 'general' | 'goal' | undefined =
       deposit.type === 'goal'
@@ -538,19 +599,26 @@ export class VirtualAccountsService {
     }
     if (pending.expiresAt && pending.expiresAt < new Date()) {
       await this.pendingRepo.update(pending.id, { status: 'expired' });
+      this.lastPendingReason.delete(pending.reference);
       pending.status = 'expired';
       return pending;
     }
 
-    const { confirmed, amount: confirmedAmount } =
-      await this.confirmInstruction(pending);
+    const {
+      confirmed,
+      amount: confirmedAmount,
+      reason,
+    } = await this.confirmInstruction(pending);
 
     if (!confirmed) {
-      this.logger.log(
+      this.logUnconfirmed(
+        pending.reference,
         `Loan payment ${pending.reference} is pending — transfer not yet confirmed, not marked paid`,
+        reason,
       );
       return pending;
     }
+    this.lastPendingReason.delete(pending.reference);
 
     const expected = Number(pending.amount);
     const received = confirmedAmount ?? expected;
@@ -696,19 +764,26 @@ export class VirtualAccountsService {
     }
     if (pending.expiresAt && pending.expiresAt < new Date()) {
       await this.pendingRepo.update(pending.id, { status: 'expired' });
+      this.lastPendingReason.delete(pending.reference);
       pending.status = 'expired';
       return pending;
     }
 
-    const { confirmed, amount: confirmedAmount } =
-      await this.confirmInstruction(pending);
+    const {
+      confirmed,
+      amount: confirmedAmount,
+      reason,
+    } = await this.confirmInstruction(pending);
 
     if (!confirmed) {
-      this.logger.log(
+      this.logUnconfirmed(
+        pending.reference,
         `Investment payment ${pending.reference} is pending — transfer not yet confirmed, order not confirmed`,
+        reason,
       );
       return pending;
     }
+    this.lastPendingReason.delete(pending.reference);
 
     const expected = Number(pending.amount);
     const received = confirmedAmount ?? expected;

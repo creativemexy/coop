@@ -464,6 +464,10 @@ describe('FirstCheckoutClient', () => {
         accountNumber: '9600002445',
       });
       expect(res.confirmed).toBe(false);
+      expect(res.paymentStatus).toBe('NotFound');
+      expect(res.message).toBe(
+        'No successful transaction record for this account: 9600002445',
+      );
     });
 
     it('does not confirm when the gateway reports an error', async () => {

@@ -429,15 +429,18 @@ export class FirstCheckoutClient {
       firstValueFrom(
         this.httpService.post<{
           status?: string;
-          data?: {
-            message?: string;
-            transactions?: Array<{
-              paymentStatus?: string;
-              approvalStatus?: string;
-              amount?: number;
-              message?: string;
-            }>;
-          };
+          message?: string;
+          data?:
+            | string
+            | {
+                message?: string;
+                transactions?: Array<{
+                  paymentStatus?: string;
+                  approvalStatus?: string;
+                  amount?: number;
+                  message?: string;
+                }>;
+              };
         }>(
           `${this.apiUrl}/apigateway/api/v1/paywithtransfer/confirm-payment`,
           {
@@ -458,12 +461,19 @@ export class FirstCheckoutClient {
     // Docs success body: { data: { message: "Successful",
     // transactions: [{ approvalStatus: "APPROVED" }] }, status: "OK" }.
     // Error bodies: { status: "error", message: "..." } with no approval.
-    const tx = data?.data?.transactions?.[0];
-    const message = data?.data?.message ?? data?.status;
+    const tx =
+      typeof data?.data === 'object' ? data.data.transactions?.[0] : undefined;
+    // Live "no transfer yet" body: { data: "No successful transaction record
+    // for this account: …", status: "NotFound" } — keep the detail for logs.
+    const message =
+      typeof data?.data === 'string'
+        ? data.data
+        : (data?.data?.message ?? data?.message ?? data?.status);
     const messageLc = (
       typeof message === 'string' ? message : ''
     ).toLowerCase();
-    const paymentStatus = tx?.paymentStatus ?? tx?.approvalStatus;
+    const paymentStatus =
+      tx?.paymentStatus ?? tx?.approvalStatus ?? data?.status;
     const outerOk = data?.status === 'OK';
     const approved =
       (tx?.paymentStatus ?? '').toUpperCase() === 'SUCCESSFUL' ||
