@@ -97,9 +97,15 @@ export class VirtualAccountsService {
    * gateway confirms the transfer. When FirstCheckout is not configured
    * (stub mode), the query is intentionally BLOCKED so nothing is marked as
    * paid before real gateway keys are set.
+   *
+   * confirm-payment finalises a transaction and the docs allow it only once,
+   * after the customer has transferred — so it runs only when `notifyGateway`
+   * is set (member clicked "I have transferred", or a deposit webhook arrived).
+   * Background polling only reads the status via Query Transaction.
    */
   private async confirmInstruction(
     pending: PendingDeposit,
+    notifyGateway = false,
   ): Promise<{ confirmed: boolean; amount?: number; reason?: string }> {
     const txReference = pending.bankReference ?? pending.reference;
     if (this.client.isStubbed()) {
@@ -110,25 +116,27 @@ export class VirtualAccountsService {
     }
 
     const reasons: string[] = [];
-    try {
-      const res = await this.client.confirmPayWithTransfer({
-        reference: txReference,
-        accountNumber: pending.accountNumber,
-        token: pending.token ?? undefined,
-      });
-      if (res.confirmed) {
-        return {
-          confirmed: true,
-          amount: res.amount ? Number(res.amount) : undefined,
-        };
+    if (notifyGateway) {
+      try {
+        const res = await this.client.confirmPayWithTransfer({
+          reference: txReference,
+          accountNumber: pending.accountNumber,
+          token: pending.token ?? undefined,
+        });
+        if (res.confirmed) {
+          return {
+            confirmed: true,
+            amount: res.amount ? Number(res.amount) : undefined,
+          };
+        }
+        reasons.push(
+          ...[res.paymentStatus, res.message].filter((r): r is string => !!r),
+        );
+      } catch (error: unknown) {
+        const detail = this.gatewayErrorDetail(error);
+        this.logger.warn(`Confirm failed for ${pending.reference}: ${detail}`);
+        reasons.push(`confirm error: ${detail}`);
       }
-      reasons.push(
-        ...[res.paymentStatus, res.message].filter((r): r is string => !!r),
-      );
-    } catch (error: unknown) {
-      const detail = this.gatewayErrorDetail(error);
-      this.logger.warn(`Confirm failed for ${pending.reference}: ${detail}`);
-      reasons.push(`confirm error: ${detail}`);
     }
 
     // Confirm-payment only reports a completed transfer; the documented
@@ -193,7 +201,7 @@ export class VirtualAccountsService {
     // Never record a credit/repayment from a callback alone — confirm the
     // transfer with FirstCheckout first.
     const { confirmed, amount: confirmedAmount } =
-      await this.confirmInstruction(pending);
+      await this.confirmInstruction(pending, true);
     if (!confirmed) {
       this.logger.log(
         `Ignoring ${pending.type} notification for ${pending.reference} — transfer not confirmed`,
@@ -396,6 +404,7 @@ export class VirtualAccountsService {
   async verifyDeposit(
     userId: string,
     depositId: string,
+    notifyGateway = false,
   ): Promise<PendingDeposit> {
     const deposit = await this.pendingRepo.findOne({
       where: { id: depositId },
@@ -417,7 +426,7 @@ export class VirtualAccountsService {
       confirmed,
       amount: confirmedAmount,
       reason,
-    } = await this.confirmInstruction(deposit);
+    } = await this.confirmInstruction(deposit, notifyGateway);
     const amount = confirmedAmount ?? Number(deposit.amount);
 
     if (!confirmed) {
@@ -587,6 +596,7 @@ export class VirtualAccountsService {
   async verifyLoanRepayment(
     userId: string,
     repaymentId: string,
+    notifyGateway = false,
   ): Promise<PendingDeposit> {
     const pending = await this.findLoanRepaymentInstruction(
       userId,
@@ -609,7 +619,7 @@ export class VirtualAccountsService {
       confirmed,
       amount: confirmedAmount,
       reason,
-    } = await this.confirmInstruction(pending);
+    } = await this.confirmInstruction(pending, notifyGateway);
 
     if (!confirmed) {
       this.logUnconfirmed(
@@ -755,6 +765,7 @@ export class VirtualAccountsService {
   async verifyInvestmentOrder(
     userId: string,
     orderId: string,
+    notifyGateway = false,
   ): Promise<PendingDeposit> {
     const pending = await this.findInvestmentOrderInstruction(userId, orderId);
     if (!pending) {
@@ -774,7 +785,7 @@ export class VirtualAccountsService {
       confirmed,
       amount: confirmedAmount,
       reason,
-    } = await this.confirmInstruction(pending);
+    } = await this.confirmInstruction(pending, notifyGateway);
 
     if (!confirmed) {
       this.logUnconfirmed(

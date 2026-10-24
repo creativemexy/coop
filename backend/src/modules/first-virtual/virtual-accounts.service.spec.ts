@@ -57,8 +57,8 @@ describe('VirtualAccountsService.verifyDeposit', () => {
       queryTransaction: jest.fn().mockResolvedValue({ status: 'PENDING' }),
     });
 
-    await service.verifyDeposit('user-1', 'dep-1');
-    await service.verifyDeposit('user-1', 'dep-1');
+    await service.verifyDeposit('user-1', 'dep-1', true);
+    await service.verifyDeposit('user-1', 'dep-1', true);
 
     expect(savingsService.applyExternalDeposit).not.toHaveBeenCalled();
     const pendingLogs = (logSpy.mock.calls as unknown[][])
@@ -96,15 +96,50 @@ describe('VirtualAccountsService.verifyDeposit', () => {
     );
   });
 
+  it('background polls only query the status and never call confirm-payment', async () => {
+    const confirmPayWithTransfer = jest.fn();
+    const queryTransaction = jest.fn().mockResolvedValue({ status: 'PENDING' });
+    const { service, savingsService } = build({
+      confirmPayWithTransfer,
+      queryTransaction,
+    });
+
+    await service.verifyDeposit('user-1', 'dep-1');
+    await service.verifyDeposit('user-1', 'dep-1');
+
+    expect(confirmPayWithTransfer).not.toHaveBeenCalled();
+    expect(queryTransaction).toHaveBeenCalledTimes(2);
+    expect(savingsService.applyExternalDeposit).not.toHaveBeenCalled();
+  });
+
+  it('credits when the member-triggered confirm-payment is APPROVED', async () => {
+    const confirmPayWithTransfer = jest
+      .fn()
+      .mockResolvedValue({ confirmed: true, amount: 5000 });
+    const { service, savingsService } = build({
+      confirmPayWithTransfer,
+      queryTransaction: jest.fn(),
+    });
+
+    await service.verifyDeposit('user-1', 'dep-1', true);
+
+    expect(confirmPayWithTransfer).toHaveBeenCalledWith({
+      reference: 'TX-1',
+      accountNumber: '9101725955',
+      token: 'va-token',
+    });
+    expect(savingsService.applyExternalDeposit).toHaveBeenCalledTimes(1);
+  });
+
   it('still checks Query Transaction when confirm-payment throws', async () => {
     const { service, savingsService } = build({
       confirmPayWithTransfer: jest
         .fn()
-        .mockRejectedValue({ response: { status: 401 } }),
+        .mockRejectedValue({ response: { status: 409 } }),
       queryTransaction: jest.fn().mockResolvedValue({ status: 'SUCCESS' }),
     });
 
-    await service.verifyDeposit('user-1', 'dep-1');
+    await service.verifyDeposit('user-1', 'dep-1', true);
 
     expect(savingsService.applyExternalDeposit).toHaveBeenCalledTimes(1);
   });

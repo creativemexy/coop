@@ -268,11 +268,11 @@ export function Loans() {
     setPayingId(null)
   }
 
-  const checkPayment = async (): Promise<string | 'error'> => {
+  const checkPayment = async (confirm = false): Promise<string | 'error'> => {
     if (!pay) return 'error'
     setChecking(true)
     try {
-      const { data } = await api.post(`/virtual-accounts/loan-repayments/${pay.repaymentId}/verify`)
+      const { data } = await api.post(`/virtual-accounts/loan-repayments/${pay.repaymentId}/verify`, confirm ? { confirm: true } : undefined)
       setPay(data && { repaymentId: pay.repaymentId, pending: data })
       if (data && data.status === 'credited') {
         setPay(null)
@@ -666,8 +666,8 @@ export function Loans() {
                   </div>
                 </div>
 
-                <button type="button" onClick={checkPayment} disabled={checking} className={`${solidGreen} w-full`}>
-                  {checking ? (<><Loader2 size={15} className="animate-spin" /> Checking...</>) : 'Check status'}
+                <button type="button" onClick={() => checkPayment(true)} disabled={checking} className={`${solidGreen} w-full`}>
+                  {checking ? (<><Loader2 size={15} className="animate-spin" /> Checking...</>) : 'I have transferred the money'}
                 </button>
               </>
             )}

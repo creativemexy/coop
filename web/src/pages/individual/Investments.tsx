@@ -206,11 +206,11 @@ export function Investments() {
     }
   }
 
-  const checkPayment = async (): Promise<string | 'error'> => {
+  const checkPayment = async (confirm = false): Promise<string | 'error'> => {
     if (!pay) return 'error'
     setChecking(true)
     try {
-      const { data } = await api.post(`/virtual-accounts/investments/${pay.orderId}/verify`)
+      const { data } = await api.post(`/virtual-accounts/investments/${pay.orderId}/verify`, confirm ? { confirm: true } : undefined)
       setPay((prev) => prev && data
         ? { orderId: prev.orderId, instruction: data }
         : prev)
@@ -603,7 +603,7 @@ export function Investments() {
               )}
             </div>
 
-            <button type="button" disabled={checking} onClick={checkPayment} className={`${solidGreen} w-full`}>
+            <button type="button" disabled={checking} onClick={() => checkPayment(true)} className={`${solidGreen} w-full`}>
               {checking ? (<><Loader2 size={15} className="animate-spin" /> Checking...</>) : "I've transferred · Check"}
             </button>
             <button type="button" onClick={() => { setPay(null); setOrderResult(null); setSelected(null) }} className={`${ghost} w-full`}>

@@ -180,7 +180,7 @@ export function Savings() {
         setDepositInstruction(null)
         return
       }
-      const r = await api.post(`/virtual-accounts/deposits/${current.id}/verify`)
+      const r = await api.post(`/virtual-accounts/deposits/${current.id}/verify`, { confirm: true })
       const d = r.data
       if (!d || d.status === 'credited' || d.status === 'expired') {
         if (pollRef.current) clearInterval(pollRef.current)
@@ -300,7 +300,7 @@ export function Savings() {
           <p className="mt-3 text-sm leading-relaxed text-[#6B5245]">
             Transfer{' '}
             <span className="font-black text-[#176B5B]">{ngn(depositInstruction.amount)}</span>{' '}
-            to the account below. Your savings are credited only after the transfer is confirmed by the bank — hit "Check status" to confirm.
+            to the account below. Your savings are credited only after the transfer is confirmed by the bank — once you have sent it, click "I have transferred the money".
           </p>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <div>
@@ -335,7 +335,7 @@ export function Savings() {
               <Clock size={13} /> {expiresText(depositInstruction)}
             </span>
             <button type="button" onClick={refreshStatus} className="inline-flex items-center gap-2 rounded-full bg-[#E4A42A] px-4 py-2 text-sm font-bold text-[#2C1B13] shadow-sm transition hover:bg-[#B9891F] cursor-pointer">
-              <RefreshCw size={14} /> Check status
+              <RefreshCw size={14} /> I have transferred the money
             </button>
           </div>
         </div>
