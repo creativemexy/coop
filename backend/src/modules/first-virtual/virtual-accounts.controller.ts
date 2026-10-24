@@ -59,8 +59,13 @@ export class VirtualAccountsController {
   async verifyDeposit(
     @CurrentUser('sub') userId: string,
     @Param('id') depositId: string,
+    @Body() body?: { confirm?: boolean },
   ) {
-    const deposit = await this.service.verifyDeposit(userId, depositId);
+    const deposit = await this.service.verifyDeposit(
+      userId,
+      depositId,
+      body?.confirm === true,
+    );
     return this.toDto(deposit);
   }
 
@@ -95,8 +100,13 @@ export class VirtualAccountsController {
   async verifyLoanRepayment(
     @CurrentUser('sub') userId: string,
     @Param('repaymentId') repaymentId: string,
+    @Body() body?: { confirm?: boolean },
   ) {
-    const pending = await this.service.verifyLoanRepayment(userId, repaymentId);
+    const pending = await this.service.verifyLoanRepayment(
+      userId,
+      repaymentId,
+      body?.confirm === true,
+    );
     return this.toDto(pending);
   }
 
@@ -131,8 +141,13 @@ export class VirtualAccountsController {
   async verifyInvestmentPayment(
     @CurrentUser('sub') userId: string,
     @Param('orderId') orderId: string,
+    @Body() body?: { confirm?: boolean },
   ) {
-    const pending = await this.service.verifyInvestmentOrder(userId, orderId);
+    const pending = await this.service.verifyInvestmentOrder(
+      userId,
+      orderId,
+      body?.confirm === true,
+    );
     return this.toDto(pending);
   }
 

@@ -32,9 +32,9 @@ export default function RepaymentsScreen({ navigation }: { navigation: any }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const checkLoanRepayment = useCallback(async (repaymentId: string) => {
+  const checkLoanRepayment = useCallback(async (repaymentId: string, confirm = false) => {
     try {
-      const { data } = await client.post(ENDPOINTS.virtualAccounts.loanRepayVerify(repaymentId));
+      const { data } = await client.post(ENDPOINTS.virtualAccounts.loanRepayVerify(repaymentId), confirm ? { confirm: true } : undefined);
       const d: DepositInstruction = data;
       setPay((prev) => prev && d ? { repaymentId, pending: d } : prev);
       if (d && d.status === 'credited') {
@@ -190,7 +190,7 @@ export default function RepaymentsScreen({ navigation }: { navigation: any }) {
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setPay(null)}>
                 <Text style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkLoanRepayment(pay.repaymentId)}>
+              <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkLoanRepayment(pay.repaymentId, true)}>
                 <Text style={styles.submitText}>I've transferred · Check</Text>
               </TouchableOpacity>
             </View>
@@ -224,7 +224,7 @@ export default function RepaymentsScreen({ navigation }: { navigation: any }) {
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setPay(null)}>
                 <Text style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkLoanRepayment(pay.repaymentId)}>
+              <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkLoanRepayment(pay.repaymentId, true)}>
                 <Text style={styles.submitText}>I've transferred · Check</Text>
               </TouchableOpacity>
             </View>

@@ -33,6 +33,22 @@ export interface FirstCheckoutAuthResponse {
   expires_in?: number | string;
 }
 
+interface ConfirmPaymentResponse {
+  status?: string;
+  message?: string;
+  data?:
+    | string
+    | {
+        message?: string;
+        transactions?: Array<{
+          paymentStatus?: string;
+          approvalStatus?: string;
+          amount?: number;
+          message?: string;
+        }>;
+      };
+}
+
 export interface ConfirmTransferResult {
   /** True only when FirstChekout confirms the transfer completed. */
   confirmed: boolean;
@@ -425,20 +441,9 @@ export class FirstCheckoutClient {
       };
     }
 
-    const { data } = await this.withAccessToken((token) =>
+    const confirmCall = this.withAccessToken((token) =>
       firstValueFrom(
-        this.httpService.post<{
-          status?: string;
-          data?: {
-            message?: string;
-            transactions?: Array<{
-              paymentStatus?: string;
-              approvalStatus?: string;
-              amount?: number;
-              message?: string;
-            }>;
-          };
-        }>(
+        this.httpService.post<ConfirmPaymentResponse>(
           `${this.apiUrl}/apigateway/api/v1/paywithtransfer/confirm-payment`,
           {
             UniqueReference: params.reference,
@@ -454,16 +459,36 @@ export class FirstCheckoutClient {
         ),
       ),
     );
+    // Before a transfer settles the live gateway answers HTTP 404 with
+    // { data: "No successful transaction record…", status: "NotFound" }.
+    const { data }: { data: ConfirmPaymentResponse } = await confirmCall.catch(
+      (error: unknown): { data: ConfirmPaymentResponse } => {
+        const res = (
+          error as { response?: { status?: number; data?: unknown } }
+        )?.response;
+        if (res?.status === 404 && res.data && typeof res.data === 'object') {
+          return { data: res.data };
+        }
+        throw error;
+      },
+    );
 
     // Docs success body: { data: { message: "Successful",
     // transactions: [{ approvalStatus: "APPROVED" }] }, status: "OK" }.
     // Error bodies: { status: "error", message: "..." } with no approval.
-    const tx = data?.data?.transactions?.[0];
-    const message = data?.data?.message ?? data?.status;
+    const tx =
+      typeof data?.data === 'object' ? data.data.transactions?.[0] : undefined;
+    // Live "no transfer yet" body: { data: "No successful transaction record
+    // for this account: …", status: "NotFound" } — keep the detail for logs.
+    const message =
+      typeof data?.data === 'string'
+        ? data.data
+        : (data?.data?.message ?? data?.message ?? data?.status);
     const messageLc = (
       typeof message === 'string' ? message : ''
     ).toLowerCase();
-    const paymentStatus = tx?.paymentStatus ?? tx?.approvalStatus;
+    const paymentStatus =
+      tx?.paymentStatus ?? tx?.approvalStatus ?? data?.status;
     const outerOk = data?.status === 'OK';
     const approved =
       (tx?.paymentStatus ?? '').toUpperCase() === 'SUCCESSFUL' ||

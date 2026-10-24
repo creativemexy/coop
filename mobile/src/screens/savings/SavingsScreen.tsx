@@ -143,7 +143,7 @@ export default function SavingsScreen() {
 
   const handleVerifyDeposit = async (id: string) => {
     try {
-      const { data } = await client.post(ENDPOINTS.virtualAccounts.depositsVerify(id));
+      const { data } = await client.post(ENDPOINTS.virtualAccounts.depositsVerify(id), { confirm: true });
       const d = data as DepositInstruction;
       if (d.status === 'credited') {
         setInstruction(null);

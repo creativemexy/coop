@@ -464,6 +464,35 @@ describe('FirstCheckoutClient', () => {
         accountNumber: '9600002445',
       });
       expect(res.confirmed).toBe(false);
+      expect(res.paymentStatus).toBe('NotFound');
+      expect(res.message).toBe(
+        'No successful transaction record for this account: 9600002445',
+      );
+    });
+
+    it('treats the live HTTP 404 "NotFound" response as pending, not an error', async () => {
+      const http = routedHttp({
+        onToken: () => tokenResponse('tok-1', 600),
+        onConfirm: () =>
+          throwError(() => ({
+            response: {
+              status: 404,
+              data: {
+                data: 'No successful transaction record for this account: 9600004188',
+                status: 'NotFound',
+              },
+            },
+          })),
+      });
+      const client = buildClient(http);
+
+      const res = await client.confirmPayWithTransfer({
+        reference: 'TX-1',
+        accountNumber: '9600004188',
+        token: 'va-token',
+      });
+      expect(res.confirmed).toBe(false);
+      expect(res.paymentStatus).toBe('NotFound');
     });
 
     it('does not confirm when the gateway reports an error', async () => {

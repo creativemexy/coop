@@ -46,10 +46,10 @@ export default function InvestmentsScreen() {
 
   useFocusEffect(useCallback(() => { loadProducts(); }, [loadProducts]));
 
-  const checkPayment = useCallback(async (orderId: string): Promise<string | 'error'> => {
+  const checkPayment = useCallback(async (orderId: string, confirm = false): Promise<string | 'error'> => {
     setChecking(true);
     try {
-      const { data } = await client.post(ENDPOINTS.virtualAccounts.investPaymentVerify(orderId));
+      const { data } = await client.post(ENDPOINTS.virtualAccounts.investPaymentVerify(orderId), confirm ? { confirm: true } : undefined);
       const d: DepositInstruction = data;
       setPay((prev) => prev && d ? { orderId, instruction: d } : prev);
       if (d.status === 'credited') {
@@ -211,7 +211,7 @@ export default function InvestmentsScreen() {
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setPay(null)}>
               <Text style={styles.cancelText}>Close</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkPayment(pay.orderId)} disabled={checking}>
+            <TouchableOpacity style={styles.submitBtn} onPress={() => pay && checkPayment(pay.orderId, true)} disabled={checking}>
               <Text style={styles.submitText}>{checking ? 'Checking...' : "I've transferred · Check"}</Text>
             </TouchableOpacity>
           </View>
